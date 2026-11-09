@@ -15,7 +15,7 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
 
 export function Panel({ title, children, className, action }: { title?: string; children: ReactNode; className?: string; action?: ReactNode }) {
   return (
-    <section className={cn('rounded-2xl border bg-card/70 backdrop-blur p-5 shadow-[0_8px_30px_-12px_hsl(262_83%_40%/0.25)]', className)}>
+    <section className={cn('glass-panel rounded-2xl border p-5', className)}>
       {title && <div className="flex items-center justify-between mb-4"><h2 className="font-bold text-sm tracking-wide text-muted-foreground uppercase">{title}</h2>{action}</div>}
       {children}
     </section>
@@ -25,7 +25,7 @@ export function Panel({ title, children, className, action }: { title?: string; 
 export function Kpi({ label, value, hint, tone = 'default', icon }: { label: string; value: ReactNode; hint?: ReactNode; tone?: 'default' | 'good' | 'bad' | 'accent'; icon?: ReactNode }) {
   const toneCls = { default: 'text-foreground', good: 'text-[hsl(var(--success))]', bad: 'text-destructive', accent: 'text-accent' }[tone];
   return (
-    <div className="rounded-2xl border bg-card/70 p-4 flex flex-col gap-1">
+    <div className="glass-kpi rounded-2xl border p-4 flex flex-col gap-1">
       <div className="flex items-center justify-between text-xs text-muted-foreground">{label}{icon}</div>
       <div className={cn('text-2xl font-extrabold tabular-nums', toneCls)}>{value}</div>
       {hint && <div className="text-xs text-muted-foreground">{hint}</div>}

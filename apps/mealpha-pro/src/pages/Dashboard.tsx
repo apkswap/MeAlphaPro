@@ -58,7 +58,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-primary/20 via-card to-accent/10 p-5 md:p-7">
+      <div className="glass-hero relative overflow-hidden rounded-3xl border p-5 md:p-7">
         <div className="absolute -end-12 -top-16 h-52 w-52 rounded-full bg-primary/10 blur-3xl" />
         <div className="relative flex flex-wrap items-end justify-between gap-5">
           <div className="max-w-2xl">
