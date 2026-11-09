@@ -4,7 +4,7 @@ import { Activity, ArrowDownRight, ArrowUpRight, CheckCircle2, CircleAlert, Flam
 import { useStore } from '../lib/store';
 import { fmtMoney, fmtNum } from '../lib/i18n';
 import { habitStats, monthFinance, scores, taskStats, goalInfo } from '../lib/analytics';
-import { Panel, PageHeader } from '../components/ui-bits';
+import { Panel } from '../components/ui-bits';
 
 const C=['#a78bfa','#22d3ee','#34d399','#f59e0b','#f472b6','#60a5fa','#fb7185'];
 export default function Insights(){
