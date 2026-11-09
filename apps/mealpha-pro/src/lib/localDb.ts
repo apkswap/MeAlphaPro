@@ -2,7 +2,10 @@
 export const ENTITIES = ['goals', 'tasks', 'habits', 'habitLogs', 'transactions', 'assets', 'liabilities'] as const;
 export type Entity = (typeof ENTITIES)[number];
 export type Rec = Record<string, any>;
-export type AppSettings = { language: 'fa' | 'en'; calendar: string; currency: string; exchangeRates: string; monthlyBudget: number | null; customCategories?: { goals?: string[]; tasks?: string[]; transactions?: string[] } };
+export type CustomField = { id: string; name: string; type: 'text' | 'number' | 'date' | 'checkbox' | 'select'; options?: string[] };
+export type CustomSpaceRecord = { id: string; createdAt: number; values: Record<string, string | number | boolean> };
+export type CustomSpace = { id: string; name: string; icon: string; color: string; fields: CustomField[]; records: CustomSpaceRecord[] };
+export type AppSettings = { language: 'fa' | 'en'; calendar: string; currency: string; exchangeRates: string; monthlyBudget: number | null; customCategories?: { goals?: string[]; tasks?: string[]; transactions?: string[] }; identity?: { displayName: string; username: string; avatar: string; bio: string; accentColor: string }; customSpaces?: CustomSpace[] };
 export type Snapshot = { version: 1; exportedAt: string; settingsUpdatedAt: number; data: Record<Entity, Rec[]>; settings: AppSettings; tombstones: Record<string, number> };
 
 const DB_NAME = 'mealpha-pro-local';
