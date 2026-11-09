@@ -115,6 +115,14 @@ const dict = {
   accountType: ['نوع حساب', 'Account type'],
   bankAccounts: ['حساب‌های بانکی', 'Bank accounts'],
   accountBalance: ['موجودی حساب', 'Account balance'],
+  workspace: ['فضای شخصی', 'My workspace'],
+  customSpaceHelp: ['برای نگهداری اطلاعاتی که در بخش‌های اهداف، کارها و امور مالی جا نمی‌گیرند؛ مثل پروژه‌های شخصی، ایده‌ها، فهرست‌ها و یادداشت‌های قابل پیگیری.', 'A flexible place for information that does not fit goals, tasks or finance — personal projects, ideas, lists and trackable notes.'],
+  itemTitle: ['عنوان مورد', 'Item title'],
+  itemType: ['دسته‌بندی', 'Category'],
+  itemStatus: ['وضعیت', 'Status'],
+  itemDetails: ['جزئیات', 'Details'],
+  itemDueDate: ['تاریخ پیگیری', 'Follow-up date'],
+
 } as const;
 
 export type Key = keyof typeof dict;
