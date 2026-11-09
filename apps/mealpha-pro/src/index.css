@@ -76,6 +76,7 @@
       radial-gradient(ellipse at 52% 48%, hsl(230 50% 18% / .28), transparent 58%),
       linear-gradient(135deg, #080c1c 0%, #10152b 48%, #080f20 100%);
     background-attachment: fixed;
+    background-size: 140% 140%, 130% 130%, 120% 120%, cover;
   }
   /* Shared ambient lighting and perspective grid for the 3D backdrop. */
   body::before {
@@ -88,7 +89,7 @@
       radial-gradient(circle at 72% 22%, rgba(139,92,246,.18), transparent 22rem),
       radial-gradient(circle at 18% 68%, rgba(34,211,238,.12), transparent 24rem),
       radial-gradient(circle at 90% 88%, rgba(99,102,241,.10), transparent 20rem);
-    filter: saturate(125%);
+    filter: saturate(150%);\n    opacity: .95;
   }
   body::after {
     content: "";
@@ -105,9 +106,9 @@
     background-image:
       linear-gradient(rgba(167,139,250,.20) 1px, transparent 1px),
       linear-gradient(90deg, rgba(103,232,249,.16) 1px, transparent 1px);
-    background-size: 54px 54px;
-    mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 72%, transparent 100%);
+    background-size: 46px 46px;
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 78%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 72%, transparent 100%);
   }
-  #root { position: relative; min-height: 100vh; }
+  #root { position: relative; min-height: 100vh; }\n  .bg-card, [class*='bg-card/'] { backdrop-filter: blur(18px); }
 }
