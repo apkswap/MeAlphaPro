@@ -171,7 +171,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "icon": "build/mealpha.ico"
     },
     "nsis": {
       "oneClick": false,
