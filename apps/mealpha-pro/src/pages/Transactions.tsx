@@ -9,18 +9,19 @@ import DataList, { Col } from '../components/DataList';
 import { Kpi, PageHeader } from '../components/ui-bits';
 import { cn } from '@project/components/lib/utils';
 
-const FIELDS: Field[] = [
-  { key: 'description', label: 'description', type: 'text', required: true, full: true },
-  { key: 'kind', label: 'kind', type: 'select', options: ['Income', 'Expense'], required: true },
-  { key: 'amount', label: 'amount', type: 'number', required: true },
-  { key: 'currency', label: 'currency', type: 'text', required: true },
-  { key: 'date', label: 'date', type: 'date', required: true },
-  { key: 'category', label: 'category', type: 'text' },
-  { key: 'nature', label: 'nature', type: 'select', options: ['Essential', 'Discretionary'] },
-];
+
 
 export default function Transactions() {
   const { data, t, settings } = useStore();
+  const fields: Field[] = [
+    { key: 'description', label: 'description', type: 'text', required: true, full: true },
+    { key: 'kind', label: 'kind', type: 'select', options: ['Income', 'Expense'], required: true },
+    { key: 'amount', label: 'amount', type: 'number', required: true },
+    { key: 'currency', label: 'currency', type: 'text', required: true },
+    { key: 'date', label: 'date', type: 'date', required: true },
+    { key: 'category', label: 'category', type: 'select', options: [...new Set([...(settings.customCategories?.transactions ?? []), ...data!.transactions.map((x) => x.category).filter(Boolean)])] },
+    { key: 'nature', label: 'nature', type: 'select', options: ['Essential', 'Discretionary'] },
+  ];
   const [edit, setEdit] = useState<Rec | null>(null);
   const [open, setOpen] = useState(false);
   const L = settings.language;
@@ -48,7 +49,7 @@ export default function Transactions() {
       </div>
       {m.missing.length > 0 && <p className="text-xs text-[hsl(var(--warning))] mb-3">{t('missingRate')}: {m.missing.join(', ')}</p>}
       <DataList rows={data!.transactions} cols={cols} entity="transactions" onEdit={(r) => { setEdit(r); setOpen(true); }} searchKeys={['description', 'category']} />
-      <EntityForm open={open} onOpenChange={setOpen} entity="transactions" fields={FIELDS} initial={edit} defaults={{ kind: 'Expense', currency: cur, date: todayISO(), nature: 'Essential' }} title={t('finance')} />
+      <EntityForm open={open} onOpenChange={setOpen} entity="transactions" fields={fields} initial={edit} defaults={{ kind: 'Expense', currency: cur, date: todayISO(), nature: 'Essential' }} title={t('finance')} />
     </div>
   );
 }
