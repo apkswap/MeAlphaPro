@@ -109,6 +109,8 @@
     mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 78%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 72%, transparent 100%);
   }
-  .dark body::before { opacity: .95; }\n  body::before { opacity: .72; }\n  #root { position: relative; min-height: 100vh; }
+  .dark body::before { opacity: .95; }
+  body::before { opacity: .72; }
+  #root { position: relative; min-height: 100vh; }
   .bg-card, [class*='bg-card/'] { backdrop-filter: blur(18px); }
 }
