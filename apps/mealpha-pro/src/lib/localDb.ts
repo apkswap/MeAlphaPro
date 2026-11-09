@@ -82,33 +82,123 @@ export async function getSnapshot(): Promise<Snapshot> {
   return { version: 1, exportedAt: new Date().toISOString(), settingsUpdatedAt: await readMeta('settingsUpdatedAt', 0), data, settings: all.settings ?? { language: 'fa', calendar: 'jalali', currency: 'IRT', exchangeRates: '', monthlyBudget: null }, tombstones: await readMeta('tombstones', {}) };
 }
 
-export async function mergeSnapshot(remote: Snapshot) {
-  if (!remote || remote.version !== 1 || !remote.data) throw new Error('Unsupported or invalid MeAlpha backup format.');
-  const local = await getSnapshot();
-  const db = await openDb();
+function validateSnapshot(remote: Snapshot) {
+  if (!remote || remote.version !== 1 || !remote.data || typeof remote.data !== 'object') {
+    throw new Error('Unsupported or invalid MeAlpha backup format.');
+  }
   for (const entity of ENTITIES) {
-    const merged = new Map<string, Rec>();
-    for (const item of local.data[entity] ?? []) merged.set(item.id, item);
-    for (const item of remote.data[entity] ?? []) {
-      if (!item?.id) continue;
-      const current = merged.get(item.id);
-      if (!current || Number(item.updatedAt ?? 0) > Number(current.updatedAt ?? 0)) merged.set(item.id, item);
+    const records = remote.data[entity];
+    if (records !== undefined && !Array.isArray(records)) {
+      throw new Error(`Invalid snapshot: ${entity} must be an array.`);
     }
-    const allTombstones = { ...local.tombstones, ...remote.tombstones };
-    const tx = db.transaction(entity, 'readwrite');
-    const store = tx.objectStore(entity);
-    const existingRequest = store.getAll();
-    existingRequest.onsuccess = () => {
-      for (const item of existingRequest.result) store.delete(item.id);
+    for (const record of records ?? []) {
+      if (!record || typeof record !== 'object' || typeof record.id !== 'string' || !record.id.trim()) {
+        throw new Error(`Invalid snapshot: ${entity} contains a record without a valid id.`);
+      }
+    }
+  }
+  if (remote.tombstones !== undefined) {
+    if (!remote.tombstones || typeof remote.tombstones !== 'object' || Array.isArray(remote.tombstones)) {
+      throw new Error('Invalid snapshot tombstones.');
+    }
+    for (const [key, value] of Object.entries(remote.tombstones)) {
+      if (!key || !Number.isFinite(Number(value)) || Number(value) < 0) {
+        throw new Error('Invalid snapshot tombstone timestamp.');
+      }
+    }
+  }
+  if (remote.settings !== undefined && (!remote.settings || typeof remote.settings !== 'object' || Array.isArray(remote.settings))) {
+    throw new Error('Invalid snapshot settings.');
+  }
+}
+
+export async function getPreSyncBackup(): Promise<Snapshot | null> {
+  return readMeta<Snapshot | null>('preSyncBackup', null);
+}
+
+/**
+ * Atomically merges a validated remote snapshot with the current local database.
+ * A recovery snapshot is written in the same transaction before any records change.
+ */
+export async function mergeSnapshot(remote: Snapshot) {
+  validateSnapshot(remote);
+
+  const db = await openDb();
+  const stores = [...ENTITIES, 'appMeta'] as const;
+  const tx = db.transaction(stores, 'readwrite');
+  const completed = new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+
+  const recordRequests = ENTITIES.map((entity) => req(tx.objectStore(entity).getAll()));
+  const metaStore = tx.objectStore('appMeta');
+  const settingsRequest = req(metaStore.get('settings'));
+  const settingsTimeRequest = req(metaStore.get('settingsUpdatedAt'));
+  const tombstonesRequest = req(metaStore.get('tombstones'));
+
+  try {
+    const [records, settingsRow, settingsTimeRow, tombstonesRow] = await Promise.all([
+      Promise.all(recordRequests),
+      settingsRequest,
+      settingsTimeRequest,
+      tombstonesRequest,
+    ]);
+
+    const localData = {} as Record<Entity, Rec[]>;
+    ENTITIES.forEach((entity, index) => { localData[entity] = records[index]; });
+    const localSettings = (settingsRow?.value ?? {
+      language: 'fa', calendar: 'jalali', currency: 'IRT', exchangeRates: '', monthlyBudget: null,
+    }) as AppSettings;
+    const localSettingsTime = Number(settingsTimeRow?.value ?? 0);
+    const localTombstones = (tombstonesRow?.value ?? {}) as Record<string, number>;
+    const localSnapshot: Snapshot = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      settingsUpdatedAt: localSettingsTime,
+      data: localData,
+      settings: localSettings,
+      tombstones: { ...localTombstones },
+    };
+
+    const mergedTombstones: Record<string, number> = { ...localTombstones };
+    for (const [key, value] of Object.entries(remote.tombstones ?? {})) {
+      mergedTombstones[key] = Math.max(Number(mergedTombstones[key] ?? 0), Number(value));
+    }
+
+    for (const entity of ENTITIES) {
+      const merged = new Map<string, Rec>();
+      for (const item of localData[entity]) merged.set(item.id, item);
+      for (const item of remote.data[entity] ?? []) {
+        const current = merged.get(item.id);
+        if (!current || Number(item.updatedAt ?? 0) > Number(current.updatedAt ?? 0)) {
+          merged.set(item.id, item);
+        }
+      }
+
+      const store = tx.objectStore(entity);
+      store.clear();
       for (const item of merged.values()) {
-        const deletedAt = allTombstones[`${entity}:${item.id}`] ?? 0;
+        const deletedAt = Number(mergedTombstones[`${entity}:${item.id}`] ?? 0);
         if (deletedAt < Number(item.updatedAt ?? 0)) store.put(item);
       }
-    };
-    await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error); });
+    }
+
+    const remoteSettingsTime = Number(
+      remote.settingsUpdatedAt ?? (remote.exportedAt ? new Date(remote.exportedAt).getTime() : 0),
+    );
+    if (Number.isFinite(remoteSettingsTime) && remoteSettingsTime > localSettingsTime && remote.settings) {
+      metaStore.put({ key: 'settings', value: remote.settings });
+      metaStore.put({ key: 'settingsUpdatedAt', value: remoteSettingsTime });
+    }
+
+    // The backup and the merged data commit together: quota or write failures abort both.
+    metaStore.put({ key: 'preSyncBackup', value: localSnapshot });
+    metaStore.put({ key: 'tombstones', value: mergedTombstones });
+    await completed;
+  } catch (error) {
+    try { tx.abort(); } catch { /* transaction may already be inactive */ }
+    throw error;
   }
-  const remoteSettingsTime = Number(remote.settingsUpdatedAt ?? new Date(remote.exportedAt).getTime());
-  const localSettingsTime = Number(local.settingsUpdatedAt ?? 0);
-  if (remoteSettingsTime > localSettingsTime) { await writeMeta('settings', remote.settings); await writeMeta('settingsUpdatedAt', remoteSettingsTime); }
-  await writeMeta('tombstones', { ...local.tombstones, ...remote.tombstones });
 }
