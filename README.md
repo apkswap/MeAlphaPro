@@ -1,74 +1,117 @@
 # MeAlpha Pro
 
-نسخه مستقل و Local-first برای برنامه‌ریزی شخصی، پیگیری عادت‌ها و اهداف، مدیریت مالی و تحلیل عملکرد.
+**MeAlpha Pro** is a local-first personal operating system for organizing everyday work and life. It brings personal planning, goals, habits, tasks, financial tracking, and progress insights into one desktop- and mobile-oriented application.
 
-## قابلیت‌های موجود
+> The application is designed to keep day-to-day data on the user's device. Cloud backup is a separate, optional capability and must never be required for normal offline use.
 
-- داشبورد و مرور وضعیت فعالیت‌ها
-- مدیریت اهداف، کارها و عادت‌ها به‌همراه ثبت جلسات تمرکز
-- مدیریت چند حساب بانکی با ارز، شماره و موجودی مستقل و اتصال هر تراکنش به حساب مربوط؛ در کنار مدیریت دارایی‌ها، بدهی‌ها و ارزش خالص
-- گزارش‌ها و بینش‌های مبتنی بر داده‌های ثبت‌شده
-- فضای شخصی برای ثبت و پیگیری ایده‌ها، پروژه‌ها، فهرست‌ها و یادداشت‌های خارج از بخش‌های اصلی
-- رابط فارسی راست‌چین و انگلیسی چپ‌چین
-- پشتیبانی از تاریخ شمسی و میلادی
-- پروفایل کاربری با نام نمایشی، نام کاربری، بیوگرافی، انتخاب آواتار یا آپلود عکس و رنگ دلخواه\n- ذخیره‌سازی محلی با IndexedDB؛ خواندن و نوشتن اطلاعات برای کار روزمره به اتصال اینترنت نیاز ندارد.
+## Product highlights
 
-## تغییرات رابط کاربری در نسخه فعلی
+### Personal planning
+- Dashboard for reviewing personal activity and progress.
+- Goal management and progress tracking.
+- Task and to-do management.
+- Habit tracking.
+- Focus-session tracking.
+- Personal workspace for ideas, projects, lists, and notes.
 
-- عنوان کنار نشان برنامه در سایدبار، نام نمایشی کاربر یا «MeAlpha» را نشان می‌دهد و پسوند «Pro» از همان محل حذف شده است. نام محصول در metadata و تنظیمات بسته‌بندی همچنان MeAlpha Pro است.
-- پس‌زمینه با نورپردازی چندلایه بنفش/فیروزه‌ای و شبکه پرسپکتیو سه‌بعدی طراحی شده است.
-- پنل‌ها از ظاهر تیره و شیشه‌ای استفاده می‌کنند.\n- نشان اختصاصی برنامه و آیکون نصب‌کننده ویندوز اضافه شده است.
-- این تغییرات در لایه مشترک رابط کاربری انجام شده‌اند و در خروجی وب، دسکتاپ و Android که از همین سورس build شوند اعمال می‌شوند.
+### Personal finance
+- Multiple financial accounts, each with its own currency, account number, and balance.
+- Transactions associated with their relevant accounts.
+- Asset and liability tracking.
+- Net-worth overview.
+- Reports and insights based on information entered into the application.
 
-## فونت فارسی
+### Profile and personalization
+- Personal profile with display name, username, and biography.
+- Avatar selection and profile-image support.
+- Profile color and cover-image customization.
+- Persian (RTL) and English (LTR) interface support.
+- Jalali and Gregorian date support.
+- Three visual color directions: orange/navy, minimal green, and blue/navy.
+- Light and dark appearance modes.
+- Responsive layouts for desktop and smaller screens.
 
-در سورس فعلی فونت فارسی B Mitra بسته‌بندی نشده است. فعلاً از فونت‌های جایگزین سیستم مانند Tahoma و Segoe UI استفاده می‌شود. برای افزودن B Mitra به‌صورت آفلاین، فایل فونت دارای مجوز استفاده و بازتوزیع باید به پروژه اضافه و در CSS ثبت شود. بنابراین هنوز نباید انتظار داشت B Mitra در خروجی نصب‌شده نمایش داده شود.
+## Design
 
-## پیش‌نیازها
+The current interface uses a dark, layered visual language with glass-like surfaces, depth, and a subtle animated network-inspired background. The application shell, navigation, dashboard, and profile experience share the same design system.
 
-- Node.js نسخه 22.14.0 (همان نسخه استفاده‌شده در workflowهای CI)
+The product name remains **MeAlpha Pro**. The compact application branding may display **MeAlpha** where space is limited.
+
+## Data, privacy, and backup
+
+### Local-first storage
+- Application data is stored locally using IndexedDB.
+- Core day-to-day use does not require an internet connection.
+- The application should remain usable when offline.
+- Users should create a backup before restoring data or moving to another device.
+
+### Dropbox direction
+Dropbox is the **only intended online backup provider** for MeAlpha Pro. Google Drive and other online backup providers are not part of the product's backup direction.
+
+**Integration status:** A successful application build does not, by itself, verify Dropbox authorization, upload, restore, or multi-device synchronization. Treat Dropbox backup and sync as unavailable until the Dropbox OAuth configuration and end-to-end account tests have been completed successfully. Do not rely on it as the only copy of important data before that validation.
+
+Local data storage and manual backup/restore are distinct from cloud synchronization. A backup file transfer is not automatic multi-device sync.
+
+## Technology
+
+- React and TypeScript
+- Vite
+- IndexedDB for local application data
+- Electron for the Windows desktop application
+- Capacitor for the Android application
+- Tailwind CSS and shared UI components
+- GitHub Actions for automated Windows and Android builds
+
+## Requirements
+
+- Node.js **22.14.0** (the version used by the CI workflows)
 - npm
-- برای ساخت Android: Java 21 و Android SDK
-- برای ساخت Windows: محیط Windows و وابستگی‌های Electron Builder
+- Windows build: Windows environment and Electron Builder dependencies
+- Android build: Java 21 and Android SDK
 
-## نصب وابستگی‌ها و اجرای توسعه
+## Getting started
 
-از ریشه مخزن:
+Run these commands from the repository root:
 
-~~~bash
+```bash
 npm install
 npm run dev
-~~~
+```
 
-## بررسی TypeScript و ساخت نسخه وب
+## Type-check and web build
 
-~~~bash
-npm run build
-~~~
+Build the application workspace:
 
-یا فقط برای workspace برنامه:
-
-~~~bash
+```bash
 npm run build --workspace apps/mealpha-pro
-~~~
+```
 
-## ساخت نسخه Windows
+The workspace build runs the TypeScript project build followed by the Vite production build.
 
-از ریشه مخزن:
+## Build for Windows
 
-~~~bash
-npm run desktop:build
-~~~
+Run from the repository root on Windows:
 
-خروجی نصب‌کننده در مسیر زیر قرار می‌گیرد:
+```bash
+npm install
+npm run desktop:build --workspace apps/mealpha-pro
+```
 
+The Windows installer is generated under:
+
+```
 apps/mealpha-pro/release/
+```
 
-## ساخت نسخه Android
+The GitHub Actions workflow also prepares the Windows application icon, verifies that an EXE installer exists, and uploads it as a build artifact.
 
-برای ایجاد پروژه Android در اولین اجرا:
+## Build for Android
 
-~~~bash
+The Android workflow creates the Capacitor Android project, synchronizes the web application, builds a debug APK, verifies the APK, and uploads it as an artifact.
+
+For a local first-time Android setup:
+
+```bash
 npm install
 npm run build --workspace apps/mealpha-pro
 cd apps/mealpha-pro
@@ -76,22 +119,34 @@ npx cap add android
 npx cap sync android
 cd android
 ./gradlew assembleDebug
-~~~
+```
 
-در ویندوز، فرمان Gradle به‌شکل gradlew.bat assembleDebug اجرا می‌شود. مسیر APK دیباگ:
+On Windows, run `gradlew.bat assembleDebug` instead of `./gradlew assembleDebug`.
 
+The debug APK is generated at:
+
+```
 apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk
+```
 
-برای ساخت‌های CI، workflowهای زیر در GitHub Actions تعریف شده‌اند:
-- .github/workflows/build-windows.yml
-- .github/workflows/build-android.yml
+## Continuous integration
 
-Artifactها پس از موفقیت workflow در صفحه همان اجرای GitHub Actions قابل دریافت هستند.
+The repository contains two GitHub Actions workflows:
 
-## ذخیره‌سازی و همگام‌سازی
+- [Windows build](.github/workflows/build-windows.yml)
+- [Android build](.github/workflows/build-android.yml)
 
-داده‌های عملیاتی برنامه در IndexedDB محلی ذخیره می‌شوند. هیچ سرویس همگام‌سازی ابری در مسیر ذخیره‌سازی برنامه فعال نیست؛ انتقال دستی فقط از طریق پشتیبان‌گیری و بازیابی فایل انجام می‌شود. در نسخه فعلی، همگام‌سازی چنددستگاهی به‌عنوان قابلیت کامل و تأییدشده مستند نشده است؛ بنابراین برای انتقال داده بین دستگاه‌ها، تا زمان ارائه و تست راهکار Sync مستقل، از قابلیت پشتیبان‌گیری/بازیابی موجود در نسخه استفاده کنید و پیش از هر بازیابی از داده‌های فعلی نسخه پشتیبان بگیرید.
+Both workflows can be run manually and are configured to validate relevant changes targeting the main branch. Successful runs publish downloadable artifacts on their respective GitHub Actions run pages. A green workflow confirms that the configured build completed; it does not replace device-level testing or end-to-end validation of external integrations such as Dropbox.
 
-## وضعیت مستندات
+## Current limitations and validation notes
 
-این README تغییرات ثبت‌شده در شاخه main را توصیف می‌کند. افزودن فونت B Mitra و تأیید نهایی خروجی‌های نصب، کارهای جداگانه‌ای هستند و تا زمان انجام و تست نباید تکمیل‌شده تلقی شوند.
+- The B Mitra Persian font is not bundled in the current source. The application uses available system font fallbacks until a properly licensed font file is added.
+- Dropbox must be configured with a Dropbox application key and a registered OAuth redirect URI before account-level integration can be tested.
+- Dropbox authorization, backup upload, restore, and synchronization should be considered unverified until tested against a real Dropbox account.
+- Build artifacts are CI outputs. Test the Windows installer on a clean Windows environment and the Android APK on a physical device before treating a release as production-ready.
+
+## Repository
+
+Source code and build workflows are maintained in this repository:
+
+[github.com/apkswap/MeAlphaPro](https://github.com/apkswap/MeAlphaPro)
