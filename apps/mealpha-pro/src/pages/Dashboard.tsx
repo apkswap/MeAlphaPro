@@ -33,7 +33,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <PageHeader title={t('dashboard')} subtitle={t('appTagline')} />
       {(settings.displayName || settings.username || settings.bio || settings.avatarDataUrl || settings.avatarEmoji) && (
-        <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-sky-500/15 via-card/90 to-cyan-500/10 p-5 shadow-xl">
+        <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-sky-500/15 via-card/90 to-cyan-500/10 p-5 shadow-xl" style={settings.coverDataUrl ? { backgroundImage: `linear-gradient(90deg, hsl(var(--card) / .92), hsl(var(--card) / .62)), url(${settings.coverDataUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
           <div className="absolute -right-10 -top-16 h-48 w-48 rounded-full bg-sky-500/12 blur-3xl pointer-events-none" />
           <div className="relative flex items-center gap-4">
             <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl grid place-items-center text-3xl font-black text-white ring-1 ring-white/20 shadow-lg" style={{ background: settings.avatarColor || '#168be5' }}>
