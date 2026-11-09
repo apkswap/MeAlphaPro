@@ -47,9 +47,9 @@ export default function Dashboard() {
     const date = localDay(index - 6);
     const tasksDone = d.tasks.filter((x) => x.status === 'Done' && String(x.completedAt || '').slice(0, 10) === date).length;
     const habitDone = d.habitLogs.filter((x) => x.date === date).length;
-    return { date, label: fmtDate(L, settings.calendar, date), [L === 'fa' ? 'کار تکمیل‌شده' : 'Tasks done']: tasksDone, [L === 'fa' ? 'عادت ثبت‌شده' : 'Habits logged']: habitDone };
+    return { date, label: fmtDate(L, settings.calendar, date), tasksDone, habitDone };
   });
-  const weekTotal = week.reduce((sum, x) => sum + x[(L === 'fa' ? 'کار تکمیل‌شده' : 'Tasks done')] + x[(L === 'fa' ? 'عادت ثبت‌شده' : 'Habits logged')], 0);
+  const weekTotal = week.reduce((sum, x) => sum + x.tasksDone + x.habitDone, 0);
   const todayLabel = fmtDate(L, settings.calendar, today);
   const greeting = L === 'fa' ? 'امروز را آگاهانه بساز' : 'Make today intentional';
   const subtitle = L === 'fa'
@@ -131,7 +131,7 @@ export default function Dashboard() {
       </div>
 
       <Panel title={L === 'fa' ? 'ریتم هفت روز اخیر' : 'Your last seven days'} action={<span className="text-xs text-muted-foreground">{fmtNum(L, weekTotal)} {L === 'fa' ? 'اقدام ثبت‌شده' : 'logged actions'}</span>}>
-        <div className="h-64" dir="ltr"><ResponsiveContainer><BarChart data={week}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" /><XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(value) => String(value).split(' ')[0]} /><YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} width={32} /><Tooltip labelFormatter={(value) => value} contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} /><RBar dataKey={L === 'fa' ? 'کار تکمیل‌شده' : 'Tasks done'} stackId="a" fill="hsl(var(--chart-3))" radius={[0, 0, 0, 0]} /><RBar dataKey={L === 'fa' ? 'عادت ثبت‌شده' : 'Habits logged'} stackId="a" fill="hsl(var(--chart-5))" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
+        <div className="h-64" dir="ltr"><ResponsiveContainer><BarChart data={week}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" /><XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(value) => String(value).split(' ')[0]} /><YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} width={32} /><Tooltip labelFormatter={(value) => value} contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} /><RBar dataKey="tasksDone" name={L === 'fa' ? 'کار تکمیل‌شده' : 'Tasks done'} stackId="a" fill="hsl(var(--chart-3))" radius={[0, 0, 0, 0]} /><RBar dataKey="habitDone" name={L === 'fa' ? 'عادت ثبت‌شده' : 'Habits logged'} stackId="a" fill="hsl(var(--chart-5))" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
         <p className="mt-2 text-xs text-muted-foreground">{L === 'fa' ? 'نمودار بر اساس زمان تکمیل ثبت‌شده برای کارها و لاگ عادت‌ها محاسبه می‌شود؛ داده ثبت‌نشده به‌عنوان عملکرد صفر تفسیر نمی‌شود.' : 'Based on task completion timestamps and habit logs. Missing records are not interpreted as zero ability.'}</p>
       </Panel>
     </div>
