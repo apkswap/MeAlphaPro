@@ -102,9 +102,9 @@ jobs:
           import com.getcapacitor.PluginHandle;
           """
           if "ModifiedMainActivityForSocialLoginPlugin" not in source:
-              source = re.sub(r"(public class MainActivity extends BridgeActivity)(\\s*\\{)", r"\\1 implements ModifiedMainActivityForSocialLoginPlugin\\2", source, count=1)
+              source = re.sub(r"(public class MainActivity extends BridgeActivity)(\s*\{)", r"\1 implements ModifiedMainActivityForSocialLoginPlugin\2", source, count=1)
           package_end = source.find(";")
-          source = source[:package_end + 1] + "\\n\\n" + imports + source[package_end + 1:]
+          source = source[:package_end + 1] + "\n\n" + imports + source[package_end + 1:]
           if "handleGoogleLoginIntent" not in source:
               methods = '''
               @Override
@@ -125,7 +125,7 @@ jobs:
               public void IHaveModifiedTheMainActivityForTheUseWithSocialLoginPlugin() {}
               '''
               source = source.rstrip()
-              source = source[:-1] + methods + "\\n}\\n"
+              source = source[:-1] + methods + "\n}\n"
           path.write_text(source)
           print(f"Patched {path}")
           PY
