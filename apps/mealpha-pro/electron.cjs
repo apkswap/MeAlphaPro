@@ -4,7 +4,7 @@ const path = require('path');
 let localServer;
 async function createWindow() {
   const win = new BrowserWindow({
-    width: 1440, height: 940, minWidth: 1024, minHeight: 700,
+    width: 1440, height: 940, minWidth: 1024, minHeight: 700,\n    icon: path.join(__dirname, 'build', 'mealpha.ico'),
     backgroundColor: '#111023', autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
   });
