@@ -12,6 +12,7 @@ import { getSnapshot } from '../lib/localDb';
 
 const AVATARS = ['α', '🌟', '🚀', '🦊', '🐼', '🐺', '🦁', '🦉', '🎯', '💎', '🌙', '🔥'];
 const COLORS = ['#168be5', '#00b8d4', '#1261a0', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
+const THEMES = [{ id: 'orange', fa: 'نارنجی و سرمه‌ای', en: 'Amber & navy', color: '#f28a35' }, { id: 'green', fa: 'سبز مینیمال', en: 'Minimal green', color: '#2aa876' }, { id: 'blue', fa: 'آبی و سرمه‌ای', en: 'Blue & navy', color: '#279be8' }] as const;
 
 export default function SettingsPage() {
   const { t, settings, setLocalSettings } = useStore();
@@ -226,6 +227,12 @@ export default function SettingsPage() {
             {s.coverDataUrl && <Button type="button" variant="outline" onClick={() => set('coverDataUrl', '')}>{fa ? 'حذف کاور' : 'Remove cover'}</Button>}
           </div>
           <p className="text-xs text-muted-foreground">{fa ? 'تصویر کاور نباید بیشتر از ۵ مگابایت باشد.' : 'Cover image must be 5 MB or smaller.'}</p>
+        </div>
+      </Panel>
+      <Panel title={fa ? 'ظاهر و شخصی‌سازی' : 'Appearance & personalization'}>
+        <div className="space-y-4">
+          <div><Label>{fa ? 'پالت رنگی' : 'Color palette'}</Label><div className="mt-2 grid sm:grid-cols-3 gap-3">{THEMES.map((theme) => <button key={theme.id} type="button" onClick={() => set('colorTheme', theme.id)} className={`rounded-xl border p-3 text-start transition-all ${s.colorTheme === theme.id ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border hover:border-primary/50'}`}><div className="mb-2 flex gap-1.5"><span className="h-6 w-6 rounded-full" style={{ background: theme.color }} /><span className="h-6 w-6 rounded-full bg-slate-800" /><span className="h-6 w-6 rounded-full bg-slate-500" /></div><span className="text-sm font-medium">{fa ? theme.fa : theme.en}</span></button>)}</div></div>
+          <div className="space-y-1.5"><Label>{fa ? 'حالت نمایش' : 'Appearance mode'}</Label><Select value={s.theme || 'dark'} onValueChange={(v) => set('theme', v as Settings['theme'])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="dark">{fa ? 'تیره' : 'Dark'}</SelectItem><SelectItem value="light">{fa ? 'روشن' : 'Light'}</SelectItem></SelectContent></Select></div>
         </div>
       </Panel>
       <Panel title={fa ? 'تنظیمات عمومی' : 'General settings'}>
