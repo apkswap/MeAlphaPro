@@ -85,6 +85,50 @@ jobs:
         run: npx cap add android
       - name: Build web assets and sync Android
         run: yarn workspace mealpha-pro android:sync
+      - name: Wire Google Drive scopes into Android activity
+        working-directory: apps/mealpha-pro
+        run: |
+          MAIN_ACTIVITY=$(find android/app/src/main/java -name MainActivity.java -print -quit)
+          test -n "$MAIN_ACTIVITY"
+          python3 - "$MAIN_ACTIVITY" <<'PY'
+          import pathlib, re, sys
+          path = pathlib.Path(sys.argv[1])
+          source = path.read_text()
+          imports = """import android.content.Intent;
+          import ee.forgr.capacitor.social.login.GoogleProvider;
+          import ee.forgr.capacitor.social.login.ModifiedMainActivityForSocialLoginPlugin;
+          import ee.forgr.capacitor.social.login.SocialLoginPlugin;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginHandle;
+          """
+          if "ModifiedMainActivityForSocialLoginPlugin" not in source:
+              source = re.sub(r"(public class MainActivity extends BridgeActivity)(\\s*\\{)", r"\\1 implements ModifiedMainActivityForSocialLoginPlugin\\2", source, count=1)
+          package_end = source.find(";")
+          source = source[:package_end + 1] + "\\n\\n" + imports + source[package_end + 1:]
+          if "handleGoogleLoginIntent" not in source:
+              methods = '''
+              @Override
+              public void onActivityResult(int requestCode, int resultCode, Intent data) {
+                  super.onActivityResult(requestCode, resultCode, data);
+                  if (requestCode >= GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN
+                          && requestCode < GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MAX) {
+                      PluginHandle handle = getBridge().getPlugin("SocialLogin");
+                      if (handle == null) return;
+                      Plugin plugin = handle.getInstance();
+                      if (plugin instanceof SocialLoginPlugin) {
+                          ((SocialLoginPlugin) plugin).handleGoogleLoginIntent(requestCode, data);
+                      }
+                  }
+              }
+
+              @Override
+              public void IHaveModifiedTheMainActivityForTheUseWithSocialLoginPlugin() {}
+              '''
+              source = source.rstrip()
+              source = source[:-1] + methods + "\\n}\\n"
+          path.write_text(source)
+          print(f"Patched {path}")
+          PY
       - name: Build debug APK
         working-directory: apps/mealpha-pro/android
         run: ./gradlew assembleDebug
