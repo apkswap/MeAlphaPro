@@ -17,7 +17,7 @@ export default function SettingsPage(){
  const set=<K extends keyof Settings>(k:K,v:Settings[K])=>setS(p=>({...p,[k]:v}));
  const categoryText=(key:'goals'|'tasks'|'transactions')=>(s.customCategories?.[key]??[]).join('\n');
  const updateCategories=(key:'goals'|'tasks'|'transactions',value:string)=>set('customCategories',{...(s.customCategories??{}),[key]:[...new Set(value.split(/[\n,،]/).map(x=>x.trim()).filter(Boolean))]});
- const submit=async()=>{if(!s.currency.trim())return toast.error(t('currency'));setBusy(true);try{await setLocalSettings({...s,currency:s.currency.trim().toUpperCase(),googleClientId:''});toast.success(t('saved'));}catch{toast.error(t('error'));}finally{setBusy(false);}};
+ const submit=async()=>{if(!s.currency.trim())return toast.error(t('currency'));setBusy(true);try{await setLocalSettings({...s,currency:s.currency.trim().toUpperCase()});toast.success(t('saved'));}catch{toast.error(t('error'));}finally{setBusy(false);}};
  const exportBackup=async()=>{const snapshot=await getSnapshot();const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`mealpha-pro-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);};
  const importBackup=async(file?:File)=>{if(!file)return;try{const parsed=JSON.parse(await file.text());if(parsed.version!==1||!parsed.data)throw new Error('Invalid backup file');await mergeSnapshot(parsed);toast.success(settings.language==='fa'?'نسخه پشتیبان بازیابی شد.':'Backup restored.');window.location.reload();}catch(e){toast.error(e instanceof Error?e.message:t('error'));}};
  const fa=settings.language==='fa';
