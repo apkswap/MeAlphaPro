@@ -1,48 +1,114 @@
 import { Link } from 'react-router-dom';
 import { Bar as RBar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ArrowDownRight, ArrowUpRight, Check, Flame, Sparkles, Wallet, TrendingUp, Target, CalendarDays, ChevronRight, ChevronLeft, Plus, CircleDollarSign, Zap } from 'lucide-react';
+import { Check, Flame } from 'lucide-react';
 import { Checkbox } from '@project/components/ui/checkbox';
 import { useStore } from '../lib/store';
 import { fmtMoney, fmtNum } from '../lib/i18n';
 import { findings, goalInfo, habitStats, monthFinance, netWorth, scores, taskStats } from '../lib/analytics';
-import { Bar, StatusPill } from '../components/ui-bits';
+import { Bar, Kpi, Panel, PageHeader, StatusPill } from '../components/ui-bits';
 import { statusKey } from './Goals';
 import { completeTx } from './Tasks';
 import { useHabitToggle } from './Habits';
 import { FindingCard, getDismissed } from './Insights';
 import { cn } from '@project/components/lib/utils';
 
-export default function Dashboard(){
- const {data,t,settings,save}=useStore(); const d=data!,L=settings.language,cur=settings.currency,fa=L==='fa';
- const ts=taskStats(d.tasks),m=monthFinance(d.transactions,settings),nw=netWorth(d.assets,d.liabilities,settings);
- const goals=d.goals.map(g=>({g,i:goalInfo(g)})).filter(x=>x.i.status!=='Completed');
- const atRisk=goals.filter(x=>x.i.status==='At Risk'||x.i.status==='Delayed');
- const habits=d.habits.filter(h=>!h.archived),doneHabits=habits.filter(h=>habitStats(h,d.habitLogs).doneToday).length;
- const dismissed=getDismissed(),recs=findings(d,settings,L).filter(f=>f.kind==='weakness'&&!dismissed.includes(f.id)).slice(0,2);
- const {toggle,busy}=useHabitToggle();
- const chart=[5,4,3,2,1,0].map(o=>{const x=monthFinance(d.transactions,settings,o);return{name:x.label.slice(2),[t('income')]:x.income,[t('expense')]:x.expense};});
- const todayList=[...ts.todays,...ts.overdue.filter(x=>!ts.todays.includes(x))].slice(0,6);
- const money=(v:number)=>fmtMoney(L,v,cur),next=fa?<ChevronLeft size={15}/>:<ChevronRight size={15}/>;
- return <div className="ma-dashboard space-y-6">
-  <section className="ma-welcome"><div className="ma-welcome-copy"><div className="ma-eyebrow"><span className="ma-eyebrow-line"/>{fa?'مرکز فرماندهی شخصی':'YOUR PERSONAL COMMAND CENTER'}</div><h1>{fa?'امروز، روز ساختن آینده‌ات است.':'Make today count.'}</h1><p>{fa?'تصویر واضح‌تری از پول، هدف‌ها و زمانت داشته باش.':'A clearer view of your money, goals and momentum.'}</p><div className="ma-welcome-actions"><Link to="/transactions" className="ma-primary-action"><Plus size={16}/>{fa?'ثبت تراکنش':'Add transaction'}</Link><Link to="/goals" className="ma-quiet-action">{fa?'مشاهده هدف‌ها':'Explore goals'} {next}</Link></div></div><div className="ma-welcome-art" aria-hidden="true"><div className="ma-orbit ma-orbit-one"/><div className="ma-orbit ma-orbit-two"/><div className="ma-glass-planet"><div className="ma-planet-shine"/><div className="ma-planet-core"/></div><div className="ma-art-ring"/><div className="ma-art-star star-a">✦</div><div className="ma-art-star star-b">✧</div><div className="ma-art-caption"><span>01 / 06</span><b>BUILD YOUR MOMENTUM</b></div></div>
-   {(settings.displayName||settings.username||settings.bio||settings.avatarDataUrl||settings.avatarEmoji||settings.coverDataUrl)&&<div className="ma-profile-chip"><div className="ma-profile-avatar" style={{background:settings.avatarColor||'#168be5'}}>{settings.avatarDataUrl?<img src={settings.avatarDataUrl} alt="Profile avatar"/>:(settings.avatarEmoji||'α')}</div><div className="min-w-0"><strong>{settings.displayName||(fa?'کاربر MeAlpha':'MeAlpha user')}</strong>{settings.username&&<span dir="ltr">@{settings.username}</span>}</div><Link to="/settings" aria-label="Edit profile">↗</Link></div>}
-  </section>
-  <div className="ma-section-heading"><div><span className="ma-section-kicker">{fa?'نمای مالی':'FINANCIAL SNAPSHOT'}</span><h2>{fa?'وضعیت کلی تو':'Your overview'}</h2></div><Link to="/insights">{fa?'گزارش کامل':'Full report'} {next}</Link></div>
-  <section className="ma-metrics-grid">
-   <article className="ma-metric ma-metric-primary"><div className="ma-metric-top"><span>{t('netWorth')}</span><span className="ma-metric-icon"><Wallet size={18}/></span></div><div className="ma-metric-value">{money(nw.net)}</div><div className="ma-metric-foot"><span className="ma-positive"><ArrowUpRight size={14}/>{fa?'دارایی خالص':'Net position'}</span><span>{money(nw.assets)} {fa?'دارایی':'assets'}</span></div><div className="ma-metric-glow"/></article>
-   <article className="ma-metric"><div className="ma-metric-top"><span>{t('cashFlow')}</span><span className="ma-metric-icon cyan"><TrendingUp size={18}/></span></div><div className="ma-metric-value">{money(m.net)}</div><div className="ma-metric-foot"><span className={m.net>=0?'ma-positive':'ma-negative'}>{m.net>=0?<ArrowUpRight size={14}/>:<ArrowDownRight size={14}/>}{t('savingsRate')}</span><span>{m.savingsRate==null?'—':fmtNum(L,m.savingsRate*100)+'%'}</span></div></article>
-   <article className="ma-metric"><div className="ma-metric-top"><span>{t('activeGoals')}</span><span className="ma-metric-icon violet"><Target size={18}/></span></div><div className="ma-metric-value">{fmtNum(L,goals.length)}</div><div className="ma-metric-foot"><span className="ma-warning">{t('atRisk')}</span><span>{fmtNum(L,atRisk.length)}</span></div></article>
-   <article className="ma-metric"><div className="ma-metric-top"><span>{t('completionRate')}</span><span className="ma-metric-icon green"><Zap size={18}/></span></div><div className="ma-metric-value">{ts.completionRate==null?'—':fmtNum(L,ts.completionRate*100)+'%'}</div><div className="ma-metric-foot"><span>{t('habitsToday')}</span><span>{fmtNum(L,doneHabits)}/{fmtNum(L,habits.length)}</span></div></article>
-  </section>
-  <section className="ma-main-grid">
-   <article className="ma-glass-panel ma-chart-panel"><div className="ma-panel-heading"><div><span className="ma-panel-kicker">{fa?'جریان نقدینگی':'CASH FLOW'}</span><h3>{t('income')} <span>/</span> {t('expense')}</h3></div><Link to="/insights" className="ma-icon-link" aria-label="Open insights">{next}</Link></div><div className="ma-chart-legend"><span><i className="legend-income"/>{t('income')}</span><span><i className="legend-expense"/>{t('expense')}</span><span className="ma-chart-range">{fa?'۶ ماه اخیر':'LAST 6 MONTHS'}</span></div><div className="ma-chart-area" dir="ltr"><ResponsiveContainer width="100%" height="100%"><BarChart data={chart} barGap={8} margin={{top:12,right:8,left:-16,bottom:0}}><defs><linearGradient id="maIncome" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#20c8ff"/><stop offset="100%" stopColor="#1766e8" stopOpacity=".38"/></linearGradient><linearGradient id="maExpense" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#9c80ff"/><stop offset="100%" stopColor="#6545c9" stopOpacity=".3"/></linearGradient></defs><CartesianGrid strokeDasharray="3 6" stroke="rgba(148,190,255,.11)" vertical={false}/><XAxis dataKey="name" axisLine={false} tickLine={false} stroke="#8295b8" fontSize={11}/><YAxis axisLine={false} tickLine={false} stroke="#8295b8" fontSize={10} width={52}/><Tooltip cursor={{fill:'rgba(45,133,255,.08)'}} contentStyle={{background:'#0b1b36',border:'1px solid rgba(105,173,255,.25)',borderRadius:14,color:'#eef6ff'}}/><RBar dataKey={t('income')} fill="url(#maIncome)" radius={[7,7,2,2]} maxBarSize={24}/><RBar dataKey={t('expense')} fill="url(#maExpense)" radius={[7,7,2,2]} maxBarSize={24}/></BarChart></ResponsiveContainer></div><div className="ma-chart-summary"><div><span>{t('income')}</span><strong className="ma-chart-income">{money(m.income)}</strong></div><div><span>{t('expense')}</span><strong>{money(m.expense)}</strong></div><div><span>{t('cashFlow')}</span><strong className={m.net>=0?'ma-chart-income':'ma-chart-expense'}>{money(m.net)}</strong></div></div></article>
-   <article className="ma-glass-panel ma-goals-panel"><div className="ma-panel-heading"><div><span className="ma-panel-kicker">{fa?'حرکت رو به جلو':'KEEP MOVING'}</span><h3>{t('goals')}</h3></div><Link to="/goals" className="ma-icon-link">{next}</Link></div>{goals.length===0?<p className="ma-empty">{t('empty')}</p>:<div className="ma-goal-list">{goals.slice(0,4).map(({g,i},index)=><div className="ma-goal-row" key={g.id}><div className={cn('ma-goal-symbol',index%3===0?'blue':index%3===1?'purple':'teal')}><Target size={16}/></div><div className="min-w-0 flex-1"><div className="ma-goal-title"><strong>{g.title}</strong><span>{fmtNum(L,(i.progress??0)*100)}%</span></div><Bar value={i.progress??0}/><div className="ma-goal-status"><StatusPill status={i.status} label={t(statusKey[i.status])}/></div></div></div>)}</div>}<Link to="/goals" className="ma-panel-bottom-link">{fa?'مدیریت همه هدف‌ها':'Manage all goals'} {next}</Link></article>
-  </section>
-  <section className="ma-lower-grid">
-   <article className="ma-glass-panel"><div className="ma-panel-heading"><div><span className="ma-panel-kicker">{fa?'تمرکز امروز':'TODAY FOCUS'}</span><h3>{t('todayTasks')}</h3></div><Link to="/tasks" className="ma-icon-link">{next}</Link></div>{todayList.length===0?<p className="ma-empty">{t('empty')}</p>:<ul className="ma-task-list">{todayList.map(x=><li key={x.id}><Checkbox checked={x.status==='Done'} onCheckedChange={()=>save('tasks',completeTx({status:x.status==='Done'?'Todo':'Done'},x),x.id)}/><span className={cn('ma-task-title',x.status==='Done'&&'done')}>{x.title}</span>{ts.overdue.includes(x)&&<span className="ma-overdue">{t('overdue')}</span>}</li>)}</ul>}<div className="ma-task-progress"><div><span>{t('completionRate')}</span><strong>{ts.completionRate==null?'—':fmtNum(L,ts.completionRate*100)+'%'}</strong></div><div className="ma-progress-track"><span style={{width:(Math.max(0,Math.min(100,(ts.completionRate||0)*100)))+'%'}}/></div></div></article>
-   <article className="ma-glass-panel"><div className="ma-panel-heading"><div><span className="ma-panel-kicker">{fa?'ثبات روزانه':'DAILY CONSISTENCY'}</span><h3>{t('habitsToday')}</h3></div><Link to="/habits" className="ma-icon-link">{next}</Link></div>{habits.length===0?<p className="ma-empty">{t('empty')}</p>:<ul className="ma-habit-list">{habits.slice(0,4).map(h=>{const s=habitStats(h,d.habitLogs);return <li key={h.id}><button type="button" disabled={busy===h.id} onClick={()=>toggle(h)} className={cn('ma-habit-check',s.doneToday&&'checked')} aria-label={h.name}><Check size={14}/></button><span className="flex-1 truncate">{h.name}</span><span className="ma-streak"><Flame size={13}/>{fmtNum(L,s.current)}</span></li>})}</ul>}<div className="ma-habit-total"><div className="ma-habit-ring"><span>{habits.length?Math.round(doneHabits/habits.length*100):0}<small>%</small></span></div><div><strong>{fmtNum(L,doneHabits)} / {fmtNum(L,habits.length)}</strong><span>{fa?'عادت تکمیل‌شده امروز':'habits completed today'}</span></div></div></article>
-   <article className="ma-glass-panel"><div className="ma-panel-heading"><div><span className="ma-panel-kicker">{fa?'بینش هوشمند':'SMART INSIGHTS'}</span><h3>{t('recommendations')}</h3></div><Sparkles size={18} className="text-cyan-300"/></div>{recs.length?<div className="ma-insight-list">{recs.map(f=><FindingCard key={f.id} f={f}/>)}</div>:<div className="ma-insight-empty"><CircleDollarSign size={27}/><p>{t('noRecs')}</p></div>}<Link to="/insights" className="ma-panel-bottom-link">{fa?'تحلیل عمیق‌تر':'Explore insights'} {next}</Link></article>
-  </section>
-  <div className="ma-dashboard-note"><CalendarDays size={14}/><span>{fa?'اطلاعات شما روی همین دستگاه نگهداری می‌شود.':'Your data stays on this device.'}</span><span className="ma-note-dot"/><span>{fa?'آماده استفاده آفلاین':'Offline ready'}</span></div>
- </div>;
+export default function Dashboard() {
+  const { data, t, settings, save } = useStore();
+  const d = data!, L = settings.language, cur = settings.currency;
+  const sc = scores(d, settings);
+  const ts = taskStats(d.tasks);
+  const m = monthFinance(d.transactions, settings);
+  const nw = netWorth(d.assets, d.liabilities, settings);
+  const goals = d.goals.map((g) => ({ g, i: goalInfo(g) })).filter((x) => x.i.status !== 'Completed');
+  const atRisk = goals.filter((x) => x.i.status === 'At Risk' || x.i.status === 'Delayed');
+  const habits = d.habits.filter((h) => !h.archived);
+  const doneHabits = habits.filter((h) => habitStats(h, d.habitLogs).doneToday).length;
+  const dismissed = getDismissed();
+  const recs = findings(d, settings, L).filter((f) => f.kind === 'weakness' && !dismissed.includes(f.id)).slice(0, 3);
+  const { toggle, busy } = useHabitToggle();
+  const chart = [5, 4, 3, 2, 1, 0].map((o) => { const x = monthFinance(d.transactions, settings, o); return { name: x.label.slice(2), [t('income')]: x.income, [t('expense')]: x.expense }; });
+  const todayList = [...ts.todays, ...ts.overdue.filter((x) => !ts.todays.includes(x))].slice(0, 8);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title={t('dashboard')} subtitle={t('appTagline')} />
+      {(settings.displayName || settings.username || settings.bio || settings.avatarDataUrl || settings.avatarEmoji) && (
+        <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-violet-500/15 via-card/90 to-cyan-500/10 p-5 shadow-xl">
+          <div className="absolute -right-10 -top-16 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl pointer-events-none" />
+          <div className="relative flex items-center gap-4">
+            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl grid place-items-center text-3xl font-black text-white ring-1 ring-white/20 shadow-lg" style={{ background: settings.avatarColor || '#8b5cf6' }}>
+              {settings.avatarDataUrl ? <img src={settings.avatarDataUrl} alt="Profile avatar" className="h-full w-full object-cover" /> : (settings.avatarEmoji || 'α')}
+            </div>
+            <div className="min-w-0">
+              <div className="text-lg font-bold">{settings.displayName || (L === 'fa' ? 'کاربر MeAlpha' : 'MeAlpha user')}</div>
+              {settings.username && <div className="text-xs text-primary" dir="ltr">@{settings.username}</div>}
+              {settings.bio && <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{settings.bio}</p>}
+            </div>
+            <Link to="/settings" className="ms-auto shrink-0 text-xs text-primary underline">{L === 'fa' ? 'ویرایش پروفایل' : 'Edit profile'}</Link>
+          </div>
+        </section>
+      )}
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+        <Kpi label={t('overallScore')} value={sc.overall == null ? '—' : fmtNum(L, sc.overall)} tone="accent" hint={<Link to="/insights" className="underline">{t('insights')}</Link>} />
+        <Kpi label={t('completionRate')} value={ts.completionRate == null ? '—' : `${fmtNum(L, ts.completionRate * 100)}%`} hint={`${t('overdue')}: ${fmtNum(L, ts.overdue.length)}`} tone={ts.overdue.length ? 'bad' : 'default'} />
+        <Kpi label={t('activeGoals')} value={fmtNum(L, goals.length)} hint={`${t('atRisk')}: ${fmtNum(L, atRisk.length)}`} />
+        <Kpi label={t('habitsToday')} value={`${fmtNum(L, doneHabits)}/${fmtNum(L, habits.length)}`} tone="good" />
+        <Kpi label={t('cashFlow')} value={fmtMoney(L, m.net, cur)} tone={m.net >= 0 ? 'good' : 'bad'} hint={`${t('savingsRate')}: ${m.savingsRate == null ? '—' : fmtNum(L, m.savingsRate * 100) + '%'}`} />
+        <Kpi label={t('netWorth')} value={fmtMoney(L, nw.net, cur)} tone="accent" />
+      </div>
+      {settings.monthlyBudget ? (
+        <Panel title={t('budgetUsed')}>
+          <Bar value={Math.min(1, m.expense / settings.monthlyBudget)} />
+          <p className="text-xs text-muted-foreground mt-2 tabular-nums">{fmtMoney(L, m.expense, cur)} / {fmtMoney(L, settings.monthlyBudget, cur)}</p>
+        </Panel>
+      ) : null}
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Panel title={t('todayTasks')} action={<Link to="/tasks" className="text-xs text-primary">→</Link>}>
+          {todayList.length === 0 && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
+          <ul className="space-y-2">{todayList.map((x) => (
+            <li key={x.id} className="flex items-center gap-3 text-sm">
+              <Checkbox checked={x.status === 'Done'} onCheckedChange={() => save('tasks', completeTx({ status: x.status === 'Done' ? 'Todo' : 'Done' }, x), x.id)} />
+              <span className={cn('flex-1 truncate', x.status === 'Done' && 'line-through text-muted-foreground')}>{x.title}</span>
+              {ts.overdue.includes(x) && <span className="text-[10px] text-destructive">{t('overdue')}</span>}
+            </li>))}</ul>
+        </Panel>
+        <Panel title={t('habitsToday')} action={<Link to="/habits" className="text-xs text-primary">→</Link>}>
+          {habits.length === 0 && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
+          <ul className="space-y-2">{habits.slice(0, 8).map((h) => { const s = habitStats(h, d.habitLogs); return (
+            <li key={h.id} className="flex items-center gap-3 text-sm">
+              <button disabled={busy === h.id} onClick={() => toggle(h)} className={cn('h-6 w-6 rounded-md border grid place-items-center', s.doneToday && 'bg-[hsl(var(--success))] border-transparent text-white')}><Check className="h-3.5 w-3.5" /></button>
+              <span className="flex-1 truncate">{h.name}</span>
+              <span className="flex items-center gap-1 text-xs text-muted-foreground"><Flame className="h-3 w-3" />{fmtNum(L, s.current)}</span>
+            </li>); })}</ul>
+        </Panel>
+        <Panel title={t('goals')} action={<Link to="/goals" className="text-xs text-primary">→</Link>}>
+          {goals.length === 0 && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
+          <ul className="space-y-3">{goals.slice(0, 5).map(({ g, i }) => (
+            <li key={g.id} className="space-y-1">
+              <div className="flex justify-between gap-2 text-sm"><span className="truncate">{g.title}</span><StatusPill status={i.status} label={t(statusKey[i.status])} /></div>
+              <Bar value={i.progress} />
+            </li>))}</ul>
+        </Panel>
+      </div>
+      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
+        <Panel title={`${t('income')} / ${t('expense')}`}>
+          <div className="h-64" dir="ltr">
+            <ResponsiveContainer>
+              <BarChart data={chart}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} width={60} />
+                <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
+                <RBar dataKey={t('income')} fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+                <RBar dataKey={t('expense')} fill="hsl(var(--chart-5))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Panel>
+        <Panel title={t('recommendations')} action={<Link to="/insights" className="text-xs text-primary">→</Link>}>
+          <div className="space-y-3">{recs.length ? recs.map((f) => <FindingCard key={f.id} f={f} />) : <p className="text-sm text-muted-foreground">{t('noRecs')}</p>}</div>
+        </Panel>
+      </div>
+    </div>
+  );
 }
