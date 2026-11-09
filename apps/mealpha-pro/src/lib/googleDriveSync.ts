@@ -7,29 +7,60 @@ const DRIVE_FILE = 'mealpha-pro-sync.json';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 let gisPromise: Promise<void> | undefined;
 
-function loadGoogleIdentity() {
+export function preloadGoogleIdentity(): Promise<void> {
   if (window.google?.accounts?.oauth2) return Promise.resolve();
-  if (!gisPromise) gisPromise = new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>('script[data-google-identity]');
-    const script = existing ?? document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true; script.defer = true; script.dataset.googleIdentity = 'true';
-    script.onload = () => resolve(); script.onerror = () => reject(new Error('Google sign-in library could not be loaded. Check your internet connection.'));
-    if (!existing) document.head.appendChild(script);
-  });
+  if (!gisPromise) {
+    gisPromise = new Promise((resolve, reject) => {
+      const existing = document.querySelector<HTMLScriptElement>('script[data-google-identity]');
+      const script = existing ?? document.createElement('script');
+      const onLoad = () => window.google?.accounts?.oauth2
+        ? resolve()
+        : reject(new Error('Google Identity Services loaded, but OAuth is unavailable. Reload the app and try again.'));
+      const onError = () => reject(new Error('Google sign-in library could not be loaded. Check your internet connection.'));
+      if (window.google?.accounts?.oauth2) return resolve();
+      script.addEventListener('load', onLoad, { once: true });
+      script.addEventListener('error', onError, { once: true });
+      if (!existing) {
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        script.dataset.googleIdentity = 'true';
+        document.head.appendChild(script);
+      } else if (script.dataset.loaded === 'true') {
+        onLoad();
+      }
+    }).catch((error) => {
+      gisPromise = undefined;
+      throw error;
+    });
+  }
   return gisPromise;
 }
 
-async function getAccessToken(clientId: string) {
-  if (!clientId?.trim()) throw new Error('ابتدا Google OAuth Client ID را در تنظیمات وارد کنید.');
-  await loadGoogleIdentity();
-  return new Promise<string>((resolve, reject) => {
-    const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: clientId.trim(), scope: DRIVE_SCOPE,
-      callback: (response: any) => response?.access_token ? resolve(response.access_token) : reject(new Error(response?.error_description || response?.error || 'Google authorization failed.')),
-      error_callback: (error: any) => reject(new Error(error?.message || 'Google authorization was cancelled.')),
-    });
-    client.requestAccessToken({ prompt: 'consent' });
+/**
+ * Must be called directly from the user's click handler after GIS has been
+ * preloaded. Do not await a script/network operation before requestAccessToken:
+ * browsers may then block Google's popup because the user gesture is lost.
+ */
+function getAccessToken(clientId: string): Promise<string> {
+  if (!clientId?.trim()) return Promise.reject(new Error('ابتدا Google OAuth Client ID را در تنظیمات وارد کنید.'));
+  if (!window.google?.accounts?.oauth2) {
+    return Promise.reject(new Error('Google sign-in is not ready yet. Wait a moment and try again.'));
+  }
+  return new Promise((resolve, reject) => {
+    try {
+      const client = window.google.accounts.oauth2.initTokenClient({
+        client_id: clientId.trim(),
+        scope: DRIVE_SCOPE,
+        callback: (response: any) => response?.access_token
+          ? resolve(response.access_token)
+          : reject(new Error(response?.error_description || response?.error || 'Google authorization failed.')),
+        error_callback: (error: any) => reject(new Error(error?.message || 'Google authorization was cancelled.')),
+      });
+      client.requestAccessToken({ prompt: 'consent' });
+    } catch (error) {
+      reject(error instanceof Error ? error : new Error('Could not start Google authorization.'));
+    }
   });
 }
 
@@ -60,7 +91,9 @@ async function uploadSnapshot(token: string, snapshot: Snapshot, fileId: string 
 }
 
 export async function syncWithGoogleDrive(clientId: string) {
-  const token = await getAccessToken(clientId);
+  // This call intentionally starts synchronously from the click handler.
+  const tokenPromise = getAccessToken(clientId);
+  const token = await tokenPromise;
   const fileId = await findSyncFile(token);
   if (!fileId) {
     await uploadSnapshot(token, await getSnapshot(), null);
