@@ -64,6 +64,7 @@ export default function SettingsPage() {
       const state = Array.from(stateBytes, b => b.toString(16).padStart(2, '0')).join('');
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
       const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
+      sessionStorage.setItem('mealpha.dropbox.appKey', appKey);
       sessionStorage.setItem('mealpha.dropbox.verifier', verifier);
       sessionStorage.setItem('mealpha.dropbox.state', state);
       const params = new URLSearchParams({
@@ -80,7 +81,8 @@ export default function SettingsPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
-    if (!code || !s.dropboxAppKey) return;
+    const callbackAppKey = s.dropboxAppKey || sessionStorage.getItem('mealpha.dropbox.appKey') || '';
+    if (!code || !callbackAppKey) return;
     const state = params.get('state') || '';
     const expectedState = sessionStorage.getItem('mealpha.dropbox.state') || '';
     const verifier = sessionStorage.getItem('mealpha.dropbox.verifier') || '';
@@ -93,7 +95,7 @@ export default function SettingsPage() {
       setDropboxBusy(true);
       try {
         const body = new URLSearchParams({
-          code, grant_type: 'authorization_code', client_id: s.dropboxAppKey || '',
+          code, grant_type: 'authorization_code', client_id: callbackAppKey,
           redirect_uri: redirectUri(), code_verifier: verifier
         });
         const response = await fetch('https://api.dropboxapi.com/oauth2/token', {
@@ -113,6 +115,7 @@ export default function SettingsPage() {
           dropboxAccountName: account?.name?.display_name || ''
         };
         setS(nextSettings); setLocalSettings(nextSettings);
+        sessionStorage.removeItem('mealpha.dropbox.appKey');
         sessionStorage.removeItem('mealpha.dropbox.verifier');
         sessionStorage.removeItem('mealpha.dropbox.state');
         window.history.replaceState({}, document.title, window.location.pathname);
