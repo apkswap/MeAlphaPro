@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Cloud, Languages, Layers3 } from 'lucide-react';
+import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Cloud, Languages, Layers3, Sun, Moon } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { cn } from '@project/components/lib/utils';
 import { useStore } from '../lib/store';
@@ -24,6 +24,7 @@ export default function Layout() {
     const s = { ...settings, language: settings.language === 'fa' ? 'en' as const : 'fa' as const };
     setLocalSettings(s);
   };
+  const toggleTheme = () => setLocalSettings({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' });
   const link = ({ isActive }: { isActive: boolean }) =>
     cn('flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
       isActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary');
@@ -46,6 +47,10 @@ export default function Layout() {
           ))}
         </nav>
         <div className="p-2 md:p-3 flex md:flex-col gap-1 shrink-0">
+          <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleTheme} aria-label={settings.theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}>
+            {settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            <span className="hidden md:inline">{settings.theme === 'light' ? (settings.language === 'fa' ? 'حالت تیره' : 'Dark mode') : (settings.language === 'fa' ? 'حالت روشن' : 'Light mode')}</span>
+          </Button>
           <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleLang}><Languages className="h-4 w-4" /><span className="hidden md:inline">{settings.language === 'fa' ? 'English' : 'فارسی'}</span></Button>
           <div className="flex items-center gap-2 px-3 py-2 text-xs text-emerald-500"><Cloud className="h-4 w-4" /><span className="hidden md:inline">{t('offlineReady')}</span></div>
         </div>
