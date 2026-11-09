@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Cloud, Languages, Layers3 } from 'lucide-react';
+import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Cloud, Languages, Layers3, Sun, Moon } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { cn } from '@project/components/lib/utils';
 import { useStore } from '../lib/store';
@@ -20,6 +20,7 @@ const NAV: { to: string; k: Key; icon: typeof Target }[] = [
 
 export default function Layout() {
   const { t, settings, setLocalSettings } = useStore();
+  const toggleTheme = () => setLocalSettings({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' });
   const toggleLang = () => {
     const s = { ...settings, language: settings.language === 'fa' ? 'en' as const : 'fa' as const };
     setLocalSettings(s);
@@ -32,7 +33,7 @@ export default function Layout() {
     <div className="min-h-screen flex flex-col md:flex-row">
       <aside className="md:w-60 md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-e bg-[hsl(var(--sidebar-background))]/80 backdrop-blur flex md:flex-col">
         <div className="p-4 md:p-5 flex items-center gap-2 shrink-0">
-          
+          <div className="h-11 w-11 shrink-0 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 to-accent/10 p-1 shadow-lg shadow-primary/10"><img src="/mealpha-infinity.svg" alt="MeAlpha" className="h-full w-full object-contain" /></div>
           <div className="hidden md:block">
             <div className="font-extrabold leading-tight">MeAlpha</div>
             <div className="text-[10px] text-muted-foreground">{t('appTagline')}</div>
@@ -46,6 +47,7 @@ export default function Layout() {
           ))}
         </nav>
         <div className="p-2 md:p-3 flex md:flex-col gap-1 shrink-0">
+          <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}<span className="hidden md:inline">{settings.theme === 'light' ? (settings.language === 'fa' ? 'حالت تاریک' : 'Dark mode') : (settings.language === 'fa' ? 'حالت روشن' : 'Light mode')}</span></Button>
           <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleLang}><Languages className="h-4 w-4" /><span className="hidden md:inline">{settings.language === 'fa' ? 'English' : 'فارسی'}</span></Button>
           <div className="flex items-center gap-2 px-3 py-2 text-xs text-emerald-500"><Cloud className="h-4 w-4" /><span className="hidden md:inline">{t('offlineReady')}</span></div>
         </div>
