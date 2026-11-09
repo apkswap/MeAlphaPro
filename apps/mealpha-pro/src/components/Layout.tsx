@@ -6,7 +6,7 @@ import { useStore } from '../lib/store';
 import { Key } from '../lib/i18n';
 
 const NAV: { to: string; k: Key; icon: typeof Target; section: 'workspace'|'insights'|'system' }[] = [
- {to:'/',k:'dashboard',icon:LayoutDashboard,section:'workspace'},{to:'/goals',k:'goals',icon:Target,section:'workspace'},{to:'/tasks',k:'tasks',icon:ListChecks,section:'workspace'},{to:'/habits',k:'habits',icon:Repeat,section:'workspace'},{to:'/focus',k:'focus',icon:Timer,section:'workspace'},{to:'/transactions',k:'finance',icon:Receipt,section:'workspace'},{to:'/wealth',k:'wealth',icon:Landmark,section:'workspace'},{to:'/insights',k:'insights',icon:Sparkles,section:'insights'},{to:'/studio',k:'settings',icon:Boxes,section:'system'},{to:'/settings',k:'settings',icon:Settings,section:'system'}
+ {to:'/',k:'dashboard',icon:LayoutDashboard,section:'workspace'},{to:'/goals',k:'goals',icon:Target,section:'workspace'},{to:'/tasks',k:'tasks',icon:ListChecks,section:'workspace'},{to:'/habits',k:'habits',icon:Repeat,section:'workspace'},{to:'/focus',k:'focus',icon:Timer,section:'workspace'},{to:'/transactions',k:'finance',icon:Receipt,section:'workspace'},{to:'/wealth',k:'wealth',icon:Landmark,section:'workspace'},{to:'/insights',k:'insights',icon:Sparkles,section:'insights'},{to:'/studio',k:'studio',icon:Boxes,section:'system'},{to:'/settings',k:'settings',icon:Settings,section:'system'}
 ];
 export default function Layout(){
  const {t,settings,setLocalSettings}=useStore();
