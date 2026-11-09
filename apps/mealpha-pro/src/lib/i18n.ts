@@ -108,6 +108,13 @@ const dict = {
   estimate: ['تخمین', 'Estimate'],
   quickAdd: ['افزودن سریع', 'Quick add'],
   balance: ['تراز', 'Balance'],
+  account: ['حساب', 'Account'],
+  bankName: ['نام بانک', 'Bank name'],
+  accountNumber: ['شماره حساب/کارت', 'Account/card number'],
+  openingBalance: ['موجودی اولیه', 'Opening balance'],
+  accountType: ['نوع حساب', 'Account type'],
+  bankAccounts: ['حساب‌های بانکی', 'Bank accounts'],
+  accountBalance: ['موجودی حساب', 'Account balance'],
 } as const;
 
 export type Key = keyof typeof dict;
