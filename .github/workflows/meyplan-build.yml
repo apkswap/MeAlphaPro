@@ -1,0 +1,99 @@
+name: MeyPlan Pro validation and builds
+
+on:
+  push:
+    branches:
+      - main
+      - feat/next-gen-local-first-roadmap
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: meyplan-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-validation:
+    name: TypeScript and web production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+      - name: Enable Yarn Classic
+        run: corepack prepare yarn@1.22.22 --activate
+      - name: Install dependencies
+        run: yarn install --non-interactive --network-timeout 600000
+      - name: Type check
+        run: yarn workspace mealpha-pro typecheck
+      - name: Build web application
+        run: yarn workspace mealpha-pro build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meyplan-web-dist
+          path: apps/mealpha-pro/dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  windows-installer:
+    name: Windows x64 installer
+    runs-on: windows-latest
+    needs: web-validation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+      - name: Enable Yarn Classic
+        run: corepack prepare yarn@1.22.22 --activate
+      - name: Install dependencies
+        run: yarn install --non-interactive --network-timeout 600000
+      - name: Build Windows installer
+        run: yarn workspace mealpha-pro desktop:build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meyplan-pro-windows-x64
+          path: apps/mealpha-pro/release/*.exe
+          if-no-files-found: error
+          retention-days: 14
+
+  android-debug:
+    name: Android debug APK
+    runs-on: ubuntu-latest
+    needs: web-validation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Enable Yarn Classic
+        run: corepack prepare yarn@1.22.22 --activate
+      - name: Install dependencies
+        run: yarn install --non-interactive --network-timeout 600000
+      - name: Generate Android platform
+        working-directory: apps/mealpha-pro
+        run: npx cap add android
+      - name: Build web assets and sync Android
+        run: yarn workspace mealpha-pro android:sync
+      - name: Build debug APK
+        working-directory: apps/mealpha-pro/android
+        run: ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meyplan-pro-android-debug
+          path: apps/mealpha-pro/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
