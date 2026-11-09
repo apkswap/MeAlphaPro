@@ -30,6 +30,8 @@ jobs:
       - name: Enable Yarn Classic
         run: corepack prepare yarn@1.22.22 --activate
       - name: Install dependencies
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
         run: yarn install --non-interactive --network-timeout 600000
       - name: Type check
         run: yarn workspace mealpha-pro typecheck
@@ -53,8 +55,21 @@ jobs:
           node-version: 22
       - name: Enable Yarn Classic
         run: corepack prepare yarn@1.22.22 --activate
-      - name: Install dependencies
-        run: yarn install --non-interactive --network-timeout 600000
+      - name: Install dependencies with retry
+        shell: pwsh
+        run: |
+          $attempt = 0
+          do {
+            $attempt++
+            Write-Host "Dependency installation attempt $attempt of 3"
+            yarn install --non-interactive --network-timeout 600000
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($attempt -lt 3) {
+              Write-Host "Install failed; waiting before retry..."
+              Start-Sleep -Seconds (15 * $attempt)
+            }
+          } while ($attempt -lt 3)
+          exit 1
       - name: Build Windows installer
         run: yarn workspace mealpha-pro desktop:build
       - uses: actions/upload-artifact@v4
@@ -80,6 +95,8 @@ jobs:
       - name: Enable Yarn Classic
         run: corepack prepare yarn@1.22.22 --activate
       - name: Install dependencies
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
         run: yarn install --non-interactive --network-timeout 600000
       - name: Generate Android platform
         working-directory: apps/mealpha-pro
@@ -103,9 +120,9 @@ jobs:
           import com.getcapacitor.PluginHandle;
           """
           if "ModifiedMainActivityForSocialLoginPlugin" not in source:
-              source = re.sub(r"(public class MainActivity extends BridgeActivity)(\s*\{)", r"\1 implements ModifiedMainActivityForSocialLoginPlugin\2", source, count=1)
+              source = re.sub(r"(public class MainActivity extends BridgeActivity)(\\s*\\{)", r"\\1 implements ModifiedMainActivityForSocialLoginPlugin\\2", source, count=1)
           package_end = source.find(";")
-          source = source[:package_end + 1] + "\n\n" + imports + source[package_end + 1:]
+          source = source[:package_end + 1] + "\\n\\n" + imports + source[package_end + 1:]
           if "handleGoogleLoginIntent" not in source:
               methods = '''
               @Override
@@ -126,7 +143,7 @@ jobs:
               public void IHaveModifiedTheMainActivityForTheUseWithSocialLoginPlugin() {}
               '''
               source = source.rstrip()
-              source = source[:-1] + methods + "\n}\n"
+              source = source[:-1] + methods + "\\n}\\n"
           path.write_text(source)
           print(f"Patched {path}")
           PY
