@@ -150,6 +150,64 @@ export async function getPreSyncBackup(): Promise<Snapshot | null> {
 }
 
 /**
+ * Explicit, destructive restore. The current local state is captured in the same
+ * transaction before replacement so a failed restore cannot leave partial data.
+ */
+export async function restoreSnapshot(snapshot: Snapshot) {
+  validateSnapshot(snapshot);
+  for (const entity of ENTITIES) {
+    if (!Array.isArray(snapshot.data[entity])) {
+      throw new Error(`Cannot restore snapshot: missing ${entity} collection.`);
+    }
+  }
+
+  const db = await openDb();
+  const tx = db.transaction([...ENTITIES, 'appMeta'], 'readwrite');
+  const completed = new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  const metaStore = tx.objectStore('appMeta');
+  const recordRequests = ENTITIES.map((entity) => req(tx.objectStore(entity).getAll()));
+  const settingsRequest = req(metaStore.get('settings'));
+  const settingsTimeRequest = req(metaStore.get('settingsUpdatedAt'));
+  const tombstonesRequest = req(metaStore.get('tombstones'));
+
+  try {
+    const [records, settingsRow, settingsTimeRow, tombstonesRow] = await Promise.all([
+      Promise.all(recordRequests), settingsRequest, settingsTimeRequest, tombstonesRequest,
+    ]);
+    const currentData = {} as Record<Entity, Rec[]>;
+    ENTITIES.forEach((entity, index) => { currentData[entity] = records[index]; });
+    const currentSnapshot: Snapshot = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      settingsUpdatedAt: Number(settingsTimeRow?.value ?? 0),
+      data: currentData,
+      settings: (settingsRow?.value ?? {
+        language: 'fa', calendar: 'jalali', currency: 'IRT', exchangeRates: '', monthlyBudget: null,
+      }) as AppSettings,
+      tombstones: { ...((tombstonesRow?.value ?? {}) as Record<string, number>) },
+    };
+
+    for (const entity of ENTITIES) {
+      const store = tx.objectStore(entity);
+      store.clear();
+      for (const record of snapshot.data[entity]) store.put(record);
+    }
+    metaStore.put({ key: 'settings', value: snapshot.settings });
+    metaStore.put({ key: 'settingsUpdatedAt', value: Number(snapshot.settingsUpdatedAt ?? 0) });
+    metaStore.put({ key: 'tombstones', value: snapshot.tombstones ?? {} });
+    metaStore.put({ key: 'preRestoreBackup', value: currentSnapshot });
+    await completed;
+  } catch (error) {
+    try { tx.abort(); } catch { /* transaction may already be inactive */ }
+    throw error;
+  }
+}
+
+/**
  * Atomically merges a validated remote snapshot with the current local database.
  * A recovery snapshot is written in the same transaction before any records change.
  */
