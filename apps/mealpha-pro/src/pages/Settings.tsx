@@ -18,6 +18,12 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState(false);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS((p) => ({ ...p, [k]: v }));
 
+  const categoryText = (key: 'goals' | 'tasks' | 'transactions') => (s.customCategories?.[key] ?? []).join('\\n');
+  const updateCategories = (key: 'goals' | 'tasks' | 'transactions', value: string) => {
+    const values = [...new Set(value.split(/[\\n,،]/).map((x) => x.trim()).filter(Boolean))];
+    set('customCategories', { ...(s.customCategories ?? {}), [key]: values });
+  };
+
   const submit = async () => {
     if (!s.currency.trim()) return toast.error(t('currency'));
     setBusy(true);
@@ -120,6 +126,17 @@ export default function SettingsPage() {
             <Label>{t('rates')}</Label>
             <Textarea dir="ltr" rows={4} value={s.exchangeRates} onChange={(e) => set('exchangeRates', e.target.value)} placeholder={'USD=600000\nEUR=650000'} className="font-mono" />
             <p className="text-xs text-muted-foreground">{t('ratesHelp')}</p>
+          </div>
+        </div>
+        <div className="mt-6 border-t pt-5 space-y-4">
+          <div>
+            <h3 className="font-bold text-sm">{settings.language === 'fa' ? 'شخصی‌سازی دسته‌بندی‌ها' : 'Custom categories'}</h3>
+            <p className="mt-1 text-xs text-muted-foreground">{settings.language === 'fa' ? 'هر دسته را در یک خط بنویسید. این گزینه‌ها در فرم ثبت اطلاعات قابل انتخاب خواهند بود.' : 'Enter one category per line. These options will appear in the relevant record forms.'}</p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5"><Label>{settings.language === 'fa' ? 'دسته‌بندی اهداف' : 'Goal categories'}</Label><Textarea rows={4} value={categoryText('goals')} onChange={(e) => updateCategories('goals', e.target.value)} placeholder={settings.language === 'fa' ? 'تحصیلی\\nشغلی\\nشخصی' : 'Education\\nCareer\\nPersonal'} /></div>
+            <div className="space-y-1.5"><Label>{settings.language === 'fa' ? 'دسته‌بندی کارها' : 'Task categories'}</Label><Textarea rows={4} value={categoryText('tasks')} onChange={(e) => updateCategories('tasks', e.target.value)} placeholder={settings.language === 'fa' ? 'پروژه\\nجلسه\\nیادگیری' : 'Project\\nMeeting\\nLearning'} /></div>
+            <div className="space-y-1.5 sm:col-span-2"><Label>{settings.language === 'fa' ? 'دسته‌بندی تراکنش‌های مالی' : 'Transaction categories'}</Label><Textarea rows={4} value={categoryText('transactions')} onChange={(e) => updateCategories('transactions', e.target.value)} placeholder={settings.language === 'fa' ? 'حقوق\\nخوراک\\nحمل‌ونقل' : 'Salary\\nFood\\nTransport'} /></div>
           </div>
         </div>
         <Button className="mt-6" onClick={submit} disabled={busy}>{busy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{t('save')}</Button>
