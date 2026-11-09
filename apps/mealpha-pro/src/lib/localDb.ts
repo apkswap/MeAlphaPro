@@ -1,12 +1,12 @@
 /** Local-first persistence. The app never needs a network connection to read or write data. */
-export const ENTITIES = ['goals', 'tasks', 'habits', 'habitLogs', 'transactions', 'accounts', 'customItems', 'assets', 'liabilities'] as const;
+export const ENTITIES = ['goals', 'tasks', 'habits', 'habitLogs', 'transactions', 'accounts', 'paymentReminders', 'customItems', 'assets', 'liabilities'] as const;
 export type Entity = (typeof ENTITIES)[number];
 export type Rec = Record<string, any>;
-export type AppSettings = { language: 'fa' | 'en'; calendar: string; currency: string; exchangeRates: string; monthlyBudget: number | null; displayName?: string; username?: string; bio?: string; avatarDataUrl?: string; avatarEmoji?: string; avatarColor?: string };
+export type AppSettings = { language: 'fa' | 'en'; calendar: string; currency: string; exchangeRates: string; monthlyBudget: number | null; displayName?: string; username?: string; bio?: string; avatarDataUrl?: string; coverDataUrl?: string; avatarEmoji?: string; avatarColor?: string; theme?: 'light' | 'dark'; colorTheme?: 'orange' | 'green' | 'blue'; dropboxAppKey?: string; dropboxAccessToken?: string; dropboxRefreshToken?: string; dropboxExpiresAt?: number; dropboxAccountName?: string };
 export type Snapshot = { version: 1; exportedAt: string; settingsUpdatedAt: number; data: Record<Entity, Rec[]>; settings: AppSettings; tombstones: Record<string, number> };
 
 const DB_NAME = 'mealpha-pro-local';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORES = [...ENTITIES, 'appMeta'] as const;
 let dbPromise: Promise<IDBDatabase> | undefined;
 

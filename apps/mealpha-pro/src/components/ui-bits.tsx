@@ -15,7 +15,7 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
 
 export function Panel({ title, children, className, action }: { title?: string; children: ReactNode; className?: string; action?: ReactNode }) {
   return (
-    <section className={cn('rounded-2xl border bg-card/70 backdrop-blur p-5 shadow-[0_8px_30px_-12px_hsl(262_83%_40%/0.25)]', className)}>
+    <section className={cn('rounded-2xl border bg-card/70 backdrop-blur p-5 shadow-[0_8px_24px_-16px_hsl(152_58%_30%/0.24)]', className)}>
       {title && <div className="flex items-center justify-between mb-4"><h2 className="font-bold text-sm tracking-wide text-muted-foreground uppercase">{title}</h2>{action}</div>}
       {children}
     </section>

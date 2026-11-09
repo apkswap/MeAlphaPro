@@ -114,6 +114,14 @@ const dict = {
   openingBalance: ['موجودی اولیه', 'Opening balance'],
   accountType: ['نوع حساب', 'Account type'],
   bankAccounts: ['حساب‌های بانکی', 'Bank accounts'],
+  paymentReminders: ['یادآوری پرداخت‌ها', 'Payment reminders'],
+  reminderDays: ['چند روز قبل یادآوری شود', 'Remind days before'],
+  markPaid: ['پرداخت شد', 'Mark as paid'],
+  enableNotifications: ['فعال‌سازی اعلان‌ها', 'Enable notifications'],
+  notificationsBlocked: ['اجازه اعلان‌ها داده نشد', 'Notifications permission was not granted'],
+  pending: ['در انتظار پرداخت', 'Pending'],
+  paid: ['پرداخت‌شده', 'Paid'],
+  duePayment: ['موعد پرداخت', 'Payment due'],
   accountBalance: ['موجودی حساب', 'Account balance'],
   workspace: ['فضای شخصی', 'My workspace'],
   customSpaceHelp: ['برای نگهداری اطلاعاتی که در بخش‌های اهداف، کارها و امور مالی جا نمی‌گیرند؛ مثل پروژه‌های شخصی، ایده‌ها، فهرست‌ها و یادداشت‌های قابل پیگیری.', 'A flexible place for information that does not fit goals, tasks or finance — personal projects, ideas, lists and trackable notes.'],
@@ -134,6 +142,7 @@ const optLabels: Record<string, [string, string]> = {
   Lifetime: ['مادام‌العمر', 'Lifetime'], Annual: ['سالانه', 'Annual'], Quarterly: ['فصلی', 'Quarterly'],
   Monthly: ['ماهانه', 'Monthly'], Weekly: ['هفتگی', 'Weekly'], Daily: ['روزانه', 'Daily'],
   Income: ['درآمد', 'Income'], Expense: ['هزینه', 'Expense'],
+  Pending: ['در انتظار پرداخت', 'Pending'], Paid: ['پرداخت‌شده', 'Paid'],
   Essential: ['ضروری', 'Essential'], Discretionary: ['اختیاری', 'Discretionary'],
 };
 export const opt = (lang: Lang, v?: string) => (v ? optLabels[v]?.[lang === 'fa' ? 0 : 1] ?? v : '—');
