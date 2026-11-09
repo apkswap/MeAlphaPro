@@ -1,13 +1,12 @@
 import { useMemo } from 'react';
-import { CheckCircle2, TrendingDown, TrendingUp, X } from 'lucide-react';
+import { TrendingDown, TrendingUp, X } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
-import { toast } from 'sonner';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Activity, ArrowDownRight, ArrowUpRight, CheckCircle2, CircleAlert, Flame, Wallet } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { fmtMoney, fmtNum } from '../lib/i18n';
-import { habitStats, monthFinance, scores, taskStats, goalInfo, makeConverter, findings, todayISO, Finding } from '../lib/analytics';
-import { Bar, Panel, PageHeader } from '../components/ui-bits';
+import { habitStats, monthFinance, scores, taskStats, goalInfo, makeConverter, Finding } from '../lib/analytics';
+import { Panel } from '../components/ui-bits';
 import { cn } from '@project/components/lib/utils';
 
 const C=['#a78bfa','#22d3ee','#34d399','#f59e0b','#f472b6','#60a5fa','#fb7185'];
