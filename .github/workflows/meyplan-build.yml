@@ -50,7 +50,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
       - name: Enable Yarn Classic
         run: corepack prepare yarn@1.22.22 --activate
       - name: Install dependencies
@@ -73,7 +72,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
