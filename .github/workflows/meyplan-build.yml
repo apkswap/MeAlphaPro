@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feat/next-gen-local-first-roadmap
+      - feat/mealpha-nextgen-experience
   pull_request:
     branches:
       - main
