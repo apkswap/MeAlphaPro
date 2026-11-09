@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - fix/blue-dual-theme-build-validation
     paths:
       - "apps/**"
       - "packages/**"
