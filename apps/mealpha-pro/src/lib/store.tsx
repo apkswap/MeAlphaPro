@@ -15,7 +15,7 @@ type Ctx = {
 };
 const C = createContext<Ctx>(null as unknown as Ctx);
 export const useStore = () => useContext(C);
-const DEFAULTS: Settings = { language: 'fa', calendar: 'jalali', currency: 'IRT', exchangeRates: '', monthlyBudget: null, googleClientId: '' };
+const DEFAULTS: Settings = { language: 'fa', calendar: 'jalali', currency: 'IRT', exchangeRates: '', monthlyBudget: null , displayName: '', username: '', bio: '', avatarEmoji: 'α', avatarColor: '#8b5cf6' };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<Data | null>(null);
