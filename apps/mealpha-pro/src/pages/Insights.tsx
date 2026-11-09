@@ -3,7 +3,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, Res
 import { Activity, ArrowDownRight, ArrowUpRight, CheckCircle2, CircleAlert, Flame, Wallet } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { fmtMoney, fmtNum } from '../lib/i18n';
-import { habitStats, monthFinance, scores, taskStats, goalInfo } from '../lib/analytics';
+import { habitStats, monthFinance, scores, taskStats, goalInfo, makeConverter } from '../lib/analytics';
 import { Panel } from '../components/ui-bits';
 
 const C=['#a78bfa','#22d3ee','#34d399','#f59e0b','#f472b6','#60a5fa','#fb7185'];
@@ -11,7 +11,7 @@ export default function Insights(){
  const {data,t,settings}=useStore(),d=data!,fa=settings.language==='fa',L=settings.language,cur=settings.currency;
  const sc=scores(d,settings),ts=taskStats(d.tasks),habits=d.habits.filter(h=>!h.archived);
  const trend=Array.from({length:6},(_,i)=>{const o=5-i,m=monthFinance(d.transactions,settings,o),dt=new Date();dt.setDate(1);dt.setMonth(dt.getMonth()-o);return{month:new Intl.DateTimeFormat(fa?'fa-IR-u-ca-persian':'en-US',{month:'short'}).format(dt),income:m.income,expense:m.expense,net:m.net};});
- const cats=useMemo(()=>{const m=new Map<string,number>();d.transactions.filter(x=>x.kind!=='Income').forEach(x=>{const k=String(x.category||(fa?'بدون دسته':'Uncategorized'));m.set(k,(m.get(k)||0)+Number(x.amount||0));});return [...m].map(([name,value])=>({name,value})).sort((a,b)=>b.value-a.value).slice(0,7);},[d.transactions,fa]);
+ const cats=useMemo(()=>{const m=new Map<string,number>(),{conv}=makeConverter(settings);d.transactions.filter(x=>x.kind!=='Income').forEach(x=>{const k=String(x.category||(fa?'بدون دسته':'Uncategorized'));m.set(k,(m.get(k)||0)+conv(Number(x.amount||0),x.currency)/100);});return [...m].map(([name,value])=>({name,value})).sort((a,b)=>b.value-a.value).slice(0,7);},[d.transactions,fa,settings]);
  const hs=habits.map(h=>({name:h.name,value:Math.round(habitStats(h,d.habitLogs).rate30*100)})).sort((a,b)=>b.value-a.value);
  const gs=d.goals.map(g=>({...goalInfo(g),name:g.title})).filter(g=>g.status!=='Unknown');
  const gc=[{name:fa?'تکمیل‌شده':'Completed',value:gs.filter(g=>g.status==='Completed').length},{name:fa?'در مسیر':'On track',value:gs.filter(g=>g.status==='On Track').length},{name:fa?'در خطر':'At risk',value:gs.filter(g=>g.status==='At Risk').length},{name:fa?'عقب‌افتاده':'Delayed',value:gs.filter(g=>g.status==='Delayed').length}].filter(x=>x.value);
