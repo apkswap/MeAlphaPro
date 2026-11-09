@@ -52,7 +52,7 @@ function requestGoogleAccessToken(): Promise<string> {
     options: {
       scopes: ['openid', 'email', 'profile', DRIVE_SCOPE],
       forceRefreshToken: true,
-      prompt: 'consent',
+      prompt: 'select_account',
     },
   });
 
