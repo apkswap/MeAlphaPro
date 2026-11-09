@@ -8,17 +8,6 @@ import EntityForm, { Field } from '../components/EntityForm';
 import DataList, { Col } from '../components/DataList';
 import { Bar, PageHeader, StatusPill } from '../components/ui-bits';
 
-  { key: 'title', label: 'title', type: 'text', required: true, full: true },
-  { key: 'horizon', label: 'horizon', type: 'select', options: ['Lifetime', 'Annual', 'Quarterly', 'Monthly', 'Weekly'] },
-  { key: 'priority', label: 'priority', type: 'select', options: ['Low', 'Medium', 'High'] },
-  { key: 'category', label: 'category', type: 'select', options: [] },
-  { key: 'completed', label: 'completed', type: 'checkbox' },
-  { key: 'startDate', label: 'startDate', type: 'date' },
-  { key: 'dueDate', label: 'dueDate', type: 'date' },
-  { key: 'targetValue', label: 'target', type: 'number' },
-  { key: 'currentValue', label: 'current', type: 'number' },
-  { key: 'description', label: 'description', type: 'textarea' },
-];
 
 export const statusKey = { 'On Track': 'onTrack', 'At Risk': 'atRisk', Delayed: 'delayed', Completed: 'completed', Unknown: 'noData' } as const;
 
