@@ -29,24 +29,32 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
-      <aside className="md:w-60 md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-e bg-[hsl(var(--sidebar-background))]/80 backdrop-blur flex md:flex-col">
-        <div className="p-4 md:p-5 flex items-center gap-2 shrink-0">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center font-black text-white">α</div>
-          <div className="hidden md:block">
-            <div className="font-extrabold leading-tight">MeAlpha <span className="text-primary">Pro</span></div>
-            <div className="text-[10px] text-muted-foreground">{t('appTagline')}</div>
+      <aside className="md:w-60 md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-e bg-[hsl(var(--sidebar-background))]/80 backdrop-blur flex flex-col">
+        <div className="p-3 md:p-5 flex items-center justify-between md:justify-start gap-2 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center font-black text-white shrink-0">α</div>
+            <div className="md:block">
+              <div className="font-extrabold leading-tight">MeAlpha <span className="text-primary">Pro</span></div>
+              <div className="text-[10px] text-muted-foreground">{t('appTagline')}</div>
+            </div>
           </div>
+          <Button variant="ghost" size="sm" className="md:hidden shrink-0 h-9 gap-2" onClick={toggleLang}>
+            <Languages className="h-4 w-4" />
+            <span>{settings.language === 'fa' ? 'English' : 'فارسی'}</span>
+          </Button>
         </div>
-        <nav className="flex md:flex-col gap-1 px-2 md:px-3 overflow-x-auto md:overflow-visible flex-1 items-center md:items-stretch">
+        <nav className="flex md:flex-col gap-1 px-2 md:px-3 pb-2 md:pb-0 overflow-x-auto md:overflow-visible md:flex-1 items-center md:items-stretch">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'} className={link}>
-              <n.icon className="h-4 w-4 shrink-0" /><span className="hidden lg:inline md:inline">{t(n.k)}</span>
+              <n.icon className="h-4 w-4 shrink-0" /><span className="hidden md:inline">{t(n.k)}</span>
             </NavLink>
           ))}
         </nav>
-        <div className="p-2 md:p-3 flex md:flex-col gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleLang}><Languages className="h-4 w-4" /><span className="hidden md:inline">{settings.language === 'fa' ? 'English' : 'فارسی'}</span></Button>
-          <div className="flex items-center gap-2 px-3 py-2 text-xs text-emerald-500"><Cloud className="h-4 w-4" /><span className="hidden md:inline">{t('offlineReady')}</span></div>
+        <div className="hidden md:flex p-2 md:p-3 flex-col gap-1 shrink-0">
+          <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleLang}>
+            <Languages className="h-4 w-4" /><span>{settings.language === 'fa' ? 'English' : 'فارسی'}</span>
+          </Button>
+          <div className="flex items-center gap-2 px-3 py-2 text-xs text-emerald-500"><Cloud className="h-4 w-4" /><span>{t('offlineReady')}</span></div>
         </div>
       </aside>
       <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto"><Outlet /></main>
