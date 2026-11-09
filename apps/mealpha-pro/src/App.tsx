@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@project/components/ui/sonner';
 import { StoreProvider, useStore } from './lib/store';
@@ -29,6 +28,5 @@ function Shell() {
   </Route></Routes></BrowserRouter>;
 }
 export default function App() {
-  useEffect(() => { document.documentElement.classList.add('dark'); }, []);
   return <StoreProvider><Shell /><Toaster /></StoreProvider>;
 }
