@@ -1,15 +1,15 @@
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Plus, WalletCards } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { useStore, Rec } from '../lib/store';
 import { fmtDate, fmtMoney, opt } from '../lib/i18n';
 import { monthFinance, todayISO } from '../lib/analytics';
 import EntityForm, { Field } from '../components/EntityForm';
 import DataList, { Col } from '../components/DataList';
-import { Kpi, PageHeader } from '../components/ui-bits';
+import { Kpi, PageHeader, Panel } from '../components/ui-bits';
 import { cn } from '@project/components/lib/utils';
 
-const FIELDS: Field[] = [
+const BASE_FIELDS: Field[] = [
   { key: 'description', label: 'description', type: 'text', required: true, full: true },
   { key: 'kind', label: 'kind', type: 'select', options: ['Income', 'Expense'], required: true },
   { key: 'amount', label: 'amount', type: 'number', required: true },
@@ -18,37 +18,67 @@ const FIELDS: Field[] = [
   { key: 'category', label: 'category', type: 'text' },
   { key: 'nature', label: 'nature', type: 'select', options: ['Essential', 'Discretionary'] },
 ];
+const ACCOUNT_FIELDS: Field[] = [
+  { key: 'name', label: 'name', type: 'text', required: true },
+  { key: 'bankName', label: 'bankName', type: 'text', required: true },
+  { key: 'accountType', label: 'accountType', type: 'select', options: ['Current', 'Savings', 'Cash', 'Other'] },
+  { key: 'accountNumber', label: 'accountNumber', type: 'text' },
+  { key: 'currency', label: 'currency', type: 'text', required: true },
+  { key: 'openingBalance', label: 'openingBalance', type: 'number', required: true },
+];
 
 export default function Transactions() {
   const { data, t, settings } = useStore();
   const [edit, setEdit] = useState<Rec | null>(null);
   const [open, setOpen] = useState(false);
+  const [accountEdit, setAccountEdit] = useState<Rec | null>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
   const L = settings.language;
   const m = monthFinance(data!.transactions, settings);
   const cur = settings.currency;
+  const fields = useMemo<Field[]>(() => [
+    ...BASE_FIELDS,
+    { key: 'accountId', label: 'account', type: 'select', options: data!.accounts.map((a: Rec) => ({ value: a.id, label: `${a.bankName} · ${a.name} (${a.currency})` })) },
+  ], [data!.accounts]);
+
+  const accountBalance = (account: Rec) => Number(account.openingBalance || 0) + data!.transactions
+    .filter((tx: Rec) => tx.accountId === account.id && tx.currency === account.currency)
+    .reduce((sum: number, tx: Rec) => sum + (tx.kind === 'Income' ? 1 : -1) * Number(tx.amount || 0), 0);
 
   const cols: Col[] = [
     { key: 'date', label: t('date'), render: (r) => fmtDate(L, settings.calendar, r.date) },
-    { key: 'description', label: t('description'), render: (r) => <div><div className="font-medium">{r.description}</div><div className="text-xs text-muted-foreground">{r.category || '—'} · {opt(L, r.nature)}</div></div> },
+    { key: 'description', label: t('description'), render: (r) => {
+      const account = data!.accounts.find((a: Rec) => a.id === r.accountId);
+      return <div><div className="font-medium">{r.description}</div><div className="text-xs text-muted-foreground">{r.category || '—'} · {opt(L, r.nature)}{account ? ` · ${account.bankName} / ${account.name}` : ''}</div></div>;
+    } },
     { key: 'kind', label: t('kind'), render: (r) => opt(L, r.kind) },
-    { key: 'amount', label: t('amount'), sortValue: (r) => Number(r.amount), render: (r) => (
-      <span className={cn('font-semibold tabular-nums', r.kind === 'Income' ? 'text-[hsl(var(--success))]' : 'text-destructive')}>
-        {r.kind === 'Income' ? '+' : '−'}{fmtMoney(L, Number(r.amount), r.currency)}
-      </span>) },
+    { key: 'amount', label: t('amount'), sortValue: (r) => Number(r.amount), render: (r) => <span className={cn('font-semibold tabular-nums', r.kind === 'Income' ? 'text-[hsl(var(--success))]' : 'text-destructive')}>{r.kind === 'Income' ? '+' : '−'}{fmtMoney(L, Number(r.amount), r.currency)}</span> },
+  ];
+  const accountCols: Col[] = [
+    { key: 'bankName', label: t('bankName'), render: (r) => <div><div className="font-medium">{r.bankName}</div><div className="text-xs text-muted-foreground">{r.name} · {r.accountNumber || '—'}</div></div> },
+    { key: 'currency', label: t('currency'), render: (r) => r.currency },
+    { key: 'balance', label: t('accountBalance'), render: (r) => <span className="font-semibold tabular-nums">{fmtMoney(L, accountBalance(r), r.currency)}</span> },
   ];
 
   return (
-    <div>
+    <div className="space-y-5">
       <PageHeader title={t('finance')} action={<Button onClick={() => { setEdit(null); setOpen(true); }}><Plus className="h-4 w-4 me-1" />{t('add')}</Button>} />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Kpi label={`${t('income')} · ${t('thisMonth')}`} value={fmtMoney(L, m.income, cur)} tone="good" />
         <Kpi label={`${t('expense')} · ${t('thisMonth')}`} value={fmtMoney(L, m.expense, cur)} tone="bad" />
         <Kpi label={t('cashFlow')} value={fmtMoney(L, m.net, cur)} tone={m.net >= 0 ? 'good' : 'bad'} />
         <Kpi label={t('savingsRate')} value={m.savingsRate == null ? t('noData') : `${Math.round(m.savingsRate * 100)}%`} tone="accent" />
       </div>
-      {m.missing.length > 0 && <p className="text-xs text-[hsl(var(--warning))] mb-3">{t('missingRate')}: {m.missing.join(', ')}</p>}
-      <DataList rows={data!.transactions} cols={cols} entity="transactions" onEdit={(r) => { setEdit(r); setOpen(true); }} searchKeys={['description', 'category']} />
-      <EntityForm open={open} onOpenChange={setOpen} entity="transactions" fields={FIELDS} initial={edit} defaults={{ kind: 'Expense', currency: cur, date: todayISO(), nature: 'Essential' }} title={t('finance')} />
+      {m.missing.length > 0 && <p className="text-xs text-[hsl(var(--warning))]">{t('missingRate')}: {m.missing.join(', ')}</p>}
+      <Panel title={t('bankAccounts')} action={<Button size="sm" onClick={() => { setAccountEdit(null); setAccountOpen(true); }}><Plus className="h-4 w-4 me-1" />{t('add')}</Button>}>
+        {data!.accounts.length === 0 && <div className="flex items-center gap-3 rounded-xl border border-dashed p-4 text-sm text-muted-foreground"><WalletCards className="h-5 w-5" />{L === 'fa' ? 'برای تفکیک موجودی بانک‌ها، ابتدا حساب بانکی اضافه کن.' : 'Add bank accounts to track each balance separately.'}</div>}
+        <DataList rows={data!.accounts} cols={accountCols} entity="accounts" onEdit={(r) => { setAccountEdit(r); setAccountOpen(true); }} searchKeys={['name', 'bankName', 'accountNumber']} />
+      </Panel>
+      <Panel title={t('finance')}>
+        <DataList rows={data!.transactions} cols={cols} entity="transactions" onEdit={(r) => { setEdit(r); setOpen(true); }} searchKeys={['description', 'category']} />
+      </Panel>
+      <EntityForm open={open} onOpenChange={setOpen} entity="transactions" fields={fields} initial={edit} defaults={{ kind: 'Expense', currency: cur, date: todayISO(), nature: 'Essential' }} title={t('finance')} />
+      <EntityForm open={accountOpen} onOpenChange={setAccountOpen} entity="accounts" fields={ACCOUNT_FIELDS} initial={accountEdit} defaults={{ currency: cur, openingBalance: 0, accountType: 'Current' }} title={t('bankAccounts')} />
     </div>
   );
 }
