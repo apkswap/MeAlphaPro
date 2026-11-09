@@ -14,7 +14,7 @@ import { cn } from '@project/components/lib/utils';
 
 export default function Dashboard(){
  const {data,t,settings,save}=useStore(); const d=data!,L=settings.language,cur=settings.currency,fa=L==='fa';
- const sc=scores(d,settings),ts=taskStats(d.tasks),m=monthFinance(d.transactions,settings),nw=netWorth(d.assets,d.liabilities,settings);
+ const ts=taskStats(d.tasks),m=monthFinance(d.transactions,settings),nw=netWorth(d.assets,d.liabilities,settings);
  const goals=d.goals.map(g=>({g,i:goalInfo(g)})).filter(x=>x.i.status!=='Completed');
  const atRisk=goals.filter(x=>x.i.status==='At Risk'||x.i.status==='Delayed');
  const habits=d.habits.filter(h=>!h.archived),doneHabits=habits.filter(h=>habitStats(h,d.habitLogs).doneToday).length;
@@ -29,8 +29,8 @@ export default function Dashboard(){
   </section>
   <div className="ma-section-heading"><div><span className="ma-section-kicker">{fa?'نمای مالی':'FINANCIAL SNAPSHOT'}</span><h2>{fa?'وضعیت کلی تو':'Your overview'}</h2></div><Link to="/insights">{fa?'گزارش کامل':'Full report'} {next}</Link></div>
   <section className="ma-metrics-grid">
-   <article className="ma-metric ma-metric-primary"><div className="ma-metric-top"><span>{t('netWorth')}</span><span className="ma-metric-icon"><Wallet size={18}/></span></div><div className="ma-metric-value">{money(nw.net)}</div><div className="ma-metric-foot"><span className="ma-positive"><ArrowUpRight size={14}/>{fa?'دارایی خالص':'Net position'}</span><span>{fmtNum(L,nw.assets.length)} {fa?'دارایی':'assets'}</span></div><div className="ma-metric-glow"/></article>
-   <article className="ma-metric"><div className="ma-metric-top"><span>{t('cashFlow')}</span><span className="ma-metric-icon cyan"><TrendingUp size={18}/></span></div><div className="ma-metric-value">{money(m.net)}</div><div className="ma-metric-foot"><span className={m.net>=0?'ma-positive':'ma-negative'}>{m.net>=0?<ArrowUpRight size={14}/>:<ArrowDownRight size={14}/ >}{t('savingsRate')}</span><span>{m.savingsRate==null?'—':fmtNum(L,m.savingsRate*100)+'%'}</span></div></article>
+   <article className="ma-metric ma-metric-primary"><div className="ma-metric-top"><span>{t('netWorth')}</span><span className="ma-metric-icon"><Wallet size={18}/></span></div><div className="ma-metric-value">{money(nw.net)}</div><div className="ma-metric-foot"><span className="ma-positive"><ArrowUpRight size={14}/>{fa?'دارایی خالص':'Net position'}</span><span>{money(nw.assets)} {fa?'دارایی':'assets'}</span></div><div className="ma-metric-glow"/></article>
+   <article className="ma-metric"><div className="ma-metric-top"><span>{t('cashFlow')}</span><span className="ma-metric-icon cyan"><TrendingUp size={18}/></span></div><div className="ma-metric-value">{money(m.net)}</div><div className="ma-metric-foot"><span className={m.net>=0?'ma-positive':'ma-negative'}>{m.net>=0?<ArrowUpRight size={14}/>:<ArrowDownRight size={14}/>}{t('savingsRate')}</span><span>{m.savingsRate==null?'—':fmtNum(L,m.savingsRate*100)+'%'}</span></div></article>
    <article className="ma-metric"><div className="ma-metric-top"><span>{t('activeGoals')}</span><span className="ma-metric-icon violet"><Target size={18}/></span></div><div className="ma-metric-value">{fmtNum(L,goals.length)}</div><div className="ma-metric-foot"><span className="ma-warning">{t('atRisk')}</span><span>{fmtNum(L,atRisk.length)}</span></div></article>
    <article className="ma-metric"><div className="ma-metric-top"><span>{t('completionRate')}</span><span className="ma-metric-icon green"><Zap size={18}/></span></div><div className="ma-metric-value">{ts.completionRate==null?'—':fmtNum(L,ts.completionRate*100)+'%'}</div><div className="ma-metric-foot"><span>{t('habitsToday')}</span><span>{fmtNum(L,doneHabits)}/{fmtNum(L,habits.length)}</span></div></article>
   </section>
