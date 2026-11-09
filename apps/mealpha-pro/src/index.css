@@ -114,3 +114,10 @@
   #root { position: relative; min-height: 100vh; }
   .bg-card, [class*='bg-card/'] { backdrop-filter: blur(18px); }
 }
+
+/* Compact, unobtrusive application scrollbars */
+html, body, * { scrollbar-width: thin; scrollbar-color: rgba(115, 151, 199, .42) transparent; }
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(115, 151, 199, .38); border-radius: 999px; border: 1px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(74, 166, 235, .65); }
