@@ -1,48 +1,97 @@
-# MeAlpha Pro — نسخه مستقل و Local-first
+# MeAlpha Pro
 
-برنامه تهیه شده جهت یک Planer شخصی میباشد که روتین ها و عادت های خودمان را در آن مدیریت میکنیم، همچنین بخش مدیریت مالی نیز در آن بکار گرفته شده تا شما بی نیاز از برنامه های واسط باشید و در نهایت عملکرد شما را برحسب اتفاقات و انجام روتین های خودتان میسنجد.
+A local-first personal planning and life-management application for goals, tasks, habits, focus sessions, personal finance, and performance insights.
 
-## اجرا در حالت توسعه
+## Current features
 
-نیازمند Node.js 20 یا جدیدتر و npm است:
+- Dashboard and activity overview
+- Goals, tasks, habits, and focus-session tracking
+- Transactions, assets, liabilities, and net-worth tracking
+- Data-driven insights based on recorded activity
+- Custom workspaces with user-defined fields and records
+- Persian (RTL) and English (LTR) interface
+- Jalali and Gregorian date formatting
+- Local IndexedDB persistence; normal data reads and writes do not require an internet connection.
 
-```powershell
+## UI changes in this branch
+
+- The compact label beside the sidebar mark now displays the user's display name or “MeAlpha”; “Pro” has been removed from that specific location. The product/package name remains MeAlpha Pro in application metadata and packaging configuration.
+- The backdrop now uses layered violet/cyan ambient lighting and a perspective grid for a 3D visual effect.
+- Panels use a dark glass-style visual treatment.
+- These changes are in the shared UI layer and are included when the web, desktop, and Android applications are built from this source.
+
+## Persian font
+
+B Mitra is not bundled in the current source. Persian text currently falls back to system fonts such as Tahoma and Segoe UI. To ship B Mitra offline, add a font file that is licensed for use and redistribution, register it with CSS @font-face, and rebuild the app. B Mitra should not be expected in the current installers.
+
+## Requirements
+
+- Node.js 22.14.0 (the version used by the CI workflows)
+- npm
+- Android builds: Java 21 and Android SDK
+- Windows installer builds: Windows environment and Electron Builder dependencies
+
+## Install dependencies and run in development
+
+From the repository root:
+
+~~~bash
 npm install
 npm run dev
-```
+~~~
 
-## ساخت فایل نصب ویندوز
+## Type-check and build the web application
 
-```powershell
-npm install
+~~~bash
+npm run build
+~~~
+
+Or build only the application workspace:
+
+~~~bash
+npm run build --workspace apps/mealpha-pro
+~~~
+
+## Build the Windows installer
+
+From the repository root:
+
+~~~bash
 npm run desktop:build
-```
+~~~
 
-فایل نصب در مسیر زیر ساخته می‌شود:
+The installer is written to:
 
-`apps/mealpha-pro/release/`
+apps/mealpha-pro/release/
 
-## استفاده آفلاین
+## Build Android
 
-در حالت دسکتاپ، برنامه از فایل‌های build شده محلی اجرا می‌شود و داده‌ها در IndexedDB پروفایل محلی برنامه نگهداری می‌شوند. برای استفاده روزمره، اینترنت لازم نیست. همگام‌سازی گوگل تنها زمانی به اینترنت نیاز دارد که خودتان دکمه Sync را بزنید.
+On the first run, create the Android project before syncing:
 
-## تنظیم همگام‌سازی گوگل
+~~~bash
+npm install
+npm run build --workspace apps/mealpha-pro
+cd apps/mealpha-pro
+npx cap add android
+npx cap sync android
+cd android
+./gradlew assembleDebug
+~~~
 
-این قابلیت صندوق ایمیل Gmail را نمی‌خواند و ایمیل ارسال/دریافت نمی‌کند؛ از حساب گوگل برای نگهداری نسخه همگام‌شده در فضای خصوصی Google Drive appData استفاده می‌کند.
+On Windows, run gradlew.bat assembleDebug. The debug APK is generated at:
 
-1. در Google Cloud Console یک پروژه بسازید.
-2. Google Drive API را فعال کنید.
-3. OAuth consent screen را تنظیم کنید.
-4. یک OAuth Client ID از نوع Web application بسازید.
-5. در Authorized JavaScript origins این مبدأ را اضافه کنید: `http://localhost:4173`.
-6. Client ID را در Settings برنامه وارد و ذخیره کنید.
-7. هر زمان خواستید، دکمه «همگام‌سازی با حساب گوگل» را بزنید.
+apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk
 
-همگام‌سازی با ادغام رکوردها بر اساس `updatedAt` و tombstoneهای حذف انجام می‌شود. پیش از استفاده روی چند دستگاه، ابتدا از اطلاعات خود خروجی پشتیبان بگیرید.
+The repository includes GitHub Actions workflows for automated builds:
+- .github/workflows/build-windows.yml
+- .github/workflows/build-android.yml
 
-## نکات مهم و محدودیت‌های این نسخه
+After a workflow succeeds, download its artifact from the corresponding GitHub Actions run.
 
-- فایل ZIP اولیه سورس و ساختار پروژه را داشت، اما داده‌های قبلی حساب Zite در آن نبودند؛ این نسخه نمی‌تواند رکوردهای ابری قبلی را خودکار بازیابی کند.
-- Google OAuth Client ID متعلق به شماست و باید در Google Cloud ساخته شود؛ عمداً هیچ کلید یا credential ساختگی داخل سورس قرار داده نشده است.
-- سورس در این محیط به علت نبود node_modules و عدم نصب وابستگی‌ها، build نهایی و تست اجرایی نشده است. برای انتشار نهایی باید `npm install` و سپس `npm run build` / `npm run desktop:build` اجرا و خطاهای احتمالی وابستگی‌ها رفع شوند.
-- برای جلوگیری از وابستگی به اینترنت، فونت‌ها از فونت‌های پیش‌فرض سیستم استفاده می‌کنند؛ در صورت نیاز می‌توان فونت‌های دارای مجوز را داخل پروژه bundle کرد.
+## Local data and synchronization
+
+Operational data is stored in local IndexedDB, and local data reads/writes do not depend on a cloud service. Multi-device synchronization is not documented as a complete, validated feature in this branch. Until an independent sync solution is implemented and tested, use the backup/restore capability available in the app when moving data, and create a backup before restoring.
+
+## Documentation status
+
+This README describes the committed state of feat/mealpha-3d-branding. Bundling B Mitra and final validation of distributable installers are separate tasks and must not be considered complete until implemented and tested.
