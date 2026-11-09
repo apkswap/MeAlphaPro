@@ -1,86 +1,33 @@
-import { useState } from 'react';
-import { CheckCircle2, TrendingDown, TrendingUp, X } from 'lucide-react';
-import { Button } from '@project/components/ui/button';
-import { toast } from 'sonner';
+import { useMemo } from 'react';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Activity, ArrowDownRight, ArrowUpRight, CheckCircle2, CircleAlert, Flame, Wallet } from 'lucide-react';
 import { useStore } from '../lib/store';
-import { fmtNum } from '../lib/i18n';
-import { findings, scores, todayISO, Finding } from '../lib/analytics';
-import { Bar, Panel, PageHeader } from '../components/ui-bits';
-import { cn } from '@project/components/lib/utils';
+import { fmtMoney, fmtNum } from '../lib/i18n';
+import { habitStats, monthFinance, scores, taskStats, goalInfo } from '../lib/analytics';
+import { Panel, PageHeader } from '../components/ui-bits';
 
-const KEY = 'mealpha-dismissed';
-export const getDismissed = (): string[] => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } };
-
-export function FindingCard({ f, onDismiss, onAccept }: { f: Finding; onDismiss?: () => void; onAccept?: () => void }) {
-  const { t, settings } = useStore();
-  const fa = settings.language === 'fa';
-  const sev = { high: 'border-s-destructive', medium: 'border-s-[hsl(var(--warning))]', low: 'border-s-[hsl(var(--success))]' }[f.severity];
-  return (
-    <div className={cn('rounded-xl border border-s-4 bg-card/70 p-4 space-y-2', sev)}>
-      <div className="flex items-start gap-2">
-        {f.kind === 'strength' ? <TrendingUp className="h-4 w-4 text-[hsl(var(--success))] mt-0.5" /> : <TrendingDown className="h-4 w-4 text-destructive mt-0.5" />}
-        <div className="flex-1 font-semibold text-sm">{f.title}</div>
-        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{f.confidence === 'confirmed' ? (fa ? 'تأییدشده' : 'Confirmed') : (fa ? 'فرضیه' : 'Hypothesis')}</span>
-      </div>
-      <p className="text-xs text-muted-foreground"><b>{t('evidence')}:</b> {f.evidence}</p>
-      <p className="text-xs"><b>{t('action')}:</b> {f.action}</p>
-      {(onDismiss || onAccept) && (
-        <div className="flex gap-2 pt-1">
-          {onAccept && <Button size="sm" variant="secondary" onClick={onAccept}><CheckCircle2 className="h-3.5 w-3.5 me-1" />{t('accept')}</Button>}
-          {onDismiss && <Button size="sm" variant="ghost" onClick={onDismiss}><X className="h-3.5 w-3.5 me-1" />{t('dismiss')}</Button>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function Insights() {
-  const { data, t, settings, save } = useStore();
-  const L = settings.language;
-  const [dismissed, setDismissed] = useState(getDismissed);
-  const sc = scores(data!, settings);
-  const all = findings(data!, settings, L).filter((f) => !dismissed.includes(f.id));
-  const dismiss = (id: string) => { const n = [...dismissed, id]; setDismissed(n); localStorage.setItem(KEY, JSON.stringify(n)); };
-  const accept = async (f: Finding) => {
-    if (await save('tasks', { title: f.action, notes: `${f.title}\n${f.evidence}`, status: 'Todo', priority: f.severity === 'high' ? 'High' : 'Medium', dueDate: todayISO() })) {
-      toast.success(t('saved')); dismiss(f.id);
-    }
-  };
-  const labels: Record<string, string> = L === 'fa'
-    ? { finance: 'مدیریت مالی', goals: 'دستیابی به اهداف', tasks: 'اجرای کارها', habits: 'ثبات عادت‌ها' }
-    : { finance: 'Financial management', goals: 'Goal achievement', tasks: 'Task execution', habits: 'Habit consistency' };
-  const weak = all.filter((f) => f.kind === 'weakness'), strong = all.filter((f) => f.kind === 'strength');
-
-  return (
-    <div className="space-y-6">
-      <PageHeader title={t('insights')} subtitle={t('scoreNote')} />
-      <Panel title={t('overallScore')}>
-        <div className="flex flex-col md:flex-row gap-6 md:items-center">
-          <div className="text-center md:w-40">
-            <div className="text-5xl font-black bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">{sc.overall == null ? '—' : fmtNum(L, sc.overall)}</div>
-            <div className="text-xs text-muted-foreground mt-1">{L === 'fa' ? `پوشش داده: ${fmtNum(L, sc.coverage)} از ۴` : `Data coverage: ${sc.coverage} of 4`}</div>
-          </div>
-          <div className="flex-1 grid sm:grid-cols-2 gap-4">
-            {Object.entries(sc.parts).map(([k, v]) => (
-              <div key={k} className="space-y-1">
-                <div className="flex justify-between text-sm"><span>{labels[k]}</span><span className="tabular-nums text-muted-foreground">{v == null ? t('noData') : fmtNum(L, v)}</span></div>
-                <Bar value={v == null ? null : v / 100} />
-              </div>
-            ))}
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground mt-4">{L === 'fa'
-          ? 'فرمول v1: میانگین برابر حوزه‌های دارای داده. مالی = ۵۰ + نرخ پس‌انداز×۱۶۶ (محدود به ۰ تا ۱۰۰)؛ اهداف = درصد اهداف در مسیر؛ کارها = نرخ تکمیل کارهای سررسید ۳۰ روز اخیر؛ عادت‌ها = میانگین نرخ ۳۰ روزه.'
-          : 'Formula v1: equal-weighted mean of areas with data. Finance = 50 + savings rate×166 (clamped 0–100); Goals = % of dated goals on track; Tasks = completion of tasks due in last 30 days; Habits = mean 30-day completion.'}</p>
-      </Panel>
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Panel title={t('weaknesses')}>
-          <div className="space-y-3">{weak.length ? weak.map((f) => <FindingCard key={f.id} f={f} onDismiss={() => dismiss(f.id)} onAccept={() => accept(f)} />) : <p className="text-sm text-muted-foreground">{t('noRecs')}</p>}</div>
-        </Panel>
-        <Panel title={t('strengths')}>
-          <div className="space-y-3">{strong.length ? strong.map((f) => <FindingCard key={f.id} f={f} onDismiss={() => dismiss(f.id)} />) : <p className="text-sm text-muted-foreground">{t('noRecs')}</p>}</div>
-        </Panel>
-      </div>
-    </div>
-  );
+const C=['#a78bfa','#22d3ee','#34d399','#f59e0b','#f472b6','#60a5fa','#fb7185'];
+export default function Insights(){
+ const {data,t,settings}=useStore(),d=data!,fa=settings.language==='fa',L=settings.language,cur=settings.currency;
+ const sc=scores(d,settings),ts=taskStats(d.tasks),habits=d.habits.filter(h=>!h.archived);
+ const trend=Array.from({length:6},(_,i)=>{const o=5-i,m=monthFinance(d.transactions,settings,o),dt=new Date();dt.setDate(1);dt.setMonth(dt.getMonth()-o);return{month:new Intl.DateTimeFormat(fa?'fa-IR-u-ca-persian':'en-US',{month:'short'}).format(dt),income:m.income,expense:m.expense,net:m.net};});
+ const cats=useMemo(()=>{const m=new Map<string,number>();d.transactions.filter(x=>x.kind!=='Income').forEach(x=>{const k=String(x.category||(fa?'بدون دسته':'Uncategorized'));m.set(k,(m.get(k)||0)+Number(x.amount||0));});return [...m].map(([name,value])=>({name,value})).sort((a,b)=>b.value-a.value).slice(0,7);},[d.transactions,fa]);
+ const hs=habits.map(h=>({name:h.name,value:Math.round(habitStats(h,d.habitLogs).rate30*100)})).sort((a,b)=>b.value-a.value);
+ const gs=d.goals.map(g=>({...goalInfo(g),name:g.title})).filter(g=>g.status!=='Unknown');
+ const gc=[{name:fa?'تکمیل‌شده':'Completed',value:gs.filter(g=>g.status==='Completed').length},{name:fa?'در مسیر':'On track',value:gs.filter(g=>g.status==='On Track').length},{name:fa?'در خطر':'At risk',value:gs.filter(g=>g.status==='At Risk').length},{name:fa?'عقب‌افتاده':'Delayed',value:gs.filter(g=>g.status==='Delayed').length}].filter(x=>x.value);
+ const now=monthFinance(d.transactions,settings),prev=monthFinance(d.transactions,settings,1),pct=(a:number,b:number)=>b?((a-b)/Math.abs(b))*100:null;
+ const tip={background:'#111827',border:'1px solid #334155',borderRadius:12,color:'#f8fafc'};
+ const metrics=[{label:fa?'امتیاز عملکرد':'Performance score',value:sc.overall==null?'—':fmtNum(L,sc.overall),sub:fa?`پوشش داده ${sc.coverage}/۴`:`Data coverage ${sc.coverage}/4`,icon:Activity,color:'text-violet-300'},{label:fa?'تکمیل وظایف':'Task completion',value:ts.completionRate==null?'—':fmtNum(L,ts.completionRate*100)+'%',sub:fa?`${ts.overdue.length} کار معوق`:`${ts.overdue.length} overdue`,icon:CheckCircle2,color:'text-cyan-300'},{label:fa?'استمرار عادت‌ها':'Habit consistency',value:hs.length?fmtNum(L,hs.reduce((s,x)=>s+x.value,0)/hs.length)+'%':'—',sub:fa?'میانگین ۳۰ روز':'30-day average',icon:Flame,color:'text-amber-300'},{label:fa?'خالص جریان مالی':'Net cashflow',value:fmtMoney(L,now.net,cur),sub:fa?'ماه جاری':'Current month',icon:Wallet,color:'text-emerald-300'}];
+ const parts=[{name:fa?'مالی':'Finance',value:sc.parts.finance},{name:fa?'اهداف':'Goals',value:sc.parts.goals},{name:fa?'وظایف':'Tasks',value:sc.parts.tasks},{name:fa?'عادت‌ها':'Habits',value:sc.parts.habits}];
+ const changes=[{label:fa?'درآمد':'Income',v:pct(now.income,prev.income)},{label:fa?'هزینه':'Expenses',v:pct(now.expense,prev.expense)},{label:fa?'خالص':'Net cashflow',v:pct(now.net,prev.net)},{label:fa?'تراکنش‌ها':'Transactions',v:pct(now.count,prev.count)}];
+ return <div className="space-y-6">
+ <div className="relative overflow-hidden rounded-3xl border border-violet-400/20 bg-gradient-to-br from-[#241943] via-[#11182e] to-[#0b2935] p-6 md:p-8 shadow-2xl"><div className="absolute -end-16 -top-24 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl"/><div className="relative flex flex-wrap items-end justify-between gap-4"><div><div className="mb-2 flex items-center gap-2 text-xs font-bold tracking-[.2em] text-cyan-200"><Activity className="h-4 w-4"/>{fa?'موتور هوشمندی عملکرد':'PERFORMANCE INTELLIGENCE'}</div><h1 className="text-2xl md:text-3xl font-black">{fa?'تصویر واقعی از پیشرفت تو':'Your progress, decoded.'}</h1><p className="mt-2 text-sm text-slate-300">{fa?'اهداف، عادت‌ها، اجرا و جریان مالی؛ یک نمای یکپارچه و قابل اقدام.':'Goals, habits, execution and financial momentum in one actionable view.'}</p></div><div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3"><div className="text-xs text-slate-300">{fa?'شاخص کل عملکرد':'OVERALL INDEX'}</div><div className="text-4xl font-black">{sc.overall==null?'—':fmtNum(L,sc.overall)}<span className="text-base text-cyan-200">/100</span></div></div></div></div>
+ <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{metrics.map((x,i)=><div key={x.label} className="relative overflow-hidden rounded-2xl border border-white/[.08] bg-slate-900/70 p-4 shadow-lg transition hover:-translate-y-1"><div className="flex justify-between text-xs text-slate-400">{x.label}<x.icon className={`h-5 w-5 ${x.color}`}/></div><div className="mt-3 text-2xl font-black text-slate-50">{x.value}</div><div className="mt-1 text-xs text-slate-500">{x.sub}</div><div className={`absolute bottom-0 start-0 h-[2px] w-full ${i%2?'bg-cyan-400':'bg-violet-400'}`}/></div>)}</div>
+ <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]"><Panel title={fa?'جریان مالی — ۶ ماه اخیر':'Financial momentum — 6 months'}><div className="mb-3 flex gap-4 text-xs text-slate-400"><span>● {fa?'درآمد':'Income'}</span><span className="text-cyan-300">● {fa?'هزینه':'Expenses'}</span></div><div className="h-64"><ResponsiveContainer><AreaChart data={trend}><defs><linearGradient id="inc" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#a78bfa" stopOpacity={.4}/><stop offset="100%" stopColor="#a78bfa" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#334155" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="month" tick={{fill:'#94a3b8',fontSize:11}} axisLine={false} tickLine={false}/><YAxis tick={{fill:'#94a3b8',fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tip}/><Area type="monotone" dataKey="income" name={fa?'درآمد':'Income'} stroke="#a78bfa" fill="url(#inc)" strokeWidth={2.5}/><Area type="monotone" dataKey="expense" name={fa?'هزینه':'Expense'} stroke="#22d3ee" fill="#22d3ee" fillOpacity={.12} strokeWidth={2.5}/></AreaChart></ResponsiveContainer></div></Panel>
+ <Panel title={fa?'ترکیب هزینه‌ها':'Expense categories'}>{cats.length?<><div className="h-48"><ResponsiveContainer><PieChart><Pie data={cats} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={4}>{cats.map((x,i)=><Cell key={x.name} fill={C[i%C.length]}/>)}</Pie><Tooltip contentStyle={tip}/></PieChart></ResponsiveContainer></div><div className="space-y-2">{cats.slice(0,5).map((x,i)=><div key={x.name} className="flex gap-2 text-xs"><i className="h-2 w-2 rounded-full" style={{background:C[i%C.length]}}/><span className="flex-1 truncate text-slate-300">{x.name}</span><b>{fmtMoney(L,x.value,cur)}</b></div>)}</div></>:<div className="grid h-56 place-items-center text-center text-sm text-slate-500">{fa?'تراکنش هزینه با دسته ثبت کن تا نمودار ساخته شود.':'Add categorized expenses to unlock this chart.'}</div>}</Panel></div>
+ <div className="grid gap-4 xl:grid-cols-2"><Panel title={fa?'عملکرد حوزه‌های زندگی':'Life-area performance'}><div className="space-y-5 py-2">{parts.map((p,i)=><div key={p.name}><div className="mb-2 flex justify-between text-sm"><span>{p.name}</span><b>{p.value==null?'—':fmtNum(L,p.value)+'%'}</b></div><div className="h-2.5 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full" style={{width:`${p.value??0}%`,background:C[i]}}/></div></div>)}</div><p className="mt-4 text-[11px] text-slate-500">{fa?'داده ناکافی به‌معنای امتیاز صفر نیست.':'Missing data is not treated as zero.'}</p></Panel>
+ <Panel title={fa?'وضعیت سبد اهداف':'Goal portfolio'}>{gc.length?<div className="h-56"><ResponsiveContainer><BarChart data={gc} layout="vertical" margin={{left:8,right:18}}><CartesianGrid stroke="#334155" strokeDasharray="3 5" horizontal={false}/><XAxis type="number" allowDecimals={false} tick={{fill:'#94a3b8',fontSize:10}}/><YAxis type="category" dataKey="name" width={85} tick={{fill:'#cbd5e1',fontSize:11}}/><Tooltip contentStyle={tip}/><Bar dataKey="value" radius={[0,7,7,0]}>{gc.map((x,i)=><Cell key={x.name} fill={C[i]}/>)}</Bar></BarChart></ResponsiveContainer></div>:<div className="grid h-56 place-items-center text-sm text-slate-500">{fa?'هنوز هدفی برای تحلیل ثبت نشده.':'No goals available yet.'}</div>}</Panel></div>
+ <div className="grid gap-4 xl:grid-cols-2"><Panel title={fa?'ثبات عادت‌ها — ۳۰ روز':'Habit consistency — 30 days'}>{hs.length?<div className="space-y-4 py-2">{hs.slice(0,7).map((h,i)=><div key={h.name}><div className="mb-1.5 flex justify-between text-sm"><span>{h.name}</span><b>{fmtNum(L,h.value)}%</b></div><div className="h-2 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full" style={{width:`${h.value}%`,background:C[i%C.length]}}/></div></div>)}</div>:<p className="text-sm text-slate-500">{fa?'برای تحلیل، عادت و ثبت روزانه اضافه کن.':'Add habits and daily check-ins to see trends.'}</p>}</Panel>
+ <Panel title={fa?'تغییر نسبت به ماه قبل':'Month-over-month movement'}><div className="grid grid-cols-2 gap-3">{changes.map(x=><div key={x.label} className="rounded-xl border border-white/[.07] bg-slate-950/40 p-3"><div className="text-xs text-slate-500">{x.label}</div><div className="mt-2 flex items-center gap-1 text-xl font-bold">{x.v==null?'—':<>{x.v>=0?<ArrowUpRight className="h-4 w-4 text-emerald-400"/>:<ArrowDownRight className="h-4 w-4 text-rose-400"/>}{fmtNum(L,Math.abs(x.v),1)}%</>}</div><div className="text-[10px] text-slate-600">{fa?'در مقایسه با ماه قبل':'vs previous month'}</div></div>)}</div>{ts.overdue.length>0&&<div className="mt-4 flex items-center gap-3 rounded-xl border border-rose-400/20 bg-rose-400/5 p-3"><CircleAlert className="h-5 w-5 text-rose-300"/><span className="text-xs text-slate-300">{fa?`${ts.overdue.length} وظیفه از موعد گذشته است.`:`${ts.overdue.length} tasks are overdue.`}</span></div>}</Panel></div>
+ <p className="px-1 text-[11px] text-slate-500">{fa?'تحلیل‌ها محلی و بر اساس داده‌های همین دستگاه محاسبه می‌شوند.':'Analytics are computed locally from this device.'}</p></div>;
 }
