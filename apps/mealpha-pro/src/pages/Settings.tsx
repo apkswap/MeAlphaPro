@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Download, Upload, CheckCircle2, Camera } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Loader2, Download, Upload, CheckCircle2, Camera, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
@@ -46,6 +49,33 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob); const a = document.createElement('a');
     a.href = url; a.download = `mealpha-pro-backup-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
   };
+  const syncDriveFolder = async () => {
+    try {
+      const snapshot = await getSnapshot();
+      const json = JSON.stringify(snapshot, null, 2);
+      const filename = 'mealpha-pro-sync.json';
+      if (Capacitor.isNativePlatform()) {
+        const path = filename;
+        await Filesystem.writeFile({ path, data: json, directory: Directory.Cache, recursive: true });
+        const result = await Filesystem.getUri({ path, directory: Directory.Cache });
+        await Share.share({ title: 'MeAlpha Pro backup', text: 'MeAlpha Pro data backup. Save this file to Google Drive.', url: result.uri, dialogTitle: fa ? 'ذخیره پشتیبان در Google Drive' : 'Save backup to Google Drive' });
+      } else {
+        const picker = (window as any).showDirectoryPicker;
+        if (!picker) throw new Error(fa ? 'مرورگر از انتخاب پوشه پشتیبانی نمی‌کند؛ از خروجی پشتیبان استفاده کنید.' : 'Folder access is unavailable in this browser. Use Export backup instead.');
+        const directory = await picker({ mode: 'readwrite' });
+        const file = await directory.getFileHandle(filename, { create: true });
+        const writable = await file.createWritable();
+        await writable.write(new Blob([json], { type: 'application/json' }));
+        await writable.close();
+      }
+      toast.success(fa ? 'فایل پشتیبان برای انتقال به Drive آماده شد.' : 'Backup is ready for Drive transfer.');
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : t('error'));
+    }
+  };
+
   const importBackup = async (file?: File) => {
     if (!file) return;
     try {
@@ -96,8 +126,8 @@ export default function SettingsPage() {
           <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5" />
           <div><div className="font-semibold">{fa ? 'ذخیره‌سازی محلی و آفلاین' : 'Local, offline storage'}</div><p className="text-sm text-muted-foreground mt-1">{fa ? 'اطلاعات در پایگاه داده محلی همین دستگاه ذخیره می‌شوند. برای ثبت، ویرایش و مشاهده اطلاعات اینترنت لازم نیست و هیچ همگام‌سازی ابری خودکاری انجام نمی‌شود.' : 'Your data stays in this device’s local database. No internet is needed to create, edit or view records, and no cloud sync runs automatically.'}</p></div>
         </div>
-        <p className="text-sm text-muted-foreground mt-4">{fa ? 'برای انتقال دستی اطلاعات بین دستگاه‌ها از فایل پشتیبان رمزگذاری‌نشده JSON استفاده کنید و آن را در محل امن نگه دارید.' : 'For manual device-to-device transfer, use a JSON backup file and keep it in a secure location.'}</p>
-        <div className="mt-4 flex flex-wrap gap-2 border-t pt-4"><Button variant="outline" onClick={exportBackup}><Download className="h-4 w-4 me-2" />{fa ? 'خروجی پشتیبان' : 'Export backup'}</Button><label className="inline-flex cursor-pointer items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"><Upload className="h-4 w-4 me-2" />{fa ? 'بازیابی پشتیبان' : 'Import backup'}<input type="file" accept="application/json,.json" className="hidden" onChange={(e) => void importBackup(e.target.files?.[0])} /></label></div>
+        <p className="text-sm text-muted-foreground mt-4">{fa ? 'برای انتقال دستی بین دستگاه‌ها، فایل پشتیبان را در Google Drive ذخیره کنید و در دستگاه دیگر از همان‌جا انتخاب و بازیابی کنید. این روش همگام‌سازی خودکار نیست؛ هر بار باید پشتیبان جدید ذخیره و بازیابی شود.' : 'Save the backup to Google Drive, then select and restore it from Drive on the other device. This is manual transfer, not automatic sync.'}</p>
+        <div className="mt-4 flex flex-wrap gap-2 border-t pt-4"><Button onClick={syncDriveFolder}><Cloud className="h-4 w-4 me-2" />{fa ? "انتقال با Google Drive" : "Transfer with Google Drive"}</Button><Button variant="outline" onClick={exportBackup}><Download className="h-4 w-4 me-2" />{fa ? 'خروجی پشتیبان' : 'Export backup'}</Button><label className="inline-flex cursor-pointer items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"><Upload className="h-4 w-4 me-2" />{fa ? 'بازیابی پشتیبان' : 'Import backup'}<input type="file" accept="application/json,.json" className="hidden" onChange={(e) => void importBackup(e.target.files?.[0])} /></label></div>
       </Panel>
     </div>
   );
