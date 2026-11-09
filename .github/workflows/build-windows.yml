@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - feat/mealpha-3d-branding
     paths:
       - "apps/**"
       - "packages/**"
