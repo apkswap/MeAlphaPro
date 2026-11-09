@@ -5,13 +5,7 @@
 
 @layer base {
   :root {
-    /* Auto-restored theme variables */
-    --shadow-x: 0px;
-    --shadow-y: 1px;
-    --shadow-blur: 4px;
-    --shadow-spread: 0px;
-    --shadow-opacity: 0.2;
-    --shadow-color: #000000;
+    --shadow-x: 0px; --shadow-y: 1px; --shadow-blur: 4px; --shadow-spread: 0px; --shadow-opacity: 0.12; --shadow-color: #17324f;
     --shadow-2xs: var(--shadow-x) var(--shadow-y) color-mix(in srgb, var(--shadow-color) calc(var(--shadow-opacity) * 100%), transparent);
     --shadow-xs: var(--shadow-x) var(--shadow-y) var(--shadow-blur) var(--shadow-spread) color-mix(in srgb, var(--shadow-color) calc(var(--shadow-opacity) * 100%), transparent);
     --shadow-sm: var(--shadow-x) var(--shadow-y) calc(var(--shadow-blur) * 1.5) var(--shadow-spread) color-mix(in srgb, var(--shadow-color) calc(var(--shadow-opacity) * 100%), transparent);
@@ -20,46 +14,43 @@
     --shadow-xl: calc(var(--shadow-x) * 6) calc(var(--shadow-y) * 6) calc(var(--shadow-blur) * 7) calc(var(--shadow-spread) - 5px) color-mix(in srgb, var(--shadow-color) calc(var(--shadow-opacity) * 100%), transparent);
     --shadow-2xl: calc(var(--shadow-x) * 8) calc(var(--shadow-y) * 8) calc(max(0px, var(--shadow-blur) * 9 - 8px)) calc(var(--shadow-spread) - 12px) color-mix(in srgb, var(--shadow-color) calc(var(--shadow-opacity) * 250%), transparent);
     --shadow: var(--shadow-md);
-
-    --background: 230 45% 7%;
-    --foreground: 225 30% 94%;
-    --muted: 230 32% 14%;
-    --muted-foreground: 228 15% 62%;
-    --popover: 231 40% 10%;
-    --popover-foreground: 225 30% 94%;
-    --border: 230 28% 18%;
-    --input: 230 28% 20%;
-    --card: 231 40% 10%;
-    --card-foreground: 225 30% 94%;
-    --primary: 262 83% 66%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 230 32% 16%;
-    --secondary-foreground: 225 30% 94%;
-    --accent: 187 85% 50%;
-    --accent-foreground: 230 45% 7%;
-    --destructive: 352 80% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 158 70% 45%;
-    --warning: 38 92% 58%;
-    --ring: 262 83% 66%;
+    --background: 210 45% 97%; --foreground: 214 45% 13%;
+    --muted: 210 32% 92%; --muted-foreground: 213 20% 42%;
+    --popover: 0 0% 100%; --popover-foreground: 214 45% 13%;
+    --border: 211 28% 84%; --input: 211 28% 82%;
+    --card: 0 0% 100%; --card-foreground: 214 45% 13%;
+    --primary: 211 100% 43%; --primary-foreground: 0 0% 100%;
+    --secondary: 207 35% 91%; --secondary-foreground: 214 45% 18%;
+    --accent: 188 90% 42%; --accent-foreground: 210 45% 8%;
+    --destructive: 352 80% 52%; --destructive-foreground: 0 0% 100%;
+    --success: 158 65% 38%; --warning: 38 92% 48%; --ring: 205 100% 48%;
     --radius: 0.85rem;
-    --sidebar-background: 231 45% 8%;
-    --sidebar-foreground: 225 25% 85%;
-    --sidebar-primary: 262 83% 66%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 230 32% 15%;
-    --sidebar-accent-foreground: 225 30% 94%;
-    --sidebar-border: 230 28% 16%;
-    --sidebar-ring: 262 83% 66%;
-    --chart-1: 262 83% 66%;
-    --chart-2: 187 85% 50%;
-    --chart-3: 158 70% 45%;
-    --chart-4: 38 92% 58%;
-    --chart-5: 330 80% 62%;
-    --font-sans: 'Segoe UI', Tahoma, Arial, sans-serif;
-    --font-mono: Consolas, monospace;
+    --sidebar-background: 210 45% 96%; --sidebar-foreground: 214 35% 22%;
+    --sidebar-primary: 211 100% 43%; --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 207 35% 90%; --sidebar-accent-foreground: 214 45% 18%;
+    --sidebar-border: 211 28% 84%; --sidebar-ring: 205 100% 48%;
+    --chart-1: 211 100% 43%; --chart-2: 188 90% 42%; --chart-3: 158 65% 38%; --chart-4: 38 92% 48%; --chart-5: 0 75% 58%;
+    --font-sans: 'Segoe UI', Tahoma, Arial, sans-serif; --font-mono: Consolas, monospace;
+    color-scheme: light;
   }
-  .dark { color-scheme: dark; }
+  .dark {
+    color-scheme: dark;
+    --background: 215 52% 6%; --foreground: 210 35% 95%;
+    --muted: 215 36% 13%; --muted-foreground: 213 18% 66%;
+    --popover: 214 48% 10%; --popover-foreground: 210 35% 95%;
+    --border: 213 32% 19%; --input: 213 32% 22%;
+    --card: 214 48% 10%; --card-foreground: 210 35% 95%;
+    --primary: 205 100% 64%; --primary-foreground: 215 55% 8%;
+    --secondary: 213 36% 15%; --secondary-foreground: 210 35% 95%;
+    --accent: 188 92% 52%; --accent-foreground: 215 55% 7%;
+    --destructive: 352 80% 62%; --destructive-foreground: 0 0% 100%;
+    --success: 158 70% 48%; --warning: 38 92% 60%; --ring: 205 100% 64%;
+    --sidebar-background: 215 55% 7%; --sidebar-foreground: 210 28% 86%;
+    --sidebar-primary: 205 100% 64%; --sidebar-primary-foreground: 215 55% 7%;
+    --sidebar-accent: 213 36% 14%; --sidebar-accent-foreground: 210 35% 95%;
+    --sidebar-border: 213 32% 17%; --sidebar-ring: 205 100% 64%;
+    --chart-1: 205 100% 64%; --chart-2: 188 92% 52%; --chart-3: 158 70% 48%; --chart-4: 38 92% 60%; --chart-5: 0 80% 66%;
+  }
   html[lang='fa'] { --font-sans: Tahoma, 'Segoe UI', sans-serif; }
 }
 
@@ -67,16 +58,23 @@
   * { @apply border-border outline-ring/50; }
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    position: relative;
-    isolation: isolate;
-    background-color: hsl(230 45% 7%);
+    position: relative; isolation: isolate;
+    background-color: hsl(var(--background));
     background-image:
-      radial-gradient(ellipse at 78% 8%, hsl(262 83% 66% / .20), transparent 38%),
-      radial-gradient(ellipse at 8% 78%, hsl(187 85% 50% / .13), transparent 36%),
-      radial-gradient(ellipse at 52% 48%, hsl(230 50% 18% / .28), transparent 58%),
-      linear-gradient(135deg, #080c1c 0%, #10152b 48%, #080f20 100%);
+      radial-gradient(ellipse at 78% 8%, hsl(205 100% 58% / .16), transparent 38%),
+      radial-gradient(ellipse at 8% 78%, hsl(188 92% 48% / .13), transparent 36%),
+      radial-gradient(ellipse at 52% 48%, hsl(210 55% 50% / .08), transparent 58%),
+      linear-gradient(135deg, #eaf5ff 0%, #f5fbff 48%, #e6f5fb 100%);
     background-attachment: fixed;
     background-size: 140% 140%, 130% 130%, 120% 120%, cover;
+    transition: background-color .35s ease, color .35s ease;
+  }
+  .dark body {
+    background-image:
+      radial-gradient(ellipse at 78% 8%, hsl(205 100% 58% / .22), transparent 38%),
+      radial-gradient(ellipse at 8% 78%, hsl(188 92% 48% / .14), transparent 36%),
+      radial-gradient(ellipse at 52% 48%, hsl(210 55% 30% / .20), transparent 58%),
+      linear-gradient(135deg, #061326 0%, #0b1d34 48%, #061b2a 100%);
   }
   /* Shared ambient lighting and perspective grid for the 3D backdrop. */
   body::before {
@@ -86,9 +84,9 @@
     z-index: -1;
     pointer-events: none;
     background:
-      radial-gradient(circle at 72% 22%, rgba(139,92,246,.18), transparent 22rem),
-      radial-gradient(circle at 18% 68%, rgba(34,211,238,.12), transparent 24rem),
-      radial-gradient(circle at 90% 88%, rgba(99,102,241,.10), transparent 20rem);
+      radial-gradient(circle at 72% 22%, rgba(38,143,255,.22), transparent 22rem),
+      radial-gradient(circle at 18% 68%, rgba(0,196,220,.16), transparent 24rem),
+      radial-gradient(circle at 90% 88%, rgba(20,126,190,.14), transparent 20rem);
     filter: saturate(150%);
     opacity: .95;
   }
@@ -105,12 +103,12 @@
     transform: perspective(720px) rotateX(62deg);
     transform-origin: center top;
     background-image:
-      linear-gradient(rgba(167,139,250,.20) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(103,232,249,.16) 1px, transparent 1px);
+      linear-gradient(rgba(34,137,220,.17) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,177,210,.15) 1px, transparent 1px);
     background-size: 46px 46px;
     mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 78%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 72%, transparent 100%);
   }
-  #root { position: relative; min-height: 100vh; }
+  .dark body::before { opacity: .95; }\n  body::before { opacity: .72; }\n  #root { position: relative; min-height: 100vh; }
   .bg-card, [class*='bg-card/'] { backdrop-filter: blur(18px); }
 }
