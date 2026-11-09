@@ -111,3 +111,21 @@ Sync providers:
 - Google sign-in and Drive permission are independently represented.
 - All intelligence findings include evidence and distinguish measured facts from hypotheses.
 - Notification delivery and permissions are tested separately on Windows and Android.
+
+## Implementation status
+
+The first safety-focused implementation slice on `feat/next-gen-local-first-roadmap` now includes:
+
+- A typed local intelligence overview facade over the existing analytics functions.
+- Snapshot shape validation before remote data is applied.
+- A single IndexedDB read-write transaction for snapshot merge across all entity stores and metadata, so a failed write aborts the merge rather than leaving a partially replaced database.
+- A persistent `preSyncBackup` snapshot written atomically with the merge, exposed through `getPreSyncBackup()` for a future recovery UI.
+- Tombstone reads and updates performed inside the same IndexedDB read-write transaction as record create/delete; settings and their timestamp are also saved atomically.
+- A GitHub Actions workflow for TypeScript validation, web production build, Windows x64 NSIS installer, and Android debug APK artifacts.
+
+Not yet complete or verified:
+
+- The pre-sync backup is stored locally but no user-facing restore screen exists yet.
+- Snapshot merge still uses timestamp-based record selection; a full conflict review/resolve interface and per-field financial conflict policy remain future work.
+- Background/incremental Drive sync, OAuth token lifecycle, combined Google/email authentication, custom workflow UI, expanded intelligence dashboards, native notification adapters, and finance forecasting remain roadmap work.
+- No build result is claimed until the GitHub Actions jobs finish successfully; the local execution environment cannot reach GitHub to clone dependencies or run the build.
