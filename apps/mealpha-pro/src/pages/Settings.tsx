@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Cloud, Download, Upload, CheckCircle2 } from 'lucide-react';
+import { Loader2, Cloud, Download, Upload, CheckCircle2, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useStore, Settings } from '../lib/store';
 import { Panel, PageHeader } from '../components/ui-bits';
 import { syncWithGoogleDrive } from '../lib/googleDriveSync';
-import { getSnapshot } from '../lib/localDb';
+import { getSnapshot, getPreSyncBackup, restoreSnapshot } from '../lib/localDb';
 
 export default function SettingsPage() {
   const { t, settings, setLocalSettings } = useStore();
@@ -28,6 +28,20 @@ export default function SettingsPage() {
     setBusy(false);
   };
 
+  const [hasRecoveryBackup, setHasRecoveryBackup] = useState(false);
+  useEffect(() => { let active = true; void getPreSyncBackup().then((backup) => { if (active) setHasRecoveryBackup(!!backup); }).catch(() => { if (active) setHasRecoveryBackup(false); }); return () => { active = false; }; }, []);
+  const restoreRecoveryBackup = async () => {
+    const backup = await getPreSyncBackup();
+    if (!backup) { setHasRecoveryBackup(false); return toast.error(settings.language === 'fa' ? 'نسخه بازیابی موجود نیست.' : 'No recovery snapshot is available.'); }
+    const message = settings.language === 'fa'
+      ? 'این کار اطلاعات فعلی دستگاه را با نسخه قبل از آخرین همگام‌سازی جایگزین می‌کند. قبل از جایگزینی، از وضعیت فعلی نیز نسخه پشتیبان گرفته می‌شود. ادامه می‌دهید؟'
+      : 'This replaces current device data with the snapshot from before the last sync. Current data is backed up first. Continue?';
+    if (!window.confirm(message)) return;
+    setBusy(true);
+    try { await restoreSnapshot(backup); toast.success(settings.language === 'fa' ? 'اطلاعات بازیابی شد.' : 'Data restored.'); window.location.reload(); }
+    catch (error) { toast.error(error instanceof Error ? error.message : t('error')); }
+    finally { setBusy(false); }
+  };
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncResult, setSyncResult] = useState('');
   const syncGoogle = async () => {
@@ -98,6 +112,11 @@ export default function SettingsPage() {
         <Button className="mt-4" onClick={syncGoogle} disabled={syncBusy}><Cloud className="h-4 w-4 me-2" />{syncBusy ? (settings.language === 'fa' ? 'در حال همگام‌سازی…' : 'Syncing…') : (settings.language === 'fa' ? 'همگام‌سازی با حساب گوگل' : 'Sync with Google')}</Button>
         {syncResult && <p className="mt-3 text-sm text-emerald-500">{syncResult}</p>}
         <div className="mt-5 flex flex-wrap gap-2 border-t pt-4"><Button variant="outline" onClick={exportBackup}><Download className="h-4 w-4 me-2" />{settings.language === 'fa' ? 'خروجی پشتیبان' : 'Export backup'}</Button><label className="inline-flex cursor-pointer items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"><Upload className="h-4 w-4 me-2" />{settings.language === 'fa' ? 'بازیابی پشتیبان' : 'Import backup'}<input type="file" accept="application/json,.json" className="hidden" onChange={(e) => void importBackup(e.target.files?.[0])} /></label></div>
+        {hasRecoveryBackup && <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <div className="font-semibold text-sm">{settings.language === 'fa' ? 'نسخه بازیابی قبل از همگام‌سازی موجود است' : 'A pre-sync recovery snapshot is available'}</div>
+          <p className="mt-1 text-xs text-muted-foreground">{settings.language === 'fa' ? 'در صورت بروز مشکل پس از Sync می‌توانید وضعیت محلی قبل از آن را برگردانید.' : 'If the last sync caused a problem, you can restore the local state from immediately before it.'}</p>
+          <Button className="mt-3" variant="outline" onClick={() => void restoreRecoveryBackup()} disabled={busy}><History className="h-4 w-4 me-2" />{settings.language === 'fa' ? 'بازیابی وضعیت قبل از Sync' : 'Restore pre-sync data'}</Button>
+        </div>}
       </Panel>
     </div>
   );
