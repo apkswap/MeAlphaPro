@@ -11,9 +11,17 @@ import DataList, { Col } from '../components/DataList';
 import { PageHeader } from '../components/ui-bits';
 import { cn } from '@project/components/lib/utils';
 
-export const completeTx = (r: Rec, prev?: Rec | null) => ({
-  ...r, completedAt: r.status === 'Done' ? prev?.completedAt ?? new Date().toISOString() : null,
-});
+export const completeTx = (r: Rec, prev?: Rec | null) => {
+  // Status updates may be partial (for example, a checkbox toggle). Always
+  // preserve the complete previous record before applying the changed fields.
+  const merged = { ...(prev ?? {}), ...r };
+  return {
+    ...merged,
+    completedAt: merged.status === 'Done'
+      ? prev?.completedAt ?? merged.completedAt ?? new Date().toISOString()
+      : null,
+  };
+};
 
 export default function Tasks() {
   const { data, t, settings, save } = useStore();
@@ -28,6 +36,7 @@ export default function Tasks() {
     { key: 'status', label: 'status', type: 'select', options: ['Todo', 'In Progress', 'Done'] },
     { key: 'priority', label: 'priority', type: 'select', options: ['Low', 'Medium', 'High'] },
     { key: 'dueDate', label: 'dueDate', type: 'date' },
+    { key: 'category', label: 'category', type: 'select', options: [...new Set([...(settings.customCategories?.tasks ?? []), ...data!.tasks.map((x) => x.category).filter(Boolean)])] },
     ...(goalOpts.length ? [{ key: 'goalId', label: 'linkedGoal', type: 'select', options: goalOpts } as Field] : []),
     { key: 'estimatedMinutes', label: 'estMin', type: 'number' },
     { key: 'actualMinutes', label: 'actMin', type: 'number' },
@@ -37,7 +46,7 @@ export default function Tasks() {
   const rows = data!.tasks.filter((x) =>
     filter === 'all' ? true : filter === 'open' ? x.status !== 'Done' : filter === 'overdue' ? x.status !== 'Done' && x.dueDate && x.dueDate < today : filter === 'today' ? x.dueDate === today : x.status === 'Done');
 
-  const toggle = (r: Rec) => save('tasks', completeTx({ status: r.status === 'Done' ? 'Todo' : 'Done' }, r), r.id);
+  const toggle = (r: Rec) => save('tasks', completeTx({ ...r, status: r.status === 'Done' ? 'Todo' : 'Done' }, r), r.id);
 
   const cols: Col[] = [
     { key: 'title', label: t('title'), render: (r) => (

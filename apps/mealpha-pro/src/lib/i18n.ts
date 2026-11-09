@@ -12,6 +12,7 @@ const dict = {
   wealth: ['دارایی و بدهی', 'Assets & Debts'],
   insights: ['هوش عملکرد', 'Insights'],
   settings: ['تنظیمات', 'Settings'],
+  studio: ['فضاهای سفارشی', 'Workspace Studio'],
   signOut: ['خروج', 'Sign out'],
   add: ['افزودن', 'Add'],
   edit: ['ویرایش', 'Edit'],
