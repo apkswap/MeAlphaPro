@@ -32,6 +32,22 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <PageHeader title={t('dashboard')} subtitle={t('appTagline')} />
+      {(settings.displayName || settings.username || settings.bio || settings.avatarDataUrl || settings.avatarEmoji) && (
+        <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-violet-500/15 via-card/90 to-cyan-500/10 p-5 shadow-xl">
+          <div className="absolute -right-10 -top-16 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl pointer-events-none" />
+          <div className="relative flex items-center gap-4">
+            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl grid place-items-center text-3xl font-black text-white ring-1 ring-white/20 shadow-lg" style={{ background: settings.avatarColor || '#8b5cf6' }}>
+              {settings.avatarDataUrl ? <img src={settings.avatarDataUrl} alt="Profile avatar" className="h-full w-full object-cover" /> : (settings.avatarEmoji || 'α')}
+            </div>
+            <div className="min-w-0">
+              <div className="text-lg font-bold">{settings.displayName || (L === 'fa' ? 'کاربر MeAlpha' : 'MeAlpha user')}</div>
+              {settings.username && <div className="text-xs text-primary" dir="ltr">@{settings.username}</div>}
+              {settings.bio && <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{settings.bio}</p>}
+            </div>
+            <Link to="/settings" className="ms-auto shrink-0 text-xs text-primary underline">{L === 'fa' ? 'ویرایش پروفایل' : 'Edit profile'}</Link>
+          </div>
+        </section>
+      )}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         <Kpi label={t('overallScore')} value={sc.overall == null ? '—' : fmtNum(L, sc.overall)} tone="accent" hint={<Link to="/insights" className="underline">{t('insights')}</Link>} />
         <Kpi label={t('completionRate')} value={ts.completionRate == null ? '—' : `${fmtNum(L, ts.completionRate * 100)}%`} hint={`${t('overdue')}: ${fmtNum(L, ts.overdue.length)}`} tone={ts.overdue.length ? 'bad' : 'default'} />
