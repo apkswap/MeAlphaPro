@@ -53,28 +53,58 @@ export async function loadAll() {
 }
 
 export async function saveRecord(entity: Entity, record: Rec, id?: string) {
-  const db = await openDb(); const now = Date.now(); const recordId = id ?? record.id ?? crypto.randomUUID();
+  const db = await openDb();
+  const now = Date.now();
+  const recordId = id ?? record.id ?? crypto.randomUUID();
   const saved = { ...record, id: recordId, updatedAt: now };
-  const tombstones = await readMeta<Record<string, number>>('tombstones', {});
   const tx = db.transaction([entity, 'appMeta'], 'readwrite');
-  tx.objectStore(entity).put(saved);
-  delete tombstones[`${entity}:${recordId}`];
-  tx.objectStore('appMeta').put({ key: 'tombstones', value: tombstones });
-  await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error); });
+  const metaStore = tx.objectStore('appMeta');
+  const tombstoneRequest = metaStore.get('tombstones');
+  tombstoneRequest.onsuccess = () => {
+    const tombstones = { ...((tombstoneRequest.result?.value ?? {}) as Record<string, number>) };
+    delete tombstones[entity + ':' + recordId];
+    tx.objectStore(entity).put(saved);
+    metaStore.put({ key: 'tombstones', value: tombstones });
+  };
+  await new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
   return recordId;
 }
 
 export async function deleteRecord(entity: Entity, id: string) {
   const db = await openDb();
-  const tombstones = await readMeta<Record<string, number>>('tombstones', {});
   const tx = db.transaction([entity, 'appMeta'], 'readwrite');
-  tx.objectStore(entity).delete(id);
-  tombstones[`${entity}:${id}`] = Date.now();
-  tx.objectStore('appMeta').put({ key: 'tombstones', value: tombstones });
-  await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error); });
+  const metaStore = tx.objectStore('appMeta');
+  const tombstoneRequest = metaStore.get('tombstones');
+  tombstoneRequest.onsuccess = () => {
+    const tombstones = { ...((tombstoneRequest.result?.value ?? {}) as Record<string, number>) };
+    tx.objectStore(entity).delete(id);
+    tombstones[entity + ':' + id] = Date.now();
+    metaStore.put({ key: 'tombstones', value: tombstones });
+  };
+  await new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
 }
 
-export async function saveSettings(settings: AppSettings) { await writeMeta('settings', settings); await writeMeta('settingsUpdatedAt', Date.now()); }
+export async function saveSettings(settings: AppSettings) {
+  const db = await openDb();
+  const tx = db.transaction('appMeta', 'readwrite');
+  const metaStore = tx.objectStore('appMeta');
+  metaStore.put({ key: 'settings', value: settings });
+  metaStore.put({ key: 'settingsUpdatedAt', value: Date.now() });
+  await new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
 export async function getSnapshot(): Promise<Snapshot> {
   const all = await loadAll();
   const data = {} as Record<Entity, Rec[]>;
@@ -94,6 +124,9 @@ function validateSnapshot(remote: Snapshot) {
     for (const record of records ?? []) {
       if (!record || typeof record !== 'object' || typeof record.id !== 'string' || !record.id.trim()) {
         throw new Error(`Invalid snapshot: ${entity} contains a record without a valid id.`);
+      }
+      if (record.updatedAt !== undefined && (!Number.isFinite(Number(record.updatedAt)) || Number(record.updatedAt) < 0)) {
+        throw new Error(`Invalid snapshot: ${entity} contains an invalid updatedAt timestamp.`);
       }
     }
   }
