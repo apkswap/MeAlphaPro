@@ -4,6 +4,7 @@ import { getSnapshot, mergeSnapshot, Snapshot } from './localDb';
 const DRIVE_FILE = 'mealpha-pro-sync.json';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 let initializedClientId = '';
+let initializingClientId = '';
 let initialization: Promise<void> | null = null;
 
 /**
@@ -16,8 +17,12 @@ export function prepareGoogleIdentity(clientId: string): Promise<void> {
   const normalized = clientId.trim();
   if (!normalized) return Promise.reject(new Error('ابتدا Google OAuth Web Client ID را در تنظیمات وارد کنید.'));
   if (initializedClientId === normalized) return Promise.resolve();
-  if (initialization) return initialization;
+  if (initialization) {
+    if (initializingClientId === normalized) return initialization;
+    return initialization.catch(() => undefined).then(() => prepareGoogleIdentity(normalized));
+  }
 
+  initializingClientId = normalized;
   initialization = SocialLogin.initialize({
     google: {
       webClientId: normalized,
@@ -30,6 +35,7 @@ export function prepareGoogleIdentity(clientId: string): Promise<void> {
     throw error instanceof Error ? error : new Error('Google sign-in could not be initialized.');
   }).finally(() => {
     initialization = null;
+    initializingClientId = '';
   });
 
   return initialization;
