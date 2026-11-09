@@ -109,7 +109,6 @@
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 72%, transparent 100%);
   }
   #root { position: relative; min-height: 100vh; }
-  }
 }
 
 
