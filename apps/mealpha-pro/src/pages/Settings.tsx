@@ -63,7 +63,7 @@ export default function SettingsPage() {
       const stateBytes = crypto.getRandomValues(new Uint8Array(16));
       const state = Array.from(stateBytes, b => b.toString(16).padStart(2, '0')).join('');
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-      const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
+      const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/g, '');
       sessionStorage.setItem('mealpha.dropbox.appKey', appKey);
       sessionStorage.setItem('mealpha.dropbox.verifier', verifier);
       sessionStorage.setItem('mealpha.dropbox.state', state);
