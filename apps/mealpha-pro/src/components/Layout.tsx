@@ -32,7 +32,7 @@ export default function Layout() {
     <div className="min-h-screen flex flex-col md:flex-row">
       <aside className="md:w-60 md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-e bg-[hsl(var(--sidebar-background))]/80 backdrop-blur flex md:flex-col">
         <div className="p-4 md:p-5 flex items-center gap-2 shrink-0">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center font-black text-white">α</div>
+          
           <div className="hidden md:block">
             <div className="font-extrabold leading-tight">MeAlpha</div>
             <div className="text-[10px] text-muted-foreground">{t('appTagline')}</div>
