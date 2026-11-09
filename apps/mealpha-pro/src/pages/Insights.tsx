@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Area, AreaChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { CheckCircle2, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { toast } from 'sonner';
 import { useStore } from '../lib/store';
 import { fmtNum } from '../lib/i18n';
-import { findings, scores, todayISO, Finding } from '../lib/analytics';
+import { findings, makeConverter, monthFinance, scores, todayISO, Finding } from '../lib/analytics';
 import { Bar, Panel, PageHeader } from '../components/ui-bits';
 import { cn } from '@project/components/lib/utils';
 
@@ -39,6 +40,20 @@ export default function Insights() {
   const L = settings.language;
   const [dismissed, setDismissed] = useState(getDismissed);
   const sc = scores(data!, settings);
+  const monthlyTrend = useMemo(() => Array.from({ length: 6 }, (_, i) => {
+    const m = monthFinance(data!.transactions, settings, 5 - i);
+    return { month: m.label.slice(5), income: m.income, expense: m.expense };
+  }), [data!.transactions, settings]);
+  const categoryData = useMemo(() => {
+    const { conv } = makeConverter(settings);
+    const totals = new Map<string, number>();
+    data!.transactions.filter((tx) => tx.kind === 'Expense').forEach((tx) => {
+      const key = String(tx.category || (L === 'fa' ? 'بدون دسته' : 'Uncategorized'));
+      totals.set(key, (totals.get(key) || 0) + conv(Number(tx.amount) || 0, tx.currency) / 100);
+    });
+    return [...totals.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 7);
+  }, [data!.transactions, settings, L]);
+  const chartColors = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
   const all = findings(data!, settings, L).filter((f) => !dismissed.includes(f.id));
   const dismiss = (id: string) => { const n = [...dismissed, id]; setDismissed(n); localStorage.setItem(KEY, JSON.stringify(n)); };
   const accept = async (f: Finding) => {
@@ -73,6 +88,40 @@ export default function Insights() {
           ? 'فرمول v1: میانگین برابر حوزه‌های دارای داده. مالی = ۵۰ + نرخ پس‌انداز×۱۶۶ (محدود به ۰ تا ۱۰۰)؛ اهداف = درصد اهداف در مسیر؛ کارها = نرخ تکمیل کارهای سررسید ۳۰ روز اخیر؛ عادت‌ها = میانگین نرخ ۳۰ روزه.'
           : 'Formula v1: equal-weighted mean of areas with data. Finance = 50 + savings rate×166 (clamped 0–100); Goals = % of dated goals on track; Tasks = completion of tasks due in last 30 days; Habits = mean 30-day completion.'}</p>
       </Panel>
+      <div className="grid lg:grid-cols-2 gap-6">
+        <Panel title={L === 'fa' ? 'روند شش‌ماهه درآمد و هزینه' : 'Six-month income & expense trend'}>
+          <div className="h-64" dir="ltr">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={monthlyTrend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.35} /><stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0.02} /></linearGradient>
+                  <linearGradient id="expenseFill" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--chart-5))" stopOpacity={0.3} /><stop offset="95%" stopColor="hsl(var(--chart-5))" stopOpacity={0.02} /></linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} width={58} />
+                <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
+                <Legend />
+                <Area type="monotone" dataKey="income" name={L === 'fa' ? 'درآمد' : 'Income'} stroke="hsl(var(--chart-2))" fill="url(#incomeFill)" strokeWidth={2} />
+                <Area type="monotone" dataKey="expense" name={L === 'fa' ? 'هزینه' : 'Expense'} stroke="hsl(var(--chart-5))" fill="url(#expenseFill)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Panel>
+        <Panel title={L === 'fa' ? 'ترکیب هزینه‌ها بر اساس دسته' : 'Expense mix by category'}>
+          {categoryData.length ? <div className="h-64 flex items-center" dir="ltr">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={categoryData} dataKey="value" nameKey="name" innerRadius="52%" outerRadius="82%" paddingAngle={3}>
+                  {categoryData.map((entry, index) => <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />)}
+                </Pie>
+                <Tooltip formatter={(value: number) => value.toLocaleString() + ' ' + settings.currency} contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div> : <p className="py-16 text-center text-sm text-muted-foreground">{t('noData')}</p>}
+        </Panel>
+      </div>
       <div className="grid lg:grid-cols-2 gap-6">
         <Panel title={t('weaknesses')}>
           <div className="space-y-3">{weak.length ? weak.map((f) => <FindingCard key={f.id} f={f} onDismiss={() => dismiss(f.id)} onAccept={() => accept(f)} />) : <p className="text-sm text-muted-foreground">{t('noRecs')}</p>}</div>
