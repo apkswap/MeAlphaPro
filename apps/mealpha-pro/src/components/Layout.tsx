@@ -33,7 +33,7 @@ export default function Layout() {
         <div className="p-4 md:p-5 flex items-center gap-2 shrink-0">
           <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center font-black text-white">α</div>
           <div className="hidden md:block">
-            <div className="font-extrabold leading-tight">MeAlpha <span className="text-primary">Pro</span></div>
+            <div className="font-extrabold leading-tight">MeAlpha</div>
             <div className="text-[10px] text-muted-foreground">{t('appTagline')}</div>
           </div>
         </div>
