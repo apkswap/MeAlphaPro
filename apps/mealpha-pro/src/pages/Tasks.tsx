@@ -36,6 +36,7 @@ export default function Tasks() {
     { key: 'status', label: 'status', type: 'select', options: ['Todo', 'In Progress', 'Done'] },
     { key: 'priority', label: 'priority', type: 'select', options: ['Low', 'Medium', 'High'] },
     { key: 'dueDate', label: 'dueDate', type: 'date' },
+    { key: 'category', label: 'category', type: 'select', options: [...new Set([...(settings.customCategories?.tasks ?? []), ...data!.tasks.map((x) => x.category).filter(Boolean)])] },
     ...(goalOpts.length ? [{ key: 'goalId', label: 'linkedGoal', type: 'select', options: goalOpts } as Field] : []),
     { key: 'estimatedMinutes', label: 'estMin', type: 'number' },
     { key: 'actualMinutes', label: 'actMin', type: 'number' },
