@@ -1,7 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Capacitor } from '@capacitor/core';
-import { Filesystem, Directory } from '@capacitor/filesystem';
-import { Share } from '@capacitor/share';
 import { Loader2, Download, Upload, CheckCircle2, Camera, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@project/components/ui/button';
@@ -21,6 +18,7 @@ export default function SettingsPage() {
   const [s, setS] = useState<Settings>(settings);
   useEffect(() => setS(settings), [settings]);
   const [busy, setBusy] = useState(false);
+  const [dropboxBusy, setDropboxBusy] = useState(false);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS((p) => ({ ...p, [k]: v }));
 
   const submit = async () => {
@@ -36,7 +34,7 @@ export default function SettingsPage() {
   const uploadImage = (file: File | undefined, field: 'avatarDataUrl' | 'coverDataUrl') => {
     if (!file) return;
     if (!file.type.startsWith('image/')) return toast.error(settings.language === 'fa' ? 'فقط فایل تصویری انتخاب کنید.' : 'Choose an image file.');
-    if (file.size > 1024 * 1024) return toast.error(settings.language === 'fa' ? 'حجم تصویر باید کمتر از ۱ مگابایت باشد.' : 'Image must be under 1 MB.');
+    if (file.size > 5 * 1024 * 1024) return toast.error(settings.language === 'fa' ? 'حجم تصویر نباید بیشتر از ۵ مگابایت باشد.' : 'Image must be 5 MB or smaller.');
     const reader = new FileReader();
     reader.onload = () => set(field, String(reader.result));
     reader.onerror = () => toast.error(t('error'));
@@ -52,31 +50,132 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob); const a = document.createElement('a');
     a.href = url; a.download = `mealpha-pro-backup-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
   };
-  const syncDriveFolder = async () => {
+  const redirectUri = () => {
+    if (window.location.protocol === 'file:') throw new Error('Dropbox sign-in requires the hosted app URL or a local HTTP origin.');
+    return window.location.origin + window.location.pathname;
+  };
+  const connectDropbox = async () => {
+    const appKey = (s.dropboxAppKey || '').trim();
+    if (!appKey) return toast.error(fa ? 'ابتدا App Key دراپ‌باکس را وارد کنید.' : 'Enter your Dropbox App Key first.');
     try {
-      const snapshot = await getSnapshot();
-      const json = JSON.stringify(snapshot, null, 2);
-      const filename = 'mealpha-pro-sync.json';
-      if (Capacitor.isNativePlatform()) {
-        const path = filename;
-        await Filesystem.writeFile({ path, data: json, directory: Directory.Cache, recursive: true });
-        const result = await Filesystem.getUri({ path, directory: Directory.Cache });
-        await Share.share({ title: 'MeAlpha Pro backup', text: 'MeAlpha Pro data backup. Save this file to Google Drive.', url: result.uri, dialogTitle: fa ? 'ذخیره پشتیبان در Google Drive' : 'Save backup to Google Drive' });
-      } else {
-        const picker = (window as any).showDirectoryPicker;
-        if (!picker) throw new Error(fa ? 'مرورگر از انتخاب پوشه پشتیبانی نمی‌کند؛ از خروجی پشتیبان استفاده کنید.' : 'Folder access is unavailable in this browser. Use Export backup instead.');
-        const directory = await picker({ mode: 'readwrite' });
-        const file = await directory.getFileHandle(filename, { create: true });
-        const writable = await file.createWritable();
-        await writable.write(new Blob([json], { type: 'application/json' }));
-        await writable.close();
-      }
-      toast.success(fa ? 'فایل پشتیبان برای انتقال به Drive آماده شد.' : 'Backup is ready for Drive transfer.');
+      const bytes = crypto.getRandomValues(new Uint8Array(48));
+      const verifier = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+      const stateBytes = crypto.getRandomValues(new Uint8Array(16));
+      const state = Array.from(stateBytes, b => b.toString(16).padStart(2, '0')).join('');
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+      const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
+      sessionStorage.setItem('mealpha.dropbox.verifier', verifier);
+      sessionStorage.setItem('mealpha.dropbox.state', state);
+      const params = new URLSearchParams({
+        client_id: appKey, response_type: 'code', token_access_type: 'offline',
+        code_challenge: challenge, code_challenge_method: 'S256',
+        redirect_uri: redirectUri(), state
+      });
+      window.location.assign('https://www.dropbox.com/oauth2/authorize?' + params.toString());
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
-      console.error(error);
       toast.error(error instanceof Error ? error.message : t('error'));
     }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (!code || !s.dropboxAppKey) return;
+    const state = params.get('state') || '';
+    const expectedState = sessionStorage.getItem('mealpha.dropbox.state') || '';
+    const verifier = sessionStorage.getItem('mealpha.dropbox.verifier') || '';
+    if (!state || state !== expectedState || !verifier) {
+      toast.error(fa ? 'اعتبارسنجی ورود دراپ‌باکس ناموفق بود.' : 'Dropbox sign-in state validation failed.');
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setDropboxBusy(true);
+      try {
+        const body = new URLSearchParams({
+          code, grant_type: 'authorization_code', client_id: s.dropboxAppKey || '',
+          redirect_uri: redirectUri(), code_verifier: verifier
+        });
+        const response = await fetch('https://api.dropboxapi.com/oauth2/token', {
+          method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body
+        });
+        const token = await response.json();
+        if (!response.ok) throw new Error(token.error_description || token.error || 'Dropbox token exchange failed');
+        const accountResponse = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+          method: 'POST', headers: { Authorization: 'Bearer ' + token.access_token, 'Content-Type': 'application/json' }, body: 'null'
+        });
+        const account = accountResponse.ok ? await accountResponse.json() : null;
+        if (cancelled) return;
+        const nextSettings = {
+          ...settings, ...s, dropboxAccessToken: token.access_token,
+          dropboxRefreshToken: token.refresh_token || s.dropboxRefreshToken || '',
+          dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000,
+          dropboxAccountName: account?.name?.display_name || ''
+        };
+        setS(nextSettings); setLocalSettings(nextSettings);
+        sessionStorage.removeItem('mealpha.dropbox.verifier');
+        sessionStorage.removeItem('mealpha.dropbox.state');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        toast.success(fa ? 'حساب Dropbox متصل شد.' : 'Dropbox connected.');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : t('error'));
+      } finally { if (!cancelled) setDropboxBusy(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [s.dropboxAppKey]);
+
+  const syncDropbox = async () => {
+    setDropboxBusy(true);
+    try {
+      const appKey = (s.dropboxAppKey || settings.dropboxAppKey || '').trim();
+      let accessToken = s.dropboxAccessToken || settings.dropboxAccessToken || '';
+      const refreshToken = s.dropboxRefreshToken || settings.dropboxRefreshToken || '';
+      if (!appKey || !refreshToken) throw new Error(fa ? 'ابتدا App Key را وارد و Dropbox را متصل کنید.' : 'Enter the App Key and connect Dropbox first.');
+      if (!accessToken || Number(s.dropboxExpiresAt || settings.dropboxExpiresAt || 0) < Date.now() + 60000) {
+        const response = await fetch('https://api.dropboxapi.com/oauth2/token', {
+          method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken, client_id: appKey })
+        });
+        const token = await response.json();
+        if (!response.ok) throw new Error(token.error_description || token.error || 'Dropbox token refresh failed');
+        accessToken = token.access_token;
+        const refreshed = { ...settings, ...s, dropboxAccessToken: accessToken, dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000 };
+        setS(refreshed); setLocalSettings(refreshed);
+      }
+      const path = '/Apps/MeAlphaPro/mealpha-pro-sync.json';
+      const download = await fetch('https://content.dropboxapi.com/2/files/download', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Dropbox-API-Arg': JSON.stringify({ path }) }
+      });
+      let snapshot;
+      if (download.ok) {
+        snapshot = JSON.parse(await download.text());
+        if (snapshot?.version !== 1 || !snapshot?.data) throw new Error('The Dropbox backup format is invalid.');
+        const { mergeSnapshot } = await import('../lib/localDb');
+        await mergeSnapshot(snapshot);
+      } else if (download.status !== 409) {
+        const detail = await download.text();
+        throw new Error('Dropbox download failed: ' + detail.slice(0, 240));
+      }
+      const latest = await getSnapshot();
+      const upload = await fetch('https://content.dropboxapi.com/2/files/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + accessToken,
+          'Content-Type': 'application/octet-stream',
+          'Dropbox-API-Arg': JSON.stringify({ path, mode: 'overwrite', autorename: false, mute: true, strict_conflict: false })
+        },
+        body: JSON.stringify(latest)
+      });
+      if (!upload.ok) {
+        const detail = await upload.text();
+        throw new Error('Dropbox upload failed: ' + detail.slice(0, 240));
+      }
+      toast.success(fa ? 'همگام‌سازی Dropbox انجام شد.' : 'Dropbox sync completed.');
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : t('error'));
+    } finally { setDropboxBusy(false); }
   };
 
   const importBackup = async (file?: File) => {
@@ -123,7 +222,7 @@ export default function SettingsPage() {
             <label className="cursor-pointer inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent">{fa ? 'انتخاب تصویر کاور' : 'Choose cover image'}<input type="file" accept="image/*" className="hidden" onChange={(e) => uploadCover(e.target.files?.[0])} /></label>
             {s.coverDataUrl && <Button type="button" variant="outline" onClick={() => set('coverDataUrl', '')}>{fa ? 'حذف کاور' : 'Remove cover'}</Button>}
           </div>
-          <p className="text-xs text-muted-foreground">{fa ? 'تصویر کاور باید کمتر از ۱ مگابایت باشد.' : 'Cover image must be under 1 MB.'}</p>
+          <p className="text-xs text-muted-foreground">{fa ? 'تصویر کاور نباید بیشتر از ۵ مگابایت باشد.' : 'Cover image must be 5 MB or smaller.'}</p>
         </div>
       </Panel>
       <Panel title={fa ? 'تنظیمات عمومی' : 'General settings'}>
@@ -141,8 +240,16 @@ export default function SettingsPage() {
           <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5" />
           <div><div className="font-semibold">{fa ? 'ذخیره‌سازی محلی و آفلاین' : 'Local, offline storage'}</div><p className="text-sm text-muted-foreground mt-1">{fa ? 'اطلاعات در پایگاه داده محلی همین دستگاه ذخیره می‌شوند. برای ثبت، ویرایش و مشاهده اطلاعات اینترنت لازم نیست و هیچ همگام‌سازی ابری خودکاری انجام نمی‌شود.' : 'Your data stays in this device’s local database. No internet is needed to create, edit or view records, and no cloud sync runs automatically.'}</p></div>
         </div>
-        <p className="text-sm text-muted-foreground mt-4">{fa ? 'برای انتقال دستی بین دستگاه‌ها، فایل پشتیبان را در Google Drive ذخیره کنید و در دستگاه دیگر از همان‌جا انتخاب و بازیابی کنید. این روش همگام‌سازی خودکار نیست؛ هر بار باید پشتیبان جدید ذخیره و بازیابی شود.' : 'Save the backup to Google Drive, then select and restore it from Drive on the other device. This is manual transfer, not automatic sync.'}</p>
-        <div className="mt-4 flex flex-wrap gap-2 border-t pt-4"><Button onClick={syncDriveFolder}><Cloud className="h-4 w-4 me-2" />{fa ? "انتقال با Google Drive" : "Transfer with Google Drive"}</Button><Button variant="outline" onClick={exportBackup}><Download className="h-4 w-4 me-2" />{fa ? 'خروجی پشتیبان' : 'Export backup'}</Button><label className="inline-flex cursor-pointer items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"><Upload className="h-4 w-4 me-2" />{fa ? 'بازیابی پشتیبان' : 'Import backup'}<input type="file" accept="application/json,.json" className="hidden" onChange={(e) => void importBackup(e.target.files?.[0])} /></label></div>
+        <div className="mt-4 space-y-3 rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">
+          <div className="flex items-center gap-2 font-semibold"><Cloud className="h-4 w-4 text-sky-500" />Dropbox</div>
+          <p className="text-sm text-muted-foreground">{fa ? 'اطلاعات همچنان ابتدا روی دستگاه ذخیره می‌شود. با فشردن دکمه همگام‌سازی، نسخه ترکیبی داده‌ها در فضای برنامه MeAlpha Pro در Dropbox بارگذاری و دریافت می‌شود.' : 'Your data remains local-first. Manual sync merges the local and Dropbox snapshots, then uploads the merged data to your Dropbox app folder.'}</p>
+          <div className="grid sm:grid-cols-[1fr_auto] gap-2 items-end">
+            <div className="space-y-1.5"><Label>Dropbox App Key</Label><Input dir="ltr" value={s.dropboxAppKey || ''} onChange={e => set('dropboxAppKey', e.target.value.trim())} placeholder="Enter your Dropbox app key" /></div>
+            <Button type="button" variant="outline" onClick={connectDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{s.dropboxRefreshToken ? (fa ? 'اتصال مجدد' : 'Reconnect') : (fa ? 'اتصال Dropbox' : 'Connect Dropbox')}</Button>
+          </div>
+          {s.dropboxRefreshToken && <div className="flex items-center justify-between gap-3 text-xs text-emerald-500"><span>{fa ? 'متصل' : 'Connected'}{s.dropboxAccountName ? ' · ' + s.dropboxAccountName : ''}</span><Button type="button" size="sm" onClick={syncDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{fa ? 'همگام‌سازی اکنون' : 'Sync now'}</Button></div>}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 border-t pt-4"><Button variant="outline" onClick={exportBackup}><Download className="h-4 w-4 me-2" />{fa ? 'خروجی پشتیبان' : 'Export backup'}</Button><label className="inline-flex cursor-pointer items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"><Upload className="h-4 w-4 me-2" />{fa ? 'بازیابی پشتیبان' : 'Import backup'}<input type="file" accept="application/json,.json" className="hidden" onChange={(e) => void importBackup(e.target.files?.[0])} /></label></div>
       </Panel>
     </div>
   );
