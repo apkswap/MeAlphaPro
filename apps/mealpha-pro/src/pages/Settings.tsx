@@ -8,7 +8,7 @@ import { Textarea } from '@project/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@project/components/ui/select';
 import { useStore, Settings } from '../lib/store';
 import { Panel, PageHeader } from '../components/ui-bits';
-import { preloadGoogleIdentity, syncWithGoogleDrive } from '../lib/googleDriveSync';
+import { prepareGoogleIdentity, syncWithGoogleDrive } from '../lib/googleDriveSync';
 import { getSnapshot, getPreSyncBackup, restoreSnapshot } from '../lib/localDb';
 
 export default function SettingsPage() {
@@ -47,18 +47,25 @@ export default function SettingsPage() {
   const [syncResult, setSyncResult] = useState('');
   useEffect(() => {
     let active = true;
-    void preloadGoogleIdentity()
+    setGoogleReady(false);
+    if (!s.googleClientId?.trim()) return () => { active = false; };
+    void prepareGoogleIdentity(s.googleClientId)
       .then(() => { if (active) setGoogleReady(true); })
-      .catch((error) => { if (active) toast.error(error instanceof Error ? error.message : 'Google sign-in could not be initialized.'); });
+      .catch((error) => {
+        if (active) {
+          setGoogleReady(false);
+          toast.error(error instanceof Error ? error.message : 'Google sign-in could not be initialized.');
+        }
+      });
     return () => { active = false; };
-  }, []);
+  }, [s.googleClientId]);
   const syncGoogle = async () => {
-    if (!s.googleClientId?.trim()) return toast.error(settings.language === 'fa' ? 'ابتدا Google OAuth Client ID را وارد کنید.' : 'Enter your Google OAuth Client ID first.');
-    if (!googleReady) return toast.error(settings.language === 'fa' ? 'در حال آماده‌سازی ورود گوگل هستیم؛ چند لحظه دیگر تلاش کنید.' : 'Google sign-in is still loading. Please try again in a moment.');
+    if (!s.googleClientId?.trim()) return toast.error(settings.language === 'fa' ? 'ابتدا Google OAuth Web Client ID را وارد کنید.' : 'Enter your Google OAuth Web Client ID first.');
+    if (!googleReady) return toast.error(settings.language === 'fa' ? 'در حال آماده‌سازی ورود امن گوگل هستیم؛ چند لحظه دیگر تلاش کنید.' : 'Secure Google sign-in is still initializing. Please try again in a moment.');
     setSyncBusy(true); setSyncResult('');
     try {
       setLocalSettings({ ...s, currency: s.currency.trim().toUpperCase() });
-      const result = await syncWithGoogleDrive(s.googleClientId);
+      const result = await syncWithGoogleDrive();
       setSyncResult(result.message);
       toast.success(result.message);
     } catch (error) { toast.error(error instanceof Error ? error.message : t('error')); }
@@ -121,7 +128,7 @@ export default function SettingsPage() {
           <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5" />
           <div><div className="font-semibold">{settings.language === 'fa' ? 'حالت آفلاین فعال است' : 'Offline mode is active'}</div><p className="text-sm text-muted-foreground mt-1">{settings.language === 'fa' ? 'اطلاعات روی همین دستگاه ذخیره می‌شوند و برای ثبت، ویرایش و مشاهده به اینترنت نیاز ندارید.' : 'Your data is stored on this device. Creating, editing and viewing records works without internet.'}</p></div>
         </div>
-        <div className="mt-5 space-y-2"><Label>Google OAuth Client ID</Label><Input dir="ltr" value={s.googleClientId ?? ''} onChange={(e) => set('googleClientId', e.target.value)} placeholder="xxxxx.apps.googleusercontent.com" /><p className="text-xs text-muted-foreground">{settings.language === 'fa' ? 'برای همگام‌سازی، یک OAuth Client ID از Google Cloud بسازید و دسترسی Google Drive appData را فعال کنید. همگام‌سازی فقط با درخواست شما انجام می‌شود.' : 'Create an OAuth Client ID in Google Cloud and enable Google Drive appData access. Sync only runs when you request it.'}</p></div>
+        <div className="mt-5 space-y-2"><Label>Google OAuth Web Client ID</Label><Input dir="ltr" value={s.googleClientId ?? ''} onChange={(e) => set('googleClientId', e.target.value)} placeholder="xxxxx.apps.googleusercontent.com" /><p className="text-xs text-muted-foreground">{settings.language === 'fa' ? 'برای همگام‌سازی، Web Client ID گوگل را وارد کنید. مبدأ وب و شناسه بسته اندروید همراه SHA-1 باید در همان پروژه Google Cloud ثبت شوند و Google Drive API فعال باشد. همگام‌سازی فقط با درخواست شما انجام می‌شود.' : 'Use the Google OAuth Web Client ID. Register this app's web origin and Android package/SHA-1 in the same Google Cloud project, enable Google Drive API, and grant appData access. Sync only runs when you request it.'}</p></div>
         <Button className="mt-4" onClick={syncGoogle} disabled={syncBusy || !googleReady}><Cloud className="h-4 w-4 me-2" />{syncBusy ? (settings.language === 'fa' ? 'در حال همگام‌سازی…' : 'Syncing…') : !googleReady ? (settings.language === 'fa' ? 'در حال آماده‌سازی گوگل…' : 'Preparing Google…') : (settings.language === 'fa' ? 'همگام‌سازی با حساب گوگل' : 'Sync with Google')}</Button>
         {syncResult && <p className="mt-3 text-sm text-emerald-500">{syncResult}</p>}
         <div className="mt-5 flex flex-wrap gap-2 border-t pt-4"><Button variant="outline" onClick={exportBackup}><Download className="h-4 w-4 me-2" />{settings.language === 'fa' ? 'خروجی پشتیبان' : 'Export backup'}</Button><label className="inline-flex cursor-pointer items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"><Upload className="h-4 w-4 me-2" />{settings.language === 'fa' ? 'بازیابی پشتیبان' : 'Import backup'}<input type="file" accept="application/json,.json" className="hidden" onChange={(e) => void importBackup(e.target.files?.[0])} /></label></div>
