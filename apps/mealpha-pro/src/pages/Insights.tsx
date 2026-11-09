@@ -1,10 +1,14 @@
 import { useMemo } from 'react';
+import { CheckCircle2, TrendingDown, TrendingUp, X } from 'lucide-react';
+import { Button } from '@project/components/ui/button';
+import { toast } from 'sonner';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Activity, ArrowDownRight, ArrowUpRight, CheckCircle2, CircleAlert, Flame, Wallet } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { fmtMoney, fmtNum } from '../lib/i18n';
-import { habitStats, monthFinance, scores, taskStats, goalInfo, makeConverter } from '../lib/analytics';
-import { Panel } from '../components/ui-bits';
+import { habitStats, monthFinance, scores, taskStats, goalInfo, makeConverter, findings, todayISO, Finding } from '../lib/analytics';
+import { Bar, Panel, PageHeader } from '../components/ui-bits';
+import { cn } from '@project/components/lib/utils';
 
 const C=['#a78bfa','#22d3ee','#34d399','#f59e0b','#f472b6','#60a5fa','#fb7185'];
 export default function Insights(){
@@ -30,4 +34,36 @@ export default function Insights(){
  <div className="grid gap-4 xl:grid-cols-2"><Panel title={fa?'ثبات عادت‌ها — ۳۰ روز':'Habit consistency — 30 days'}>{hs.length?<div className="space-y-4 py-2">{hs.slice(0,7).map((h,i)=><div key={h.name}><div className="mb-1.5 flex justify-between text-sm"><span>{h.name}</span><b>{fmtNum(L,h.value)}%</b></div><div className="h-2 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full" style={{width:`${h.value}%`,background:C[i%C.length]}}/></div></div>)}</div>:<p className="text-sm text-slate-500">{fa?'برای تحلیل، عادت و ثبت روزانه اضافه کن.':'Add habits and daily check-ins to see trends.'}</p>}</Panel>
  <Panel title={fa?'تغییر نسبت به ماه قبل':'Month-over-month movement'}><div className="grid grid-cols-2 gap-3">{changes.map(x=><div key={x.label} className="rounded-xl border border-white/[.07] bg-slate-950/40 p-3"><div className="text-xs text-slate-500">{x.label}</div><div className="mt-2 flex items-center gap-1 text-xl font-bold">{x.v==null?'—':<>{x.v>=0?<ArrowUpRight className="h-4 w-4 text-emerald-400"/>:<ArrowDownRight className="h-4 w-4 text-rose-400"/>}{fmtNum(L,Math.abs(x.v),1)}%</>}</div><div className="text-[10px] text-slate-600">{fa?'در مقایسه با ماه قبل':'vs previous month'}</div></div>)}</div>{ts.overdue.length>0&&<div className="mt-4 flex items-center gap-3 rounded-xl border border-rose-400/20 bg-rose-400/5 p-3"><CircleAlert className="h-5 w-5 text-rose-300"/><span className="text-xs text-slate-300">{fa?`${ts.overdue.length} وظیفه از موعد گذشته است.`:`${ts.overdue.length} tasks are overdue.`}</span></div>}</Panel></div>
  <p className="px-1 text-[11px] text-slate-500">{fa?'تحلیل‌ها محلی و بر اساس داده‌های همین دستگاه محاسبه می‌شوند.':'Analytics are computed locally from this device.'}</p></div>;
+}
+
+// Backwards-compatible exports used by the Dashboard decision-signal panel.
+const DISMISSED_KEY = 'mealpha-dismissed';
+export const getDismissed = (): string[] => {
+ try {
+  const value: unknown = JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]');
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+ } catch {
+  return [];
+ }
+};
+
+export function FindingCard({ f, onDismiss, onAccept }: { f: Finding; onDismiss?: () => void; onAccept?: () => void }) {
+ const { t, settings } = useStore();
+ const fa = settings.language === 'fa';
+ const severityClass = { high: 'border-s-destructive', medium: 'border-s-[hsl(var(--warning))]', low: 'border-s-[hsl(var(--success))]' }[f.severity];
+ return (
+  <div className={cn('rounded-xl border border-s-4 bg-card/70 p-4 space-y-2', severityClass)}>
+   <div className="flex items-start gap-2">
+    {f.kind === 'strength' ? <TrendingUp className="h-4 w-4 text-[hsl(var(--success))] mt-0.5" /> : <TrendingDown className="h-4 w-4 text-destructive mt-0.5" />}
+    <div className="flex-1 font-semibold text-sm">{f.title}</div>
+    <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{f.confidence === 'confirmed' ? (fa ? 'تأییدشده' : 'Confirmed') : (fa ? 'فرضیه' : 'Hypothesis')}</span>
+   </div>
+   <p className="text-xs text-muted-foreground"><b>{t('evidence')}:</b> {f.evidence}</p>
+   <p className="text-xs"><b>{t('action')}:</b> {f.action}</p>
+   {(onDismiss || onAccept) && <div className="flex gap-2 pt-1">
+    {onAccept && <Button size="sm" variant="secondary" onClick={onAccept}><CheckCircle2 className="h-3.5 w-3.5 me-1" />{t('accept')}</Button>}
+    {onDismiss && <Button size="sm" variant="ghost" onClick={onDismiss}><X className="h-3.5 w-3.5 me-1" />{t('dismiss')}</Button>}
+   </div>}
+  </div>
+ );
 }
