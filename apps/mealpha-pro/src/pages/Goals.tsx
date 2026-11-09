@@ -8,11 +8,10 @@ import EntityForm, { Field } from '../components/EntityForm';
 import DataList, { Col } from '../components/DataList';
 import { Bar, PageHeader, StatusPill } from '../components/ui-bits';
 
-const FIELDS: Field[] = [
   { key: 'title', label: 'title', type: 'text', required: true, full: true },
   { key: 'horizon', label: 'horizon', type: 'select', options: ['Lifetime', 'Annual', 'Quarterly', 'Monthly', 'Weekly'] },
   { key: 'priority', label: 'priority', type: 'select', options: ['Low', 'Medium', 'High'] },
-  { key: 'category', label: 'category', type: 'text' },
+  { key: 'category', label: 'category', type: 'select', options: [] },
   { key: 'completed', label: 'completed', type: 'checkbox' },
   { key: 'startDate', label: 'startDate', type: 'date' },
   { key: 'dueDate', label: 'dueDate', type: 'date' },
@@ -25,6 +24,18 @@ export const statusKey = { 'On Track': 'onTrack', 'At Risk': 'atRisk', Delayed: 
 
 export default function Goals() {
   const { data, t, settings } = useStore();
+  const fields: Field[] = [
+    { key: 'title', label: 'title', type: 'text', required: true, full: true },
+    { key: 'horizon', label: 'horizon', type: 'select', options: ['Lifetime', 'Annual', 'Quarterly', 'Monthly', 'Weekly'] },
+    { key: 'priority', label: 'priority', type: 'select', options: ['Low', 'Medium', 'High'] },
+    { key: 'category', label: 'category', type: 'select', options: [...new Set([...(settings.customCategories?.goals ?? []), ...data!.goals.map((g) => g.category).filter(Boolean)])] },
+    { key: 'completed', label: 'completed', type: 'checkbox' },
+    { key: 'startDate', label: 'startDate', type: 'date' },
+    { key: 'dueDate', label: 'dueDate', type: 'date' },
+    { key: 'targetValue', label: 'target', type: 'number' },
+    { key: 'currentValue', label: 'current', type: 'number' },
+    { key: 'description', label: 'description', type: 'textarea' },
+  ];
   const [edit, setEdit] = useState<Rec | null>(null);
   const [open, setOpen] = useState(false);
   const L = settings.language;
@@ -48,7 +59,7 @@ export default function Goals() {
     <div>
       <PageHeader title={t('goals')} action={<Button onClick={() => openForm(null)}><Plus className="h-4 w-4 me-1" />{t('add')}</Button>} />
       <DataList rows={data!.goals} cols={cols} entity="goals" onEdit={openForm} searchKeys={['title', 'category', 'description']} />
-      <EntityForm open={open} onOpenChange={setOpen} entity="goals" fields={FIELDS} initial={edit} defaults={{ horizon: 'Quarterly', priority: 'Medium' }} title={t('goals')} />
+      <EntityForm open={open} onOpenChange={setOpen} entity="goals" fields={fields} initial={edit} defaults={{ horizon: 'Quarterly', priority: 'Medium' }} title={t('goals')} />
     </div>
   );
 }
