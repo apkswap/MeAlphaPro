@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - fix/blue-dual-theme-build-validation
+      - feature/cinematic-3d-dashboard
     paths:
       - "apps/**"
       - "packages/**"
