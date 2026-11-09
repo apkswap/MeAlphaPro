@@ -33,15 +33,18 @@ export default function SettingsPage() {
     finally { setBusy(false); }
   };
 
-  const uploadAvatar = (file?: File) => {
+  const uploadImage = (file: File | undefined, field: 'avatarDataUrl' | 'coverDataUrl') => {
     if (!file) return;
     if (!file.type.startsWith('image/')) return toast.error(settings.language === 'fa' ? 'فقط فایل تصویری انتخاب کنید.' : 'Choose an image file.');
     if (file.size > 1024 * 1024) return toast.error(settings.language === 'fa' ? 'حجم تصویر باید کمتر از ۱ مگابایت باشد.' : 'Image must be under 1 MB.');
     const reader = new FileReader();
-    reader.onload = () => set('avatarDataUrl', String(reader.result));
+    reader.onload = () => set(field, String(reader.result));
     reader.onerror = () => toast.error(t('error'));
     reader.readAsDataURL(file);
   };
+
+  const uploadAvatar = (file?: File) => uploadImage(file, 'avatarDataUrl');
+  const uploadCover = (file?: File) => uploadImage(file, 'coverDataUrl');
 
   const exportBackup = async () => {
     const snapshot = await getSnapshot();
@@ -109,6 +112,18 @@ export default function SettingsPage() {
             <div className="space-y-2"><Label>{fa ? 'آواتار آماده' : 'Avatar choices'}</Label><div className="flex flex-wrap gap-2">{AVATARS.map((a) => <button key={a} type="button" onClick={() => { set('avatarEmoji', a); set('avatarDataUrl', ''); }} className={`h-10 w-10 rounded-xl border text-xl ${s.avatarEmoji === a && !s.avatarDataUrl ? 'border-primary bg-primary/15' : 'border-border'}`}>{a}</button>)}</div></div>
             <div className="space-y-2"><Label>{fa ? 'رنگ آواتار' : 'Avatar color'}</Label><div className="flex gap-2">{COLORS.map((c) => <button key={c} type="button" aria-label={c} onClick={() => set('avatarColor', c)} className={`h-7 w-7 rounded-full border-2 ${s.avatarColor === c ? 'border-foreground scale-110' : 'border-transparent'}`} style={{ background: c }} />)}</div></div>
           </div>
+        </div>
+      </Panel>
+      <Panel title={fa ? 'کاور پروفایل' : 'Profile cover'}>
+        <div className="space-y-3">
+          <div className="h-36 overflow-hidden rounded-xl border bg-gradient-to-br from-sky-600/40 via-blue-500/20 to-cyan-400/30">
+            {s.coverDataUrl && <img src={s.coverDataUrl} alt="Profile cover" className="h-full w-full object-cover" />}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <label className="cursor-pointer inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent">{fa ? 'انتخاب تصویر کاور' : 'Choose cover image'}<input type="file" accept="image/*" className="hidden" onChange={(e) => uploadCover(e.target.files?.[0])} /></label>
+            {s.coverDataUrl && <Button type="button" variant="outline" onClick={() => set('coverDataUrl', '')}>{fa ? 'حذف کاور' : 'Remove cover'}</Button>}
+          </div>
+          <p className="text-xs text-muted-foreground">{fa ? 'تصویر کاور باید کمتر از ۱ مگابایت باشد.' : 'Cover image must be under 1 MB.'}</p>
         </div>
       </Panel>
       <Panel title={fa ? 'تنظیمات عمومی' : 'General settings'}>
