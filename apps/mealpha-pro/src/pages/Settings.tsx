@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Download, Upload, CheckCircle2, Camera, UserRound } from 'lucide-react';
+import { Loader2, Download, Upload, CheckCircle2, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
@@ -11,7 +11,7 @@ import { Panel, PageHeader } from '../components/ui-bits';
 import { getSnapshot } from '../lib/localDb';
 
 const AVATARS = ['α', '🌟', '🚀', '🦊', '🐼', '🐺', '🦁', '🦉', '🎯', '💎', '🌙', '🔥'];
-const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#64748b'];
+const COLORS = ['#168be5', '#00b8d4', '#1261a0', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
 
 export default function SettingsPage() {
   const { t, settings, setLocalSettings } = useStore();
@@ -64,7 +64,7 @@ export default function SettingsPage() {
       <Panel title={fa ? 'هویت کاربری' : 'User identity'}>
         <div className="flex flex-col sm:flex-row gap-5 items-start">
           <div className="flex flex-col items-center gap-2">
-            <div className="h-24 w-24 rounded-3xl overflow-hidden grid place-items-center text-4xl font-black text-white shadow-xl ring-2 ring-white/15" style={{ background: s.avatarColor || '#8b5cf6' }}>
+            <div className="h-24 w-24 rounded-3xl overflow-hidden grid place-items-center text-4xl font-black text-white shadow-xl ring-2 ring-white/15" style={{ background: s.avatarColor || '#168be5' }}>
               {s.avatarDataUrl ? <img src={s.avatarDataUrl} alt="Avatar" className="h-full w-full object-cover" /> : (s.avatarEmoji || 'α')}
             </div>
             <label className="cursor-pointer inline-flex items-center gap-2 text-xs text-primary hover:underline"><Camera className="h-4 w-4" />{fa ? 'آپلود عکس' : 'Upload photo'}<input type="file" accept="image/*" className="hidden" onChange={(e) => uploadAvatar(e.target.files?.[0])} /></label>
