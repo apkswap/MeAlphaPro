@@ -1,5 +1,5 @@
 /** Local-first persistence. The app never needs a network connection to read or write data. */
-export const ENTITIES = ['goals', 'tasks', 'habits', 'habitLogs', 'transactions', 'accounts', 'assets', 'liabilities'] as const;
+export const ENTITIES = ['goals', 'tasks', 'habits', 'habitLogs', 'transactions', 'accounts', 'customItems', 'assets', 'liabilities'] as const;
 export type Entity = (typeof ENTITIES)[number];
 export type Rec = Record<string, any>;
 export type AppSettings = { language: 'fa' | 'en'; calendar: string; currency: string; exchangeRates: string; monthlyBudget: number | null; displayName?: string; username?: string; bio?: string; avatarDataUrl?: string; avatarEmoji?: string; avatarColor?: string };
