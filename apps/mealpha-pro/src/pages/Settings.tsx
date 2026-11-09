@@ -198,9 +198,14 @@ export default function SettingsPage() {
     <div className="max-w-3xl space-y-5">
       <PageHeader title={t('settings')} />
       <Panel title={fa ? 'هویت کاربری' : 'User identity'}>
+        <div className="relative mb-5 h-36 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/20 via-card to-accent/15">
+          {s.coverDataUrl && <img src={s.coverDataUrl} alt="Profile cover" className="absolute inset-0 h-full w-full object-cover" />}
+          <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-background/25 to-transparent" />
+          <div className="absolute bottom-4 start-5 flex items-end gap-3"><div className="h-16 w-16 overflow-hidden rounded-2xl border-2 border-background shadow-xl" style={{ background: s.avatarColor || '#168be5' }}>{s.avatarDataUrl ? <img src={s.avatarDataUrl} alt="Avatar" className="h-full w-full object-cover" /> : <div className="grid h-full w-full place-items-center text-3xl text-white">{s.avatarEmoji || 'α'}</div>}</div><div className="pb-1"><div className="font-bold text-lg">{s.displayName || (fa ? 'پروفایل من' : 'My profile')}</div><div className="text-xs text-muted-foreground" dir="ltr">{s.username ? '@'+s.username : 'MeAlpha member'}</div></div></div>
+        </div>
         <div className="flex flex-col sm:flex-row gap-5 items-start">
           <div className="flex flex-col items-center gap-2">
-            <div className="h-24 w-24 rounded-3xl overflow-hidden grid place-items-center text-4xl font-black text-white shadow-xl ring-2 ring-white/15" style={{ background: s.avatarColor || '#168be5' }}>
+            <div className="h-24 w-24 rounded-[1.7rem] overflow-hidden grid place-items-center text-4xl font-black text-white shadow-xl ring-2 ring-primary/25" style={{ background: s.avatarColor || '#168be5' }}>
               {s.avatarDataUrl ? <img src={s.avatarDataUrl} alt="Avatar" className="h-full w-full object-cover" /> : (s.avatarEmoji || 'α')}
             </div>
             <label className="cursor-pointer inline-flex items-center gap-2 text-xs text-primary hover:underline"><Camera className="h-4 w-4" />{fa ? 'آپلود عکس' : 'Upload photo'}<input type="file" accept="image/*" className="hidden" onChange={(e) => uploadAvatar(e.target.files?.[0])} /></label>
@@ -219,7 +224,7 @@ export default function SettingsPage() {
       </Panel>
       <Panel title={fa ? 'کاور پروفایل' : 'Profile cover'}>
         <div className="space-y-3">
-          <div className="h-36 overflow-hidden rounded-xl border bg-gradient-to-br from-sky-600/40 via-blue-500/20 to-cyan-400/30">
+          <div className="h-36 overflow-hidden rounded-xl border bg-gradient-to-br from-primary/30 via-card to-accent/20">
             {s.coverDataUrl && <img src={s.coverDataUrl} alt="Profile cover" className="h-full w-full object-cover" />}
           </div>
           <div className="flex flex-wrap gap-2">
