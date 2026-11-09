@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Cloud, Languages } from 'lucide-react';
+import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Cloud, Languages, Layers3 } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { cn } from '@project/components/lib/utils';
 import { useStore } from '../lib/store';
@@ -15,6 +15,7 @@ const NAV: { to: string; k: Key; icon: typeof Target }[] = [
   { to: '/wealth', k: 'wealth', icon: Landmark },
   { to: '/insights', k: 'insights', icon: Sparkles },
   { to: '/settings', k: 'settings', icon: Settings },
+  { to: '/workspace', k: 'workspace', icon: Layers3 },
 ];
 
 export default function Layout() {
