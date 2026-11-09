@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Bar as RBar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ArrowUpRight, CalendarDays, Check, CircleAlert, Flame, ListTodo, Sparkles, Target, Timer, Wallet } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, Check, CircleAlert, Flame, ListTodo, Sparkles, Target, Timer } from 'lucide-react';
 import { Checkbox } from '@project/components/ui/checkbox';
 import { useStore } from '../lib/store';
 import { fmtDate, fmtMoney, fmtNum } from '../lib/i18n';
 import { findings, goalInfo, habitStats, isoOf, monthFinance, netWorth, scores, taskStats, todayISO } from '../lib/analytics';
-import { Bar, Kpi, Panel, PageHeader, StatusPill } from '../components/ui-bits';
+import { Bar, Kpi, Panel, StatusPill } from '../components/ui-bits';
 import { statusKey } from './Goals';
 import { completeTx } from './Tasks';
 import { useHabitToggle } from './Habits';
