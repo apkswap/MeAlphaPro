@@ -2,7 +2,7 @@
 export const ENTITIES = ['goals', 'tasks', 'habits', 'habitLogs', 'transactions', 'assets', 'liabilities'] as const;
 export type Entity = (typeof ENTITIES)[number];
 export type Rec = Record<string, any>;
-export type AppSettings = { language: 'fa' | 'en'; calendar: string; currency: string; exchangeRates: string; monthlyBudget: number | null; googleClientId?: string; customCategories?: { goals?: string[]; tasks?: string[]; transactions?: string[] } };
+export type AppSettings = { language: 'fa' | 'en'; calendar: string; currency: string; exchangeRates: string; monthlyBudget: number | null; customCategories?: { goals?: string[]; tasks?: string[]; transactions?: string[] } };
 export type Snapshot = { version: 1; exportedAt: string; settingsUpdatedAt: number; data: Record<Entity, Rec[]>; settings: AppSettings; tombstones: Record<string, number> };
 
 const DB_NAME = 'mealpha-pro-local';
