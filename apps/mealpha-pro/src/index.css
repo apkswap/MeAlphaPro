@@ -89,7 +89,8 @@
       radial-gradient(circle at 72% 22%, rgba(139,92,246,.18), transparent 22rem),
       radial-gradient(circle at 18% 68%, rgba(34,211,238,.12), transparent 24rem),
       radial-gradient(circle at 90% 88%, rgba(99,102,241,.10), transparent 20rem);
-    filter: saturate(150%);\n    opacity: .95;
+    filter: saturate(150%);
+    opacity: .95;
   }
   body::after {
     content: "";
@@ -98,9 +99,9 @@
     pointer-events: none;
     left: -18%;
     right: -18%;
-    bottom: -34rem;
-    height: 62rem;
-    opacity: .30;
+    bottom: -20rem;
+    height: 54rem;
+    opacity: .58;
     transform: perspective(720px) rotateX(62deg);
     transform-origin: center top;
     background-image:
@@ -110,5 +111,6 @@
     mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 78%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 72%, transparent 100%);
   }
-  #root { position: relative; min-height: 100vh; }\n  .bg-card, [class*='bg-card/'] { backdrop-filter: blur(18px); }
+  #root { position: relative; min-height: 100vh; }
+  .bg-card, [class*='bg-card/'] { backdrop-filter: blur(18px); }
 }
