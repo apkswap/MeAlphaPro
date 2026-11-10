@@ -1,6 +1,8 @@
 <!-- Search-friendly product summary -->
 # MeAlpha Pro — Personal Planner, Finance & Productivity App
 
+[🚀 Open Live Preview](https://apkswap.github.io/MeAlphaPro/preview/) · [GitHub Actions](https://github.com/apkswap/MeAlphaPro/actions) · [Repository](https://github.com/apkswap/MeAlphaPro)
+
 **MeAlpha Pro** is a personal planner and productivity application for managing goals, tasks, habits, focus sessions, personal finances, and weekly performance insights in one place. It is being developed for **Windows desktop and Android**, with a responsive interface in **Persian (RTL) and English (LTR)** and support for **Jalali and Gregorian dates**.
 
 - **Product:** MeAlpha Pro
