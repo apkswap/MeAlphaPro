@@ -208,7 +208,7 @@ export default function Layout() {
             </div>
             <div className="mt-2 flex items-center justify-between border-t border-border/60 pt-2 text-[10px] text-muted-foreground">
               <span>{settings.language === 'fa' ? 'ذخیره‌سازی محلی فعال' : 'Local storage active'}</span>
-              <span className="flex items-center gap-1"><Cloud className="h-3 w-3" />MeAlpha Cloud</span>
+              <span className="flex items-center gap-1"><Cloud className="h-3 w-3" />Dropbox Sync</span>
             </div>
           </div>
 
