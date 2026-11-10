@@ -21,6 +21,7 @@ const dict = {
   finance: ['تراکنش‌ها', 'Transactions'],
   wealth: ['دارایی و بدهی', 'Assets & Debts'],
   insights: ['هوش عملکرد', 'Insights'],
+  weeklyReview: ['مرور هفتگی', 'Weekly Review'],
   settings: ['تنظیمات', 'Settings'],
   signOut: ['خروج', 'Sign out'],
   add: ['افزودن', 'Add'],
