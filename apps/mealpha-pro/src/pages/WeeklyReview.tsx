@@ -20,7 +20,8 @@ export default function WeeklyReview(){
  const focus=useMemo(readFocus,[]), today=new Date(), end=new Date(today.getFullYear(),today.getMonth(),today.getDate()), start=new Date(end.getTime()-6*DAY), prev=new Date(start.getTime()-7*DAY);
  const from=iso(start),to=iso(end),prevFrom=iso(prev), inside=(v:string,a:string,b:string)=>!!v&&v>=a&&v<=b;
  const r=useMemo(()=>{
-  const due=data!.tasks.filter(x=>inside(String(x.dueDate||''),from,to));
+  if (!data) return {due:0,done:0,taskRate:null as number|null,habitRate:null as number|null,logs:0,expected:0,focus:0,oldFocus:0,income:0,expense:0,txCount:0,overdue:0,score:null as number|null,chart:[],strengths:[],weaknesses:[],actions:[]};
+  const due=data.tasks.filter(x=>inside(String(x.dueDate||''),from,to));
   const completed=data!.tasks.filter(x=>x.status==='Done'&&inside(String(x.completedAt||'' ).slice(0,10),from,to));
   const oldDue=data!.tasks.filter(x=>inside(String(x.dueDate||''),prevFrom,from));
   const oldDone=data!.tasks.filter(x=>x.status==='Done'&&inside(String(x.completedAt||'').slice(0,10),prevFrom,from));
@@ -47,6 +48,7 @@ export default function WeeklyReview(){
   const chart=Array.from({length:7},(_,i)=>{const d=new Date(start.getTime()+i*DAY),key=iso(d);return{day:new Intl.DateTimeFormat(fa?'fa-IR':'en-US',{weekday:'short'}).format(d),tasks:completed.filter(x=>String(x.completedAt||'').slice(0,10)===key).length,focus:Math.round(sessions.filter(s=>iso(new Date(s.date))===key).reduce((n,s)=>n+seconds(s),0)/60)}});
   return{due:due.length,done:completed.length,taskRate,habitRate,logs:logs.length,expected,focus:Math.round(focusSec/60),oldFocus:Math.round(oldSec/60),income,expense,txCount:tx.length,overdue,score,chart,strengths,weaknesses,actions};
  },[data,settings,focus,from,to,prevFrom,fa]);
+ if (!data) return <div className='grid min-h-64 place-items-center text-sm text-muted-foreground'>{fa?'در حال بارگذاری اطلاعات…':'Loading your data…'}</div>;
  const saveReview=()=>{const item={id:from+'-'+Date.now(),from,to,score:r.score,tasks:r.taskRate,habits:r.habitRate,focus:r.focus};const next=[item,...history.filter(x=>x.from!==from)].slice(0,52);localStorage.setItem(HISTORY_KEY,JSON.stringify(next));setHistory(next);toast.success(fa?'گزارش روی همین دستگاه ذخیره شد.':'Review saved on this device.');};
  const addTask=async(action:string,i:number)=>{const ok=await save('tasks',{title:action,notes:fa?'پیشنهاد مرور هفتگی MeAlpha':'Suggested by MeAlpha Weekly Review',status:'Todo',priority:i===0?'High':'Medium',dueDate:to});if(ok)toast.success(fa?'به کارها اضافه شد.':'Added to tasks.');};
  const exportJson=()=>{const blob=new Blob([JSON.stringify({type:'mealpha-weekly-review',period:{from,to},metrics:r},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='mealpha-weekly-review-'+to+'.json';a.click();URL.revokeObjectURL(url);};
