@@ -95,3 +95,24 @@ Artifactها پس از موفقیت workflow در صفحه همان اجرای G
 ## وضعیت مستندات
 
 این README تغییرات ثبت‌شده در شاخه main را توصیف می‌کند. افزودن فونت B Mitra و تأیید نهایی خروجی‌های نصب، کارهای جداگانه‌ای هستند و تا زمان انجام و تست نباید تکمیل‌شده تلقی شوند.
+
+
+## دریافت نسخه‌ها
+
+نسخه‌های رسمی ویندوز و اندروید پس از موفقیت بیلد هر دو پلتفرم در بخش GitHub Releases منتشر می‌شوند:
+
+- [دریافت آخرین نسخه](https://github.com/apkswap/MeAlphaPro/releases/latest)
+- نصب‌کننده ویندوز: `MeAlpha-Pro-Windows-x64.exe`
+- فایل اندروید: `MeAlpha-Pro-Android.apk`
+- هش‌های بررسی صحت فایل: `SHA256SUMS.txt`
+
+**توجه:** APK فعلی با کلید Debug امضا می‌شود و برای نصب مستقیم و ارزیابی است؛ این فایل نسخه امضاشده مخصوص انتشار در Google Play نیست. برای هر انتشار جدید باید شماره نسخه در `apps/mealpha-pro/package.json` افزایش یابد.
+
+## وب‌سایت رسمی محصول
+
+- [صفحه فارسی MeAlpha Pro](https://apkswap.github.io/MeAlphaPro/fa/)
+- [صفحه انگلیسی MeAlpha Pro](https://apkswap.github.io/MeAlphaPro/)
+- [مخزن GitHub](https://github.com/apkswap/MeAlphaPro)
+- [انتشارها و دانلودها](https://github.com/apkswap/MeAlphaPro/releases)
+
+برای انتشار وب‌سایت، مالک مخزن باید ابتدا GitHub Pages را در تنظیمات مخزن فعال کند و Source را روی GitHub Actions قرار دهد؛ سپس workflow انتشار وب‌سایت اجرا می‌شود.
