@@ -51,14 +51,28 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob); const a = document.createElement('a');
     a.href = url; a.download = `mealpha-pro-backup-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
   };
-  const redirectUri = () => {
-    if (window.location.protocol === 'file:') throw new Error('Dropbox sign-in requires the hosted app URL or a local HTTP origin.');
-    return window.location.origin + window.location.pathname;
+  const redirectUri = () => 'http://localhost:4173/oauth/dropbox/callback';
+
+  const pollDropboxCallback = async (state: string) => {
+    const deadline = Date.now() + 5 * 60 * 1000;
+    while (Date.now() < deadline) {
+      const response = await fetch(`http://localhost:4173/oauth/dropbox/result?state=${encodeURIComponent(state)}`);
+      if (!response.ok) throw new Error(`Dropbox callback listener unavailable (${response.status}). Restart MeAlpha and try again.`);
+      const result = await response.json();
+      if (result.status === 'complete') return result as { status: 'complete'; code?: string; error?: string; error_description?: string; state: string };
+      await new Promise(resolve => window.setTimeout(resolve, 1000));
+    }
+    throw new Error('Dropbox sign-in timed out. Please try again.');
   };
+
   const connectDropbox = async () => {
     const appKey = (s.dropboxAppKey || '').trim();
     if (!appKey) return toast.error(fa ? 'ابتدا App Key دراپ‌باکس را وارد کنید.' : 'Enter your Dropbox App Key first.');
+    setDropboxBusy(true);
     try {
+      if (!window.mealphaDesktop?.openExternal) {
+        throw new Error('Dropbox desktop sign-in is unavailable. Please install the latest Windows build.');
+      }
       const bytes = crypto.getRandomValues(new Uint8Array(48));
       const verifier = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
       const stateBytes = crypto.getRandomValues(new Uint8Array(16));
@@ -73,60 +87,45 @@ export default function SettingsPage() {
         code_challenge: challenge, code_challenge_method: 'S256',
         redirect_uri: redirectUri(), state
       });
-      window.location.assign('https://www.dropbox.com/oauth2/authorize?' + params.toString());
+      await window.mealphaDesktop.openExternal('https://www.dropbox.com/oauth2/authorize?' + params.toString());
+      const callback = await pollDropboxCallback(state);
+      if (callback.state !== state) throw new Error('Dropbox sign-in state validation failed.');
+      if (callback.error) throw new Error(callback.error_description || callback.error);
+      if (!callback.code) throw new Error('Dropbox did not return an authorization code.');
+
+      const body = new URLSearchParams({
+        code: callback.code, grant_type: 'authorization_code', client_id: appKey,
+        redirect_uri: redirectUri(), code_verifier: verifier
+      });
+      const response = await fetch('https://api.dropboxapi.com/oauth2/token', {
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body
+      });
+      const token = await response.json();
+      if (!response.ok) throw new Error(token.error_description || token.error || 'Dropbox token exchange failed');
+      const accountResponse = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + token.access_token, 'Content-Type': 'application/json' }, body: 'null'
+      });
+      const account = accountResponse.ok ? await accountResponse.json() : null;
+      const nextSettings = {
+        ...settings, ...s, dropboxAccessToken: token.access_token,
+        dropboxRefreshToken: token.refresh_token || s.dropboxRefreshToken || '',
+        dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000,
+        dropboxAccountName: account?.name?.display_name || ''
+      };
+      setS(nextSettings); setLocalSettings(nextSettings);
+      sessionStorage.removeItem('mealpha.dropbox.appKey');
+      sessionStorage.removeItem('mealpha.dropbox.verifier');
+      sessionStorage.removeItem('mealpha.dropbox.state');
+      toast.success(fa ? 'حساب Dropbox متصل شد.' : 'Dropbox connected.');
     } catch (error) {
+      sessionStorage.removeItem('mealpha.dropbox.appKey');
+      sessionStorage.removeItem('mealpha.dropbox.verifier');
+      sessionStorage.removeItem('mealpha.dropbox.state');
       toast.error(error instanceof Error ? error.message : t('error'));
+    } finally {
+      setDropboxBusy(false);
     }
   };
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const callbackAppKey = s.dropboxAppKey || sessionStorage.getItem('mealpha.dropbox.appKey') || '';
-    if (!code || !callbackAppKey) return;
-    const state = params.get('state') || '';
-    const expectedState = sessionStorage.getItem('mealpha.dropbox.state') || '';
-    const verifier = sessionStorage.getItem('mealpha.dropbox.verifier') || '';
-    if (!state || state !== expectedState || !verifier) {
-      toast.error(fa ? 'اعتبارسنجی ورود دراپ‌باکس ناموفق بود.' : 'Dropbox sign-in state validation failed.');
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      setDropboxBusy(true);
-      try {
-        const body = new URLSearchParams({
-          code, grant_type: 'authorization_code', client_id: callbackAppKey,
-          redirect_uri: redirectUri(), code_verifier: verifier
-        });
-        const response = await fetch('https://api.dropboxapi.com/oauth2/token', {
-          method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body
-        });
-        const token = await response.json();
-        if (!response.ok) throw new Error(token.error_description || token.error || 'Dropbox token exchange failed');
-        const accountResponse = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
-          method: 'POST', headers: { Authorization: 'Bearer ' + token.access_token, 'Content-Type': 'application/json' }, body: 'null'
-        });
-        const account = accountResponse.ok ? await accountResponse.json() : null;
-        if (cancelled) return;
-        const nextSettings = {
-          ...settings, ...s, dropboxAccessToken: token.access_token,
-          dropboxRefreshToken: token.refresh_token || s.dropboxRefreshToken || '',
-          dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000,
-          dropboxAccountName: account?.name?.display_name || ''
-        };
-        setS(nextSettings); setLocalSettings(nextSettings);
-        sessionStorage.removeItem('mealpha.dropbox.appKey');
-        sessionStorage.removeItem('mealpha.dropbox.verifier');
-        sessionStorage.removeItem('mealpha.dropbox.state');
-        window.history.replaceState({}, document.title, window.location.pathname);
-        toast.success(fa ? 'حساب Dropbox متصل شد.' : 'Dropbox connected.');
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : t('error'));
-      } finally { if (!cancelled) setDropboxBusy(false); }
-    })();
-    return () => { cancelled = true; };
-  }, [s.dropboxAppKey]);
 
   const syncDropbox = async () => {
     setDropboxBusy(true);
