@@ -19,7 +19,7 @@ function Splash() {
 function Shell() {
   const { data } = useStore();
   if (!data) return <Splash />;
-  return <BrowserRouter><Routes><Route element={<Layout />}>
+  return <BrowserRouter basename={window.location.pathname.startsWith("/MeAlphaPro/preview") ? "/MeAlphaPro/preview" : undefined}><Routes><Route element={<Layout />}>
     <Route path="/" element={<Dashboard />} /><Route path="/goals" element={<Goals />} />
     <Route path="/tasks" element={<Tasks />} /><Route path="/habits" element={<Habits />} />
     <Route path="/focus" element={<Focus />} /><Route path="/transactions" element={<Transactions />} />
