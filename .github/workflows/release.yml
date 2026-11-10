@@ -27,7 +27,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Read application version
         id: version
-        run: echo "version=$(node -p "require('./apps/mealpha-pro/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION=$(node -p "require('./apps/mealpha-pro/package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   windows:
     runs-on: windows-latest
