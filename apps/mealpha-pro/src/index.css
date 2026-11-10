@@ -40,7 +40,7 @@
   :root:not(.dark)[data-color-theme='green'] { --primary: 152 54% 35%; --accent: 158 42% 42%; --ring: 152 54% 35%; }
   :root:not(.dark)[data-color-theme='blue'] { --primary: 205 78% 43%; --accent: 190 72% 40%; --ring: 205 78% 43%; }
   .dark { color-scheme: dark; }
-  html[lang='fa'] { --font-sans: Tahoma, 'Segoe UI', sans-serif; }
+  html[lang='fa'] { --font-sans: 'B Mitra', 'Vazirmatn', 'Segoe UI', Tahoma, sans-serif; }
 }
 
 @layer base {
@@ -76,3 +76,30 @@ html, body, * { scrollbar-width: thin; scrollbar-color: rgba(115, 160, 135, .32)
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(115, 160, 135, .28); border-radius: 999px; border: 1px solid transparent; background-clip: padding-box; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(85, 190, 135, .58); }
+
+
+/* Persian typography: consistent readable rhythm across Windows and Android */
+html[lang='fa'] body {
+  font-family: 'B Mitra', 'Vazirmatn', 'Segoe UI', Tahoma, sans-serif;
+  font-size: 15px;
+  line-height: 1.9;
+  letter-spacing: 0;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+html[lang='fa'] button,
+html[lang='fa'] input,
+html[lang='fa'] textarea,
+html[lang='fa'] select {
+  font: inherit;
+  line-height: 1.65;
+}
+html[lang='fa'] h1,
+html[lang='fa'] h2,
+html[lang='fa'] h3 { line-height: 1.55; letter-spacing: 0; }
+html[lang='fa'] .text-xs { font-size: .82rem; line-height: 1.8; }
+html[lang='fa'] .text-sm { font-size: .94rem; line-height: 1.85; }
+html[lang='fa'] input,
+html[lang='fa'] textarea,
+html[lang='fa'] select { min-height: 42px; }
+:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
