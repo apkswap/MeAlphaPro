@@ -58,7 +58,8 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
           {fields.map((f) => (
             <div key={f.key} className={f.full || f.type === 'textarea' ? 'sm:col-span-2 space-y-1.5' : 'space-y-1.5'}>
               <Label className="text-xs text-muted-foreground">{t(f.label)}{f.required && ' *'}</Label>
-              <FieldInput f={f} value={v[f.key]} onChange={(x) => set(f.key, x)} lang={settings.language} />
+              <FieldInput f={f} value={v[f.key]} onChange={(x) => set(f.key, x)}
+                lang={settings.language} calendar={settings.calendar} />
               {err[f.key] && <p className="text-xs text-destructive">{settings.language === 'fa' ? (err[f.key] === '#' ? 'عدد معتبر وارد کنید' : 'الزامی است') : (err[f.key] === '#' ? 'Enter a valid number' : 'Required')}</p>}
             </div>
           ))}
@@ -72,11 +73,15 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
   );
 }
 
-function FieldInput({ f, value, onChange, lang }: { f: Field; value: any; onChange: (v: any) => void; lang: 'fa' | 'en' }) {
+function FieldInput({ f, value, onChange, lang, calendar }: {
+  f: Field; value: any; onChange: (v: any) => void; lang: 'fa' | 'en'; calendar: string;
+}) {
   if (f.type === 'textarea') return <Textarea value={value ?? ''} onChange={(e) => onChange(e.target.value)} rows={3} />;
   if (f.type === 'checkbox') return <div className="pt-1"><Switch checked={!!value} onCheckedChange={onChange} /></div>;
   if (f.type === 'date')
-    return <DatePicker value={value ? new Date(value + 'T12:00:00') : undefined} onChange={(d) => onChange(d ? isoOf(d) : null)} />;
+    return <DatePicker value={value ? new Date(value + 'T12:00:00') : undefined}
+      onChange={(d) => onChange(d ? isoOf(d) : null)}
+      calendar={calendar === 'jalali' ? 'jalali' : 'gregorian'} lang={lang} />;
   if (f.type === 'select')
     return (
       <Select value={value ?? undefined} onValueChange={onChange}>
