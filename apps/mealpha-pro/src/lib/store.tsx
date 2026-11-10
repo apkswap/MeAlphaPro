@@ -42,9 +42,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try { await deleteRecord(entity, id); toast.success(t('deleted')); await reload(); }
     catch (error) { console.error(error); toast.error(t('error')); }
   };
-  const setLocalSettings = (next: Settings) => {
+  const setLocalSettings = useCallback((next: Settings) => {
     setSettings(next);
     void persistSettings(next).catch((error) => { console.error(error); toast.error(t('error')); });
-  };
+  }, [t]);
   return <C.Provider value={{ data, settings, t, reload, save, remove, setLocalSettings }}>{children}</C.Provider>;
 }
