@@ -165,3 +165,26 @@ Both workflows can be run manually and are configured to validate relevant chang
 Source code and build workflows are maintained in this repository:
 
 [github.com/apkswap/MeAlphaPro](https://github.com/apkswap/MeAlphaPro)
+
+
+## Download MeAlpha Pro
+
+Official Windows and Android packages are published in **GitHub Releases** after both platform builds pass.
+
+- **Latest release:** https://github.com/apkswap/MeAlphaPro/releases/latest
+- **Windows installer:** `MeAlpha-Pro-Windows-x64.exe`
+- **Android APK:** `MeAlpha-Pro-Android.apk`
+- **SHA-256 checksums:** `SHA256SUMS.txt`
+
+The Android package produced by the current release workflow is a debug-signed APK intended for direct installation and evaluation. It is not a Google Play production-signed build. For each public release, the app version in `apps/mealpha-pro/package.json` must be incremented; pushes to `main` that modify the app trigger the Windows and Android release pipeline.
+
+## Product website
+
+- English: https://apkswap.github.io/MeAlphaPro/
+- فارسی: https://apkswap.github.io/MeAlphaPro/fa/
+
+The site includes localized product information, structured SoftwareApplication metadata, canonical and alternate language URLs, a sitemap, and robots directives. Google indexing and ranking are not automatic or guaranteed; submit the sitemap and request indexing through Google Search Console after GitHub Pages is enabled.
+
+## Development and release status
+
+[Windows build workflow](https://github.com/apkswap/MeAlphaPro/actions/workflows/build-windows.yml) · [Android build workflow](https://github.com/apkswap/MeAlphaPro/actions/workflows/build-android.yml) · [Release workflow](https://github.com/apkswap/MeAlphaPro/actions/workflows/release.yml) · [Website deployment](https://github.com/apkswap/MeAlphaPro/actions/workflows/deploy-pages.yml)
