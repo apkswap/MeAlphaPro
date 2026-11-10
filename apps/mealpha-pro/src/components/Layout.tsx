@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Cloud, CloudOff, Languages, Layers3, Sun, Moon, Wifi, WifiOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Cloud, CloudOff, Languages, Layers3, Sun, Moon, Wifi, WifiOff, Loader2, AlertCircle, CheckCircle2, MoreHorizontal, X } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { cn } from '@project/components/lib/utils';
 import { useStore } from '../lib/store';
@@ -15,6 +15,7 @@ const NAV: { to: string; k: Key; icon: typeof Target }[] = [
   { to: '/transactions', k: 'finance', icon: Receipt },
   { to: '/wealth', k: 'wealth', icon: Landmark },
   { to: '/insights', k: 'insights', icon: Sparkles },
+  { to: '/weekly-review', k: 'weeklyReview', icon: CheckCircle2 },
   { to: '/settings', k: 'settings', icon: Settings },
   { to: '/workspace', k: 'workspace', icon: Layers3 },
 ];
@@ -23,6 +24,9 @@ type DropboxStatus = 'disconnected' | 'checking' | 'connected' | 'offline' | 'er
 
 export default function Layout() {
   const { t, settings, setLocalSettings } = useStore();
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const primaryMobile = NAV.filter(n => ['/', '/goals', '/tasks', '/focus', '/insights'].includes(n.to));
+  const secondaryMobile = NAV.filter(n => !primaryMobile.some(p => p.to === n.to));
   const [networkOnline, setNetworkOnline] = useState(() => navigator.onLine);
   const [dropboxStatus, setDropboxStatus] = useState<DropboxStatus>(settings.dropboxRefreshToken ? 'checking' : 'disconnected');
   const toggleTheme = () => setLocalSettings({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' });
@@ -175,7 +179,7 @@ export default function Layout() {
             <div className="text-[10px] text-muted-foreground">{t('appTagline')}</div>
           </div>
         </div>
-        <nav className="flex md:flex-col gap-1 px-2 md:px-3 overflow-x-auto md:overflow-visible flex-1 items-center md:items-stretch">
+        <nav className="hidden md:flex md:flex-col gap-1 px-2 md:px-3 overflow-x-auto md:overflow-visible flex-1 items-center md:items-stretch">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'} className={link}>
               <n.icon className="h-4 w-4 shrink-0" /><span className="hidden lg:inline md:inline">{t(n.k)}</span>
@@ -217,7 +221,11 @@ export default function Layout() {
           </NavLink>
         </div>
       </aside>
-      <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto"><Outlet /></main>
+      <main className="flex-1 p-3 pb-24 sm:p-4 sm:pb-24 md:p-8 md:pb-8 max-w-7xl w-full mx-auto"><Outlet /></main>
+      <div className="md:hidden fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-background/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-2xl backdrop-blur-xl">
+        {mobileMoreOpen && <div className="absolute bottom-full inset-x-2 mb-2 rounded-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur-xl"><div className="mb-2 flex items-center justify-between"><span className="text-xs font-bold text-muted-foreground">{settings.language === 'fa' ? 'بخش‌های بیشتر' : 'More sections'}</span><button type="button" onClick={()=>setMobileMoreOpen(false)} className="rounded-lg p-2 text-muted-foreground" aria-label="Close"><X className="h-4 w-4"/></button></div><div className="grid grid-cols-3 gap-2">{secondaryMobile.map(n=><NavLink key={n.to} to={n.to} onClick={()=>setMobileMoreOpen(false)} className={({isActive})=>cn('flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-center text-[11px] font-medium',isActive?'border-primary/40 bg-primary/10 text-primary':'border-transparent text-muted-foreground hover:bg-secondary')}><n.icon className="h-5 w-5"/><span>{t(n.k)}</span></NavLink>)}</div><div className="mt-3 flex items-center justify-between border-t pt-2 text-xs text-muted-foreground"><span>{currentStatus.label}</span><span>{networkOnline ? (settings.language==='fa'?'آنلاین':'Online') : (settings.language==='fa'?'آفلاین':'Offline')}</span></div></div>}
+        <nav className="grid grid-cols-6 gap-1">{primaryMobile.map(n=><NavLink key={n.to} to={n.to} end={n.to==='/'} className={({isActive})=>cn('flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-medium',isActive?'bg-primary/10 text-primary':'text-muted-foreground')}><n.icon className="h-5 w-5"/><span className="max-w-full truncate">{t(n.k)}</span></NavLink>)}<button type="button" onClick={()=>setMobileMoreOpen(v=>!v)} className={cn('flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-medium',mobileMoreOpen?'bg-primary/10 text-primary':'text-muted-foreground')}><MoreHorizontal className="h-5 w-5"/><span>{settings.language==='fa'?'بیشتر':'More'}</span></button></nav>
+      </div>
     </div>
   );
 }
