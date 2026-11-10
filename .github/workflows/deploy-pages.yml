@@ -1,11 +1,16 @@
-name: Deploy MeAlpha Pro product website
+name: Deploy MeAlpha Pro website and live preview
 
 on:
   push:
     branches:
       - main
+      - feat/weekly-review-android-ux
     paths:
       - "docs/**"
+      - "apps/mealpha-pro/**"
+      - "packages/**"
+      - "package.json"
+      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -23,11 +28,25 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-      - name: Upload website
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install application dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build browser version
+        run: npm run build --workspace apps/mealpha-pro
+      - name: Prepare website and app preview
+        run: |
+          mkdir -p docs/preview
+          cp -R apps/mealpha-pro/dist/. docs/preview/
+          cp docs/preview/index.html docs/preview/404.html
+      - name: Upload website and preview
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
