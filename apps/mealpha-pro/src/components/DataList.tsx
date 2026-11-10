@@ -34,11 +34,32 @@ export default function DataList({ rows, cols, entity, onEdit, searchKeys, toolb
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input className="ps-9" placeholder={t('search')} value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
+          <Input className="ps-9 min-h-11" placeholder={t('search')} value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
         </div>
         {toolbar}
       </div>
-      <div className="rounded-xl border bg-card/60 overflow-x-auto">
+      <div className="md:hidden space-y-3">
+        {view.length === 0 && <div className="rounded-2xl border bg-card/60 px-4 py-10 text-center text-sm text-muted-foreground">{t('empty')}</div>}
+        {view.map((r) => (
+          <article key={r.id} className="rounded-2xl border bg-card/70 p-4 shadow-sm">
+            <div className="space-y-3">
+              {cols.map((c, index) => (
+                <div key={c.key} className={index === 0 ? "border-b border-border/70 pb-3" : "grid grid-cols-[minmax(5rem,0.8fr)_minmax(0,1.5fr)] items-start gap-3 text-sm"}>
+                  {index === 0 ? <div className="font-semibold leading-6">{c.render ? c.render(r) : r[c.key] ?? '—'}</div> : <>
+                    <span className="text-xs text-muted-foreground">{c.label}</span>
+                    <div className="min-w-0 break-words">{c.render ? c.render(r) : r[c.key] ?? '—'}</div>
+                  </>}
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex justify-end gap-2 border-t border-border/70 pt-3">
+              <Button size="icon" variant="outline" className="h-11 w-11" aria-label={t('edit')} onClick={() => onEdit(r)}><Pencil className="h-4 w-4" /></Button>
+              <Button size="icon" variant="outline" className="h-11 w-11" aria-label={t('delete')} onClick={() => setDel(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+            </div>
+          </article>
+        ))}
+      </div>
+      <div className="hidden md:block rounded-xl border bg-card/60 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
