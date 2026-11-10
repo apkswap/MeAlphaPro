@@ -19,7 +19,11 @@ function openDb(): Promise<IDBDatabase> {
       for (const name of STORES) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: name === 'appMeta' ? 'key' : 'id' });
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      // Do not cache a rejected open request forever; a later reload may recover.
+      dbPromise = undefined;
+      reject(request.error ?? new Error('Unable to open the local database.'));
+    };
   });
   return dbPromise;
 }
