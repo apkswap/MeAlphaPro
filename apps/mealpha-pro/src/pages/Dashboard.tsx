@@ -1,11 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Area, AreaChart, Bar as RBar, BarChart, CartesianGrid, Cell, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Activity, ArrowDownRight, ArrowUpRight, Bell, CalendarDays, CheckCircle2, CircleDollarSign, Clock3, Coins, Flame, Goal, Home, Landmark, ListChecks, Play, Repeat, Settings2, Sparkles, Target, Timer, Wallet } from 'lucide-react';
+import { Area, AreaChart, Bar as RBar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Activity, Bell, CalendarDays, Coins, Flame, Goal, ListChecks, Play, Sparkles, Target, Timer, Wallet } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { fmtMoney, fmtNum, fmtDate } from '../lib/i18n';
 import { goalInfo, habitStats, monthFinance, netWorth, scores, taskStats } from '../lib/analytics';
-import { Bar, StatusPill } from '../components/ui-bits';
-import { statusKey } from './Goals';
 import { cn } from '@project/components/lib/utils';
 
 const panel = 'rounded-[22px] border border-sky-400/20 bg-gradient-to-br from-[#0d2347]/95 via-[#091a38]/95 to-[#07152e]/95 shadow-[0_18px_45px_-28px_rgba(0,160,255,.5)] backdrop-blur-xl';
