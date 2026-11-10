@@ -24,7 +24,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       const d = await loadAll(); setData(d);
       if (d.settings) setSettings({ ...DEFAULTS, ...d.settings });
-    } catch (error) { console.error(error); toast.error('Failed to load local data'); }
+    } catch (error) {
+      console.error('Failed to initialize the local database:', error);
+      // Keep the interface usable instead of leaving the app on the loading splash forever.
+      // Database writes still report their own errors, so this does not pretend data was saved.
+      setData({
+        goals: [], tasks: [], habits: [], habitLogs: [], transactions: [],
+        accounts: [], paymentReminders: [], customItems: [], assets: [],
+        liabilities: [], settings: null,
+      } as Data);
+      toast.error('Local storage is unavailable. The app opened in temporary view mode; changes may not be saved.');
+    }
   }, []);
   useEffect(() => { void reload(); }, [reload]);
   useEffect(() => {
