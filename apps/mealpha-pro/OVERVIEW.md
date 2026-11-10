@@ -19,3 +19,6 @@ Official Windows and Android packages are published through GitHub Releases afte
 https://github.com/apkswap/MeAlphaPro/releases/latest
 
 The Android artifact is currently debug-signed for direct installation and evaluation. A Play Store production-signed Android package requires a separate signing configuration.
+
+
+Release pipeline note: app changes merged to main are built for both Windows and Android and published as a versioned GitHub Release with SHA-256 checksums.
