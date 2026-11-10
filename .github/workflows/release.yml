@@ -1,0 +1,139 @@
+name: Release MeAlpha Pro
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/mealpha-pro/**"
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mealpha-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read application version
+        id: version
+        run: echo "version=$(node -p "require('./apps/mealpha-pro/package.json').version")" >> "$GITHUB_OUTPUT"
+
+  windows:
+    runs-on: windows-latest
+    needs: version
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Prepare Windows icon
+        shell: pwsh
+        run: ./apps/mealpha-pro/scripts/prepare-windows-icon.ps1
+      - name: Build Windows installer
+        run: npm run desktop:build --workspace apps/mealpha-pro
+      - name: Prepare stable release filename
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          $installer = Get-ChildItem "apps/mealpha-pro/release" -Filter "*.exe" -File | Select-Object -First 1
+          if (-not $installer) { throw "No Windows installer was produced." }
+          Copy-Item $installer.FullName "release-assets/MeAlpha-Pro-Windows-x64.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MeAlpha-Pro-Windows-x64
+          path: release-assets/MeAlpha-Pro-Windows-x64.exe
+          if-no-files-found: error
+          retention-days: 7
+
+  android:
+    runs-on: ubuntu-latest
+    needs: version
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Verify Android SDK
+        run: |
+          test -d "$ANDROID_HOME/platform-tools"
+          echo "Android SDK available at $ANDROID_HOME"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build web application
+        run: npm run build --workspace apps/mealpha-pro
+      - name: Create Android project
+        working-directory: apps/mealpha-pro
+        run: npx cap add android
+      - name: Sync Capacitor
+        working-directory: apps/mealpha-pro
+        run: npx cap sync android
+      - name: Build installable Android APK
+        working-directory: apps/mealpha-pro/android
+        run: chmod +x ./gradlew && ./gradlew assembleDebug
+      - name: Prepare stable release filename
+        run: |
+          mkdir -p release-assets
+          cp apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk release-assets/MeAlpha-Pro-Android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MeAlpha-Pro-Android-APK
+          path: release-assets/MeAlpha-Pro-Android.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [version, windows, android]
+    steps:
+      - name: Download release binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: MeAlpha-Pro-*
+          path: release-assets
+          merge-multiple: true
+      - name: Generate SHA-256 checksums
+        run: |
+          cd release-assets
+          sha256sum MeAlpha-Pro-Windows-x64.exe MeAlpha-Pro-Android.apk > SHA256SUMS.txt
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: MeAlpha Pro v${{ needs.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          make_latest: true
+          fail_on_unmatched_files: true
+          body: |
+            ## MeAlpha Pro v${{ needs.version.outputs.version }}
+
+            Download the Windows installer or Android APK below.
+
+            - **Windows:** `MeAlpha-Pro-Windows-x64.exe`
+            - **Android:** `MeAlpha-Pro-Android.apk` (debug-signed APK for direct installation and evaluation; not a Play Store production-signed package)
+            - **Integrity:** verify downloads with `SHA256SUMS.txt`
+
+            See the repository README for setup notes and current feature scope.
+          files: |
+            release-assets/MeAlpha-Pro-Windows-x64.exe
+            release-assets/MeAlpha-Pro-Android.apk
+            release-assets/SHA256SUMS.txt
