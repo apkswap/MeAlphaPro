@@ -12,6 +12,7 @@ import Wealth from './pages/Wealth';
 import Insights from './pages/Insights';
 import SettingsPage from './pages/Settings';
 import Workspace from './pages/Workspace';
+import WeeklyReview from './pages/WeeklyReview';
 
 function Splash() {
   return <div className="min-h-screen grid place-items-center"><div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-accent grid place-items-center font-black text-white text-xl animate-pulse">α</div></div>;
@@ -24,7 +25,7 @@ function Shell() {
     <Route path="/tasks" element={<Tasks />} /><Route path="/habits" element={<Habits />} />
     <Route path="/focus" element={<Focus />} /><Route path="/transactions" element={<Transactions />} />
     <Route path="/wealth" element={<Wealth />} /><Route path="/insights" element={<Insights />} />
-    <Route path="/settings" element={<SettingsPage />} /><Route path="/workspace" element={<Workspace />} /><Route path="*" element={<Dashboard />} />
+    <Route path="/weekly-review" element={<WeeklyReview />} /><Route path="/settings" element={<SettingsPage />} /><Route path="/workspace" element={<Workspace />} /><Route path="*" element={<Dashboard />} />
   </Route></Routes></BrowserRouter>;
 }
 export default function App() {
