@@ -168,7 +168,7 @@ export default function Layout() {
   const StatusIcon = dropboxStatus === 'connected' ? CheckCircle2 : dropboxStatus === 'checking' ? Loader2 : dropboxStatus === 'offline' || dropboxStatus === 'disconnected' ? CloudOff : AlertCircle;
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div dir={settings.language === 'fa' ? 'rtl' : 'ltr'} className="min-h-screen flex flex-col md:flex-row">
       <aside className="md:w-[264px] md:min-w-[264px] md:h-screen md:sticky md:top-0 md:overflow-y-auto border-b md:border-b-0 md:border-e border-border/80 bg-[hsl(var(--sidebar-background))]/95 backdrop-blur-xl flex md:flex-col shadow-xl shadow-black/10">
         <div className="p-4 md:px-5 md:py-6 flex items-center gap-3 shrink-0 border-b border-border/60">
           <div className="h-[68px] w-[68px] shrink-0 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 to-accent/10 p-0.5 shadow-lg shadow-primary/10">
