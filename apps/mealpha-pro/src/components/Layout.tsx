@@ -35,8 +35,8 @@ export default function Layout() {
     setLocalSettings(s);
   };
   const link = ({ isActive }: { isActive: boolean }) =>
-    cn('flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
-      isActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary');
+    cn('flex min-h-[46px] items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap border border-transparent',
+      isActive ? 'bg-primary/12 text-primary border-primary/20 shadow-sm shadow-primary/5' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80');
 
   const appKey = settings.dropboxAppKey || '';
   const accessToken = settings.dropboxAccessToken || '';
@@ -169,30 +169,30 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
-      <aside className="md:w-60 md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-e bg-[hsl(var(--sidebar-background))]/80 backdrop-blur flex md:flex-col">
-        <div className="p-4 md:p-5 flex items-center gap-3 shrink-0">
-          <div className="h-16 w-16 shrink-0 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 to-accent/10 p-0.5 shadow-lg shadow-primary/10">
+      <aside className="md:w-[264px] md:min-w-[264px] md:h-screen md:sticky md:top-0 md:overflow-y-auto border-b md:border-b-0 md:border-e border-border/80 bg-[hsl(var(--sidebar-background))]/95 backdrop-blur-xl flex md:flex-col shadow-xl shadow-black/10">
+        <div className="p-4 md:px-5 md:py-6 flex items-center gap-3 shrink-0 border-b border-border/60">
+          <div className="h-[68px] w-[68px] shrink-0 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 to-accent/10 p-0.5 shadow-lg shadow-primary/10">
             <img src="/mealpha-infinity.png" alt="MeAlpha" className="h-full w-full object-contain" />
           </div>
           <div className="hidden md:block min-w-0">
-            <div className="font-extrabold leading-tight">MeAlpha</div>
+            <div className="text-lg font-extrabold leading-tight tracking-tight">MeAlpha</div>
             <div className="text-[10px] text-muted-foreground">{t('appTagline')}</div>
           </div>
         </div>
-        <nav className="hidden md:flex md:flex-col gap-1 px-2 md:px-3 overflow-x-auto md:overflow-visible flex-1 items-center md:items-stretch">
+        <nav className="hidden md:flex md:flex-col gap-1.5 px-3 md:px-3.5 py-4 overflow-x-auto md:overflow-visible flex-1 items-center md:items-stretch">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'} className={link}>
               <n.icon className="h-4 w-4 shrink-0" /><span className="hidden lg:inline md:inline">{t(n.k)}</span>
             </NavLink>
           ))}
         </nav>
-        <div className="p-2 md:p-3 flex md:flex-col gap-1 shrink-0">
+        <div className="p-3 md:p-4 flex md:flex-col gap-1.5 shrink-0 border-t border-border/60">
           <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}<span className="hidden md:inline">{settings.theme === 'light' ? (settings.language === 'fa' ? 'حالت تاریک' : 'Dark mode') : (settings.language === 'fa' ? 'حالت روشن' : 'Light mode')}</span></Button>
           <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleLang}><Languages className="h-4 w-4" /><span className="hidden md:inline">{settings.language === 'fa' ? 'English' : 'فارسی'}</span></Button>
 
-          <div className="hidden md:block mx-1 mt-2 rounded-xl border border-border/70 bg-card/65 p-3 shadow-sm backdrop-blur-xl">
+          <div className="hidden md:block mx-0 mt-2 rounded-2xl border border-border/70 bg-card/75 p-3.5 shadow-sm backdrop-blur-xl">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{settings.language === 'fa' ? 'وضعیت اتصال' : 'Connection status'}</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{settings.language === 'fa' ? 'وضعیت اتصال' : 'Connection status'}</span>
               <span className={cn('flex items-center gap-1 text-[10px]', networkOnline ? 'text-emerald-500' : 'text-amber-500')}>
                 {networkOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
                 {networkOnline ? (settings.language === 'fa' ? 'شبکه در دسترس' : 'Network available') : (settings.language === 'fa' ? 'بدون شبکه' : 'Network offline')}
@@ -203,8 +203,8 @@ export default function Layout() {
                 <StatusIcon className={cn('h-[18px] w-[18px]', dropboxStatus === 'checking' && 'animate-spin')} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className={cn('truncate text-xs font-semibold', currentStatus.className)}>{currentStatus.label}</div>
-                <div className="truncate text-[10px] text-muted-foreground">{currentStatus.detail}</div>
+                <div className={cn('truncate text-sm font-semibold', currentStatus.className)}>{currentStatus.label}</div>
+                <div className="truncate text-xs text-muted-foreground">{currentStatus.detail}</div>
               </div>
               <NavLink to="/settings" aria-label={settings.language === 'fa' ? 'تنظیمات Dropbox' : 'Dropbox settings'} title={settings.language === 'fa' ? 'تنظیمات Dropbox' : 'Dropbox settings'} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
                 <Settings className="h-4 w-4" />
@@ -221,7 +221,7 @@ export default function Layout() {
           </NavLink>
         </div>
       </aside>
-      <main className="flex-1 p-3 pb-24 sm:p-4 sm:pb-24 md:p-8 md:pb-8 max-w-7xl w-full mx-auto"><Outlet /></main>
+      <main className="flex-1 min-w-0 p-4 pb-24 sm:p-5 sm:pb-24 md:p-8 md:pb-8 max-w-[1480px] w-full mx-auto"><Outlet /></main>
       <div className="md:hidden fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-background/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-2xl backdrop-blur-xl">
         {mobileMoreOpen && <div className="absolute bottom-full inset-x-2 mb-2 rounded-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur-xl"><div className="mb-2 flex items-center justify-between"><span className="text-xs font-bold text-muted-foreground">{settings.language === 'fa' ? 'بخش‌های بیشتر' : 'More sections'}</span><button type="button" onClick={()=>setMobileMoreOpen(false)} className="rounded-lg p-2 text-muted-foreground" aria-label="Close"><X className="h-4 w-4"/></button></div><div className="grid grid-cols-3 gap-2">{secondaryMobile.map(n=><NavLink key={n.to} to={n.to} onClick={()=>setMobileMoreOpen(false)} className={({isActive})=>cn('flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-center text-[11px] font-medium',isActive?'border-primary/40 bg-primary/10 text-primary':'border-transparent text-muted-foreground hover:bg-secondary')}><n.icon className="h-5 w-5"/><span>{t(n.k)}</span></NavLink>)}</div><div className="mt-3 flex items-center justify-between border-t pt-2 text-xs text-muted-foreground"><span>{currentStatus.label}</span><span>{networkOnline ? (settings.language==='fa'?'آنلاین':'Online') : (settings.language==='fa'?'آفلاین':'Offline')}</span></div></div>}
         <nav className="grid grid-cols-6 gap-1">{primaryMobile.map(n=><NavLink key={n.to} to={n.to} end={n.to==='/'} className={({isActive})=>cn('flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-medium',isActive?'bg-primary/10 text-primary':'text-muted-foreground')}><n.icon className="h-5 w-5"/><span className="max-w-full truncate">{t(n.k)}</span></NavLink>)}<button type="button" onClick={()=>setMobileMoreOpen(v=>!v)} className={cn('flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-medium',mobileMoreOpen?'bg-primary/10 text-primary':'text-muted-foreground')}><MoreHorizontal className="h-5 w-5"/><span>{settings.language==='fa'?'بیشتر':'More'}</span></button></nav>
