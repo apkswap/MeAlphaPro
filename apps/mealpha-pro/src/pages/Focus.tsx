@@ -107,7 +107,7 @@ export default function Focus() {
             {hist.slice(0, 30).map((h, i) => (
               <li key={i} className="flex justify-between text-sm border-b pb-2">
                 <span className="truncate">{h.task || '—'}</span>
-                <span className="text-muted-foreground tabular-nums">{fmtNum(L, h.seconds !== undefined ? Math.floor(h.seconds / 60) + (h.seconds % 60 ? `:${String(h.seconds % 60).padStart(2, '0')}` : '') : h.minutes)}{h.seconds !== undefined && h.seconds % 60 ? '' : '′'}</span>
+                <span className="text-muted-foreground tabular-nums">{fmtNum(L, h.seconds !== undefined ? h.seconds / 60 : h.minutes, 2)}′</span>
               </li>
             ))}
           </ul>
