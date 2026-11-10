@@ -34,7 +34,7 @@ export default function Layout() {
       <aside className="md:w-60 md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-e bg-[hsl(var(--sidebar-background))]/80 backdrop-blur flex md:flex-col">
         <div className="p-4 md:p-5 flex items-center gap-3 shrink-0">
           <div className="h-16 w-16 shrink-0 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 to-accent/10 p-0.5 shadow-lg shadow-primary/10">
-            <img src="/mealpha-infinity.png" alt="MeAlpha" className="h-full w-full object-contain" />
+            <img src={`${window.location.pathname.startsWith("/MeAlphaPro/preview") ? "/MeAlphaPro/preview" : ""}/mealpha-infinity.png`} alt="MeAlpha" className="h-full w-full object-contain" />
           </div>
           <div className="hidden md:block min-w-0">
             <div className="font-extrabold leading-tight">MeAlpha</div>
