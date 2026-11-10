@@ -25,7 +25,7 @@ export default function Focus() {
 
   useEffect(() => {
     if (!running) setLeft(duration);
-  }, [duration, running]);
+  }, [duration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!running) return;
