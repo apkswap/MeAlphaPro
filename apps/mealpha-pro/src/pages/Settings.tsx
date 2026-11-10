@@ -105,7 +105,11 @@ export default function SettingsPage() {
       const accountResponse = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
         method: 'POST', headers: { Authorization: 'Bearer ' + token.access_token, 'Content-Type': 'application/json' }, body: 'null'
       });
-      const account = accountResponse.ok ? await accountResponse.json() : null;
+      const accountPayload = await accountResponse.json().catch(() => ({}));
+      if (!accountResponse.ok) {
+        throw new Error(accountPayload.error_summary || accountPayload.error || 'Dropbox account verification failed');
+      }
+      const account = accountPayload;
       const nextSettings = {
         ...settings, ...s, dropboxAccessToken: token.access_token,
         dropboxRefreshToken: token.refresh_token || s.dropboxRefreshToken || '',
