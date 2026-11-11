@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Area, AreaChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CheckCircle2, TrendingDown, TrendingUp, X, CalendarRange, Wallet } from 'lucide-react';
+import { CheckCircle2, TrendingDown, TrendingUp, X, Wallet } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { toast } from 'sonner';
 import { useStore } from '../lib/store';
