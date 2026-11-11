@@ -1,63 +1,89 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Languages, Layers3, Sun, Moon } from 'lucide-react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Languages, Layers3, Sun, Moon, Search, Bell, Cloud, Menu, X } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { cn } from '@project/components/lib/utils';
 import { useStore } from '../lib/store';
 import { Key } from '../lib/i18n';
 
-const NAV: { to: string; k: Key; icon: typeof Target }[] = [
-  { to: '/', k: 'dashboard', icon: LayoutDashboard },
-  { to: '/goals', k: 'goals', icon: Target },
-  { to: '/tasks', k: 'tasks', icon: ListChecks },
-  { to: '/habits', k: 'habits', icon: Repeat },
-  { to: '/focus', k: 'focus', icon: Timer },
-  { to: '/transactions', k: 'finance', icon: Receipt },
-  { to: '/wealth', k: 'wealth', icon: Landmark },
-  { to: '/insights', k: 'insights', icon: Sparkles },
-  { to: '/settings', k: 'settings', icon: Settings },
-  { to: '/workspace', k: 'workspace', icon: Layers3 },
+const NAV: { to: string; k: Key; icon: typeof Target; group: 'main' | 'manage' | 'system' }[] = [
+  { to: '/', k: 'dashboard', icon: LayoutDashboard, group: 'main' },
+  { to: '/goals', k: 'goals', icon: Target, group: 'manage' },
+  { to: '/tasks', k: 'tasks', icon: ListChecks, group: 'manage' },
+  { to: '/habits', k: 'habits', icon: Repeat, group: 'manage' },
+  { to: '/focus', k: 'focus', icon: Timer, group: 'manage' },
+  { to: '/transactions', k: 'finance', icon: Receipt, group: 'manage' },
+  { to: '/wealth', k: 'wealth', icon: Landmark, group: 'manage' },
+  { to: '/insights', k: 'insights', icon: Sparkles, group: 'manage' },
+  { to: '/workspace', k: 'workspace', icon: Layers3, group: 'system' },
+  { to: '/settings', k: 'settings', icon: Settings, group: 'system' },
 ];
 
 export default function Layout() {
   const { t, settings, setLocalSettings } = useStore();
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const location = useLocation();
   useEffect(() => { const on = () => setOnline(true); const off = () => setOnline(false); window.addEventListener('online', on); window.addEventListener('offline', off); return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); }; }, []);
+  useEffect(() => setMobileMenu(false), [location.pathname]);
   const toggleTheme = () => setLocalSettings({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' });
-  const toggleLang = () => {
-    const s = { ...settings, language: settings.language === 'fa' ? 'en' as const : 'fa' as const };
-    setLocalSettings(s);
-  };
-  const link = ({ isActive }: { isActive: boolean }) =>
-    cn('flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-2.5 px-1.5 md:px-2.5 py-2 md:py-2.5 rounded-xl text-[10px] md:text-[13px] font-medium transition-colors',
-      isActive ? 'bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80');
-
+  const toggleLang = () => setLocalSettings({ ...settings, language: settings.language === 'fa' ? 'en' : 'fa' });
+  const fa = settings.language === 'fa';
+  const groups = [
+    { id: 'main', label: fa ? 'نمای کلی' : 'OVERVIEW' },
+    { id: 'manage', label: fa ? 'مدیریت زندگی' : 'LIFE MANAGEMENT' },
+    { id: 'system', label: fa ? 'فضای کار' : 'WORKSPACE' },
+  ] as const;
+  const navLink = ({ isActive }: { isActive: boolean }) => cn(
+    'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200',
+    isActive ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+  );
+  const navItems = (mobile = false) => groups.map(group => (
+    <div key={group.id} className={mobile ? '' : 'mb-5'}>
+      {!mobile && <div className="px-3 pb-2 text-[9px] font-bold tracking-[.16em] text-muted-foreground/70">{group.label}</div>}
+      <div className={mobile ? 'flex justify-around gap-1' : 'space-y-1'}>
+        {NAV.filter(n => n.group === group.id && (!mobile || ['/', '/tasks', '/habits', '/transactions', '/settings'].includes(n.to))).map(n => (
+          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={mobile ? ({ isActive }) => cn('flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[9px]', isActive ? 'text-primary' : 'text-muted-foreground') : navLink}>
+            <n.icon className={mobile ? 'h-5 w-5' : 'h-[17px] w-[17px] shrink-0'} />
+            <span className={mobile ? 'max-w-full truncate' : 'truncate'}>{t(n.k)}</span>
+          </NavLink>
+        ))}
+      </div>
+    </div>
+  ));
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
-      <aside className="md:w-52 md:min-w-52 md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-e bg-[hsl(var(--sidebar-background))]/80 backdrop-blur flex flex-col">
-        <div className="p-3 md:p-4 flex items-center gap-2.5 shrink-0">
-          <div className="h-10 w-10 md:h-12 md:w-12 shrink-0 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/20 to-accent/10 p-0.5 shadow-lg shadow-primary/10">
-            <img src="/mealpha-infinity.png" alt="MeAlpha" className="h-full w-full object-contain" />
+    <div className="min-h-screen bg-background text-foreground md:flex">
+      <aside className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-[248px] md:shrink-0 md:flex-col md:border-e md:border-sidebar-border md:bg-sidebar-background/90 md:px-4 md:py-5 md:backdrop-blur-xl">
+        <NavLink to="/" className="mb-8 flex items-center gap-3 px-2">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25"><img src="/mealpha-infinity.png" alt="MeAlpha" className="h-8 w-8 object-contain" /></div>
+          <div><div className="text-[15px] font-black tracking-tight">MeAlpha <span className="text-primary">Pro</span></div><div className="mt-0.5 text-[9px] font-semibold tracking-[.18em] text-muted-foreground">PERSONAL COMMAND CENTER</div></div>
+        </NavLink>
+        <nav className="min-h-0 flex-1 overflow-y-auto">{navItems()}</nav>
+        <div className="mt-4 rounded-2xl border bg-card/70 p-3">
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold"><span className={cn('h-2 w-2 rounded-full', online ? 'bg-emerald-500' : 'bg-amber-500')} />{online ? (fa ? 'اینترنت متصل' : 'Internet connected') : (fa ? 'بدون اینترنت' : 'Offline')}</div>
+          <div className="flex items-center justify-between gap-2">
+            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-1 h-4 w-4" /> : <Sun className="me-1 h-4 w-4" />}{settings.theme === 'light' ? (fa ? 'شب' : 'Night') : (fa ? 'روز' : 'Day')}</Button>
+            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={toggleLang}><Languages className="me-1 h-4 w-4" />{fa ? 'EN' : 'فا'}</Button>
           </div>
-          <div className="min-w-0">
-            <div className="font-extrabold leading-tight text-sm md:text-[15px]">MeAlpha Pro</div>
-            <div className="text-[9px] text-muted-foreground tracking-wide">{t('appTagline')}</div>
-          </div>
-        </div>
-        <nav aria-label="Main navigation" className="grid grid-cols-5 md:flex md:flex-col gap-1.5 px-2 md:px-2.5 py-2 md:py-3 overflow-visible md:overflow-x-visible md:overflow-y-auto md:flex-1 items-stretch border-y md:border-y-0">
-          {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'} className={link}>
-              <n.icon className="h-4 w-4 shrink-0" /><span>{t(n.k)}</span>
-            </NavLink>
-          ))}
-        </nav>
-        <div className="p-2 md:p-2.5 flex flex-row md:flex-col justify-end md:justify-start gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="h-8 justify-start gap-2 px-2 text-xs" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}<span>{settings.theme === 'light' ? (settings.language === 'fa' ? 'حالت تاریک' : 'Dark mode') : (settings.language === 'fa' ? 'حالت روشن' : 'Light mode')}</span></Button>
-          <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleLang}><Languages className="h-4 w-4" /><span>{settings.language === 'fa' ? 'English' : 'فارسی'}</span></Button>
-          <div role="status" className={cn("flex items-center gap-2 px-2 py-1.5 text-[11px]", online ? "text-emerald-500" : "text-amber-500")}><span className={cn("h-2 w-2 rounded-full", online ? "bg-emerald-500" : "bg-amber-500")} /><span>{online ? (settings.language === "fa" ? "اینترنت متصل" : "Online") : (settings.language === "fa" ? "بدون اینترنت" : "Offline")}</span></div>
         </div>
       </aside>
-      <main className="flex-1 min-w-0 p-4 md:p-8 max-w-7xl w-full mx-auto"><Outlet /></main>
+      <div className="min-w-0 flex-1">
+        <header className="sticky top-0 z-30 flex h-[68px] items-center justify-between border-b bg-background/80 px-4 backdrop-blur-xl md:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <button className="grid h-9 w-9 place-items-center rounded-xl border md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={fa ? 'بازکردن منو' : 'Open menu'}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
+            <div className="md:hidden text-sm font-black">MeAlpha <span className="text-primary">Pro</span></div>
+            <div className="hidden text-xs text-muted-foreground sm:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{t(NAV.find(n => n.to === location.pathname)?.k ?? 'dashboard')}</span></div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="hidden h-9 w-56 items-center gap-2 rounded-xl border bg-card/70 px-3 lg:flex"><Search className="h-4 w-4 text-muted-foreground" /><span className="text-xs text-muted-foreground">{fa ? 'جستجو در برنامه...' : 'Search your workspace...'}</span><kbd className="ms-auto rounded border px-1.5 py-0.5 text-[9px] text-muted-foreground">⌘ K</kbd></div>
+            <button className="relative grid h-9 w-9 place-items-center rounded-xl border bg-card/70 text-muted-foreground hover:text-foreground" aria-label={fa ? 'اعلان‌ها' : 'Notifications'}><Bell className="h-4 w-4" /><span className="absolute end-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" /></button>
+            <button className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-sm font-bold text-primary">{(settings.displayName || settings.username || 'α').slice(0,1).toUpperCase()}</button>
+          </div>
+        </header>
+        {mobileMenu && <div className="absolute inset-x-0 top-[68px] z-40 border-b bg-background p-4 shadow-xl md:hidden"><div className="grid grid-cols-2 gap-2">{NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({isActive}) => cn('flex items-center gap-2 rounded-xl p-3 text-sm', isActive ? 'bg-primary/10 text-primary' : 'bg-card text-muted-foreground')}><n.icon className="h-4 w-4" />{t(n.k)}</NavLink>)}</div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}
+        <main className="mx-auto w-full max-w-[1600px] px-4 pb-24 pt-6 sm:px-6 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
+        <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-1 backdrop-blur-xl md:hidden">{navItems(true)}</nav>
+      </div>
     </div>
   );
 }
