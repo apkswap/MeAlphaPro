@@ -42,11 +42,14 @@ export default function Wealth() {
   const L = settings.language, cal = settings.calendar, cur = settings.currency;
   const nw = netWorth(data!.assets, data!.liabilities, settings);
 
+  const assetValue = (asset: Rec) => Number(asset.currentValue || 0) + data!.transactions.filter((tx: Rec) => tx.assetId === asset.id && tx.currency === asset.currency).reduce((sum: number, tx: Rec) => sum + (tx.kind === 'Income' ? 1 : -1) * Number(tx.amount || 0), 0);
+
   const aCols: Col[] = [
     { key: 'name', label: t('name'), render: (r) => <div><div className="font-medium">{r.name}</div><div className="text-xs text-muted-foreground">{r.assetType}</div></div> },
-    { key: 'currentValue', label: t('curValue'), sortValue: (r) => Number(r.currentValue), render: (r) => {
-      const gain = r.acquisitionCost ? (Number(r.currentValue) - Number(r.acquisitionCost)) / Number(r.acquisitionCost) : null;
-      return <div className="tabular-nums"><div className="font-semibold">{fmtMoney(L, Number(r.currentValue), r.currency)}</div>{gain != null && <div className={gain >= 0 ? 'text-xs text-[hsl(var(--success))]' : 'text-xs text-destructive'}>{gain >= 0 ? '+' : ''}{fmtNum(L, gain * 100, 1)}%</div>}</div>;
+    { key: 'currentValue', label: t('curValue'), sortValue: (r) => assetValue(r), render: (r) => {
+      const current = assetValue(r);
+      const gain = r.acquisitionCost ? (current - Number(r.acquisitionCost)) / Number(r.acquisitionCost) : null;
+      return <div className="tabular-nums"><div className="font-semibold">{fmtMoney(L, current, r.currency)}</div>{gain != null && <div className={gain >= 0 ? 'text-xs text-[hsl(var(--success))]' : 'text-xs text-destructive'}>{gain >= 0 ? '+' : ''}{fmtNum(L, gain * 100, 1)}%</div>}</div>;
     } },
     { key: 'valuationDate', label: t('valDate'), render: (r) => fmtDate(L, cal, r.valuationDate) },
   ];
