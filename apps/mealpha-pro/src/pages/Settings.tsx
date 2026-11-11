@@ -213,7 +213,17 @@ export default function SettingsPage() {
         if (snapshot?.version !== 1 || !snapshot?.data) throw new Error('The Dropbox backup format is invalid.');
         const { mergeSnapshot } = await import('../lib/localDb');
         await mergeSnapshot(snapshot);
-      } else if (download.status !== 409) {
+      } else if (download.status === 409) {
+        const detail = await download.text();
+        let payload: any = null;
+        try { payload = JSON.parse(detail); } catch { /* keep the raw response for diagnostics */ }
+        const isMissingBackup =
+          (payload?.error?.['.tag'] === 'path' && payload?.error?.path?.['.tag'] === 'not_found') ||
+          /^path\/not_found(?:\/|$)/.test(String(payload?.error_summary || ''));
+        if (!isMissingBackup) {
+          throw new Error('Dropbox download conflict: ' + String(payload?.user_message || payload?.error_summary || detail).slice(0, 240));
+        }
+      } else {
         const detail = await download.text();
         throw new Error('Dropbox download failed: ' + detail.slice(0, 240));
       }
