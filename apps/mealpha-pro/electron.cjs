@@ -74,8 +74,10 @@ async function createWindow() {
   });
   if (process.argv.includes('--smoke-test')) {
     const startedAt = Date.now();
-    win.webContents.on('console-message', (_event, level, message) => {
-      if (level >= 2) console.error('MEALPHA_RENDERER_CONSOLE_ERROR:', message);
+    win.webContents.on('console-message', (_event, details, legacyMessage) => {
+      const level = typeof details === 'object' && details !== null ? details.level : details;
+      const message = typeof details === 'object' && details !== null ? details.message : legacyMessage;
+      if (Number(level) >= 2) console.error('MEALPHA_RENDERER_CONSOLE_ERROR:', message);
     });
     win.webContents.on('render-process-gone', (_event, details) => {
       console.error('MEALPHA_RENDERER_CRASH:', JSON.stringify(details));
