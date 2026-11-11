@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2, Download, Upload, CheckCircle2, Camera, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@project/components/ui/button';
@@ -11,6 +11,8 @@ import { Panel, PageHeader } from '../components/ui-bits';
 import { getSnapshot } from '../lib/localDb';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 const AVATARS = ['α', '🌟', '🚀', '🦊', '🐼', '🐺', '🦁', '🦉', '🎯', '💎', '🌙', '🔥'];
 const COLORS = ['#168be5', '#00b8d4', '#1261a0', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
@@ -22,6 +24,7 @@ export default function SettingsPage() {
   useEffect(() => setS(settings), [settings]);
   const [busy, setBusy] = useState(false);
   const [dropboxBusy, setDropboxBusy] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS((p) => ({ ...p, [k]: v }));
 
   const submit = async () => {
@@ -48,10 +51,43 @@ export default function SettingsPage() {
   const uploadCover = (file?: File) => uploadImage(file, 'coverDataUrl');
 
   const exportBackup = async () => {
-    const snapshot = await getSnapshot();
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob); const a = document.createElement('a');
-    a.href = url; a.download = `mealpha-pro-backup-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
+    try {
+      const snapshot = await getSnapshot();
+      const json = JSON.stringify(snapshot, null, 2);
+      const fileName = `mealpha-pro-backup-${new Date().toISOString().slice(0,10)}.json`;
+
+      if (Capacitor.isNativePlatform()) {
+        const saved = await Filesystem.writeFile({
+          path: fileName,
+          data: json,
+          directory: Directory.Cache,
+          encoding: 'utf8'
+        });
+        await Share.share({
+          title: fa ? 'پشتیبان MeAlpha Pro' : 'MeAlpha Pro backup',
+          text: fa ? 'فایل پشتیبان اطلاعات MeAlpha Pro' : 'MeAlpha Pro data backup',
+          files: [saved.uri],
+          dialogTitle: fa ? 'ذخیره یا ارسال فایل پشتیبان' : 'Save or share backup'
+        });
+        toast.success(fa ? 'فایل پشتیبان آماده شد.' : 'Backup file is ready.');
+        return;
+      }
+
+      const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = fileName;
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+      toast.success(fa ? 'دانلود فایل پشتیبان آغاز شد.' : 'Backup download started.');
+    } catch (error) {
+      console.error('Backup export failed:', error);
+      toast.error(error instanceof Error ? error.message : (fa ? 'ساخت فایل پشتیبان ناموفق بود.' : 'Could not create the backup file.'));
+    }
   };
   const redirectUri = () => 'http://localhost:4173/oauth/dropbox/callback';
 
@@ -204,11 +240,19 @@ export default function SettingsPage() {
     if (!file) return;
     try {
       const parsed = JSON.parse(await file.text());
-      if (parsed.version !== 1 || !parsed.data) throw new Error('Invalid backup file');
-      const { mergeSnapshot } = await import('../lib/localDb'); await mergeSnapshot(parsed);
-      toast.success(settings.language === 'fa' ? 'نسخه پشتیبان بازیابی شد.' : 'Backup restored.');
+      if (parsed?.version !== 1 || !parsed?.data || typeof parsed.data !== 'object') {
+        throw new Error(fa ? 'فایل انتخاب‌شده، پشتیبان معتبر MeAlpha Pro نیست.' : 'The selected file is not a valid MeAlpha Pro backup.');
+      }
+      const { mergeSnapshot } = await import('../lib/localDb');
+      await mergeSnapshot(parsed);
+      toast.success(fa ? 'اطلاعات پشتیبان با داده‌های فعلی ادغام شد.' : 'Backup data was merged with existing data.');
       window.location.reload();
-    } catch (error) { toast.error(error instanceof Error ? error.message : t('error')); }
+    } catch (error) {
+      console.error('Backup import failed:', error);
+      toast.error(error instanceof Error ? error.message : (fa ? 'بازیابی پشتیبان ناموفق بود.' : 'Could not restore the backup.'));
+    } finally {
+      if (importInputRef.current) importInputRef.current.value = '';
+    }
   };
 
   const fa = settings.language === 'fa';
@@ -282,7 +326,7 @@ export default function SettingsPage() {
           </div>
           {s.dropboxRefreshToken && <div className="flex items-center justify-between gap-3 text-xs text-emerald-500"><span>{fa ? 'متصل' : 'Connected'}{s.dropboxAccountName ? ' · ' + s.dropboxAccountName : ''}</span><Button type="button" size="sm" onClick={syncDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{fa ? 'همگام‌سازی اکنون' : 'Sync now'}</Button></div>}
         </div>
-        <div className="mt-4 flex flex-wrap gap-2 border-t pt-4"><Button variant="outline" onClick={exportBackup}><Download className="h-4 w-4 me-2" />{fa ? 'خروجی پشتیبان' : 'Export backup'}</Button><label className="inline-flex cursor-pointer items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"><Upload className="h-4 w-4 me-2" />{fa ? 'بازیابی پشتیبان' : 'Import backup'}<input type="file" accept="application/json,.json" className="hidden" onChange={(e) => void importBackup(e.target.files?.[0])} /></label></div>
+        <div className="mt-4 flex flex-wrap gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={() => void exportBackup()}><Download className="h-4 w-4 me-2" />{fa ? 'خروجی پشتیبان' : 'Export backup'}</Button><Button type="button" variant="outline" onClick={() => importInputRef.current?.click()}><Upload className="h-4 w-4 me-2" />{fa ? 'انتخاب فایل پشتیبان' : 'Choose backup file'}</Button><input ref={importInputRef} type="file" accept=".json,application/json" className="sr-only" tabIndex={-1} aria-label={fa ? 'انتخاب فایل پشتیبان' : 'Choose backup file'} onChange={(e) => void importBackup(e.target.files?.[0])} /></div>
       </Panel>
     </div>
   );
