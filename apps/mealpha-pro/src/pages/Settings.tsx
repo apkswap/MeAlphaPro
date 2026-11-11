@@ -95,7 +95,7 @@ export default function SettingsPage() {
   const pollDropboxCallback = async (state: string) => {
     const deadline = Date.now() + 5 * 60 * 1000;
     while (Date.now() < deadline) {
-      const response = await fetch(`http://localhost:4173/oauth/dropbox/result?state=${encodeURIComponent(state)}`);
+      const response = await fetch(`http://127.0.0.1:4173/oauth/dropbox/result?state=${encodeURIComponent(state)}`);
       if (!response.ok) throw new Error(`Dropbox callback listener unavailable (${response.status}). Restart MeAlpha and try again.`);
       const result = await response.json();
       if (result.status === 'complete') return result as { status: 'complete'; code?: string; error?: string; error_description?: string; state: string };
