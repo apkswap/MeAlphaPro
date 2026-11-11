@@ -55,7 +55,7 @@ async function startLocalServer() {
 
 async function createWindow() {
   const win = new BrowserWindow({
-    width: 1440, height: 940, minWidth: 1024, minHeight: 700,
+    width: 1360, height: 900, minWidth: 760, minHeight: 600,
     icon: path.join(__dirname, 'build', 'mealpha.ico'),
     backgroundColor: '#071a2c', autoHideMenuBar: true,
     webPreferences: {
