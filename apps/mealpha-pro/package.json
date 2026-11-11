@@ -150,7 +150,6 @@
     "wait-on": "^8.0.2",
     "@capacitor/cli": "8.6.0"
   },
-  "packageManager": "npm@10.9.2",
   "main": "electron.cjs",
   "build": {
     "appId": "com.mealpha.pro",
