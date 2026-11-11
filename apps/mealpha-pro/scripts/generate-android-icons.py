@@ -4,7 +4,7 @@ from pathlib import Path
 from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "public" / "mealpha-original.png"
+SOURCE = ROOT / "build" / "mealpha.ico"
 RES = ROOT / "android" / "app" / "src" / "main" / "res"
 if not SOURCE.is_file():
     raise SystemExit(f"Missing approved icon source: {SOURCE}")
