@@ -35,7 +35,7 @@ export default function Goals() {
     { key: 'title', label: t('title'), render: (r) => <div><div className="font-semibold">{r.title}</div><div className="text-xs text-muted-foreground">{opt(L, r.horizon)} · {r.category || '—'}</div></div> },
     { key: 'progress', label: t('progress'), sortValue: (r) => goalInfo(r).progress ?? -1, render: (r) => {
       const g = goalInfo(r);
-      return <div className="space-y-1 min-w-[120px]"><Bar value={g.progress} /><div className="text-xs text-muted-foreground tabular-nums">{g.progress == null ? t('noData') : `${fmtNum(L, g.progress * 100)}%`} {g.expected != null && `· ${t('estimate')} ${fmtNum(L, g.expected * 100)}%`}</div></div>;
+      return <div className="space-y-1 min-w-[120px]">{g.progress == null ? <span className="text-xs font-semibold text-primary">{r.completed ? (L === 'fa' ? 'تکمیل‌شده' : 'Completed') : (L === 'fa' ? 'در حال یادگیری' : 'In progress')}</span> : <><Bar value={g.progress} /><div className="text-xs text-muted-foreground tabular-nums">{fmtNum(L, g.progress * 100)}% {g.expected != null && `· ${t('estimate')} ${fmtNum(L, g.expected * 100)}%`}</div></>}</div>;
     } },
     { key: 'status', label: t('status'), sortValue: (r) => goalInfo(r).status, render: (r) => { const s = goalInfo(r).status; return <StatusPill status={s} label={t(statusKey[s])} />; } },
     { key: 'dueDate', label: t('dueDate'), render: (r) => {
