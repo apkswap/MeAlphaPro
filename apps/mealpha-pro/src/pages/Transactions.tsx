@@ -42,9 +42,9 @@ export default function Transactions() {
   const cur = settings.currency;
   const fields = useMemo<Field[]>(() => [
     ...BASE_FIELDS,
-    { key: 'assetId', label: 'asset', type: 'select', options: data!.assets.map((a: Rec) => ({ value: a.id, label: `${a.name} (${a.currency})` })) },
-    { key: 'accountId', label: 'account', type: 'select', options: data!.accounts.map((a: Rec) => ({ value: a.id, label: `${a.bankName} · ${a.name} (${a.currency})` })) },
-  ], [data!.accounts]);
+    { key: 'assetId', label: 'asset', type: 'select', options: data!.assets.map((a: Rec) => ({ value: a.id, label: `${a.name} (${a.currency})` })), onChange: (value) => ({ currency: data!.assets.find((a: Rec) => a.id === value)?.currency ?? cur }) },
+    { key: 'accountId', label: 'account', type: 'select', options: data!.accounts.map((a: Rec) => ({ value: a.id, label: `${a.bankName} · ${a.name} (${a.currency})` })), onChange: (value) => ({ currency: data!.accounts.find((a: Rec) => a.id === value)?.currency ?? cur }) },
+  ], [data!.accounts, data!.assets, cur]);
   const reminderFields = useMemo<Field[]>(() => [
     { key: 'description', label: 'description', type: 'text', required: true, full: true },
     { key: 'amount', label: 'amount', type: 'number', required: true },
