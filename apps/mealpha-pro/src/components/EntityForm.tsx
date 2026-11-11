@@ -16,6 +16,7 @@ import { isoOf } from '../lib/analytics';
 export type Field = {
   key: string; label: Key; type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox';
   options?: (string | { value: string; label: string })[]; required?: boolean; full?: boolean;
+  onChange?: (value: unknown, current: Rec) => Partial<Rec>;
 };
 
 type Props = { open: boolean; onOpenChange: (o: boolean) => void; entity: Entity; fields: Field[]; initial?: Rec | null; defaults?: Rec; title: string; transform?: (r: Rec, prev?: Rec | null) => Rec };
@@ -28,7 +29,10 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
 
   useEffect(() => { if (open) { setV(initial ? { ...initial } : { ...defaults }); setErr({}); } }, [open, initial, defaults]);
 
-  const set = (k: string, val: unknown) => setV((p) => ({ ...p, [k]: val }));
+  const set = (k: string, val: unknown) => setV((p) => {
+    const field = fields.find((item) => item.key === k);
+    return { ...p, [k]: val, ...(field?.onChange?.(val, p) ?? {}) };
+  });
 
   const submit = async () => {
     const e: Record<string, string> = {};
