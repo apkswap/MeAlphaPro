@@ -10,6 +10,7 @@ on:
       - main
       - fix/blue-dual-theme-build-validation
       - feature/cinematic-3d-dashboard
+      - feature/premium-command-center-ui
     paths:
       - "apps/**"
       - "packages/**"
@@ -60,8 +61,10 @@ jobs:
       - name: Generate Android launcher icons from Windows branding
         working-directory: apps/mealpha-pro
         run: |
-          python3 -m pip install --user Pillow
-          python3 scripts/generate-android-icons.py
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install Pillow
+          .venv/bin/python scripts/generate-android-icons.py
 
       - name: Configure Android Dropbox deep link
         working-directory: apps/mealpha-pro
