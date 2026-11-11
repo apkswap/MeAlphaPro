@@ -45,7 +45,7 @@ export default function Focus() {
   const [manualTaskId, setManualTaskId] = useState<string>('none');
   const intervalRef = useRef<number | undefined>(undefined);
   const endAtRef = useRef<number | null>(loadTimer().endAt);
-  const segmentStartedAtRef = useRef<number | null>(null);
+  const segmentStartedAtRef = useRef<number | null>(() => { const saved = loadTimer(); return saved.running && saved.endAt ? saved.endAt - saved.left * 1000 : null; });
   const accumulatedMsRef = useRef(loadTimer().accumulatedMs || 0);
   const finishingRef = useRef(false);
 
