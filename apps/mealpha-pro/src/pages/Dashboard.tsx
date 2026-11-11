@@ -4,12 +4,12 @@ import { Check, Flame } from 'lucide-react';
 import { Checkbox } from '@project/components/ui/checkbox';
 import { useStore } from '../lib/store';
 import { fmtMoney, fmtNum } from '../lib/i18n';
-import { findings, goalInfo, habitStats, monthFinance, netWorth, scores, taskStats } from '../lib/analytics';
+import { goalInfo, habitStats, monthFinance, netWorth, scores, taskStats } from '../lib/analytics';
 import { Bar, Kpi, Panel, PageHeader, StatusPill } from '../components/ui-bits';
 import { statusKey } from './Goals';
 import { completeTx } from './Tasks';
 import { useHabitToggle } from './Habits';
-import { FindingCard, getDismissed } from './Insights';
+import GrowthEngine from '../components/GrowthEngine';
 import { cn } from '@project/components/lib/utils';
 
 export default function Dashboard() {
@@ -23,8 +23,6 @@ export default function Dashboard() {
   const atRisk = goals.filter((x) => x.i.status === 'At Risk' || x.i.status === 'Delayed');
   const habits = d.habits.filter((h) => !h.archived);
   const doneHabits = habits.filter((h) => habitStats(h, d.habitLogs).doneToday).length;
-  const dismissed = getDismissed();
-  const recs = findings(d, settings, L).filter((f) => f.kind === 'weakness' && !dismissed.includes(f.id)).slice(0, 3);
   const { toggle, busy } = useHabitToggle();
   const chart = [5, 4, 3, 2, 1, 0].map((o) => { const x = monthFinance(d.transactions, settings, o); return { name: x.label.slice(2), [t('income')]: x.income, [t('expense')]: x.expense }; });
   const todayList = [...ts.todays, ...ts.overdue.filter((x) => !ts.todays.includes(x))].slice(0, 8);
@@ -56,6 +54,7 @@ export default function Dashboard() {
         <Kpi label={t('cashFlow')} value={fmtMoney(L, m.net, cur)} tone={m.net >= 0 ? 'good' : 'bad'} hint={`${t('savingsRate')}: ${m.savingsRate == null ? '—' : fmtNum(L, m.savingsRate * 100) + '%'}`} />
         <Kpi label={t('netWorth')} value={fmtMoney(L, nw.net, cur)} tone="accent" />
       </div>
+      <GrowthEngine />
       {settings.monthlyBudget ? (
         <Panel title={t('budgetUsed')}>
           <Bar value={Math.min(1, m.expense / settings.monthlyBudget)} />
@@ -90,25 +89,20 @@ export default function Dashboard() {
             </li>))}</ul>
         </Panel>
       </div>
-      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
-        <Panel title={`${t('income')} / ${t('expense')}`}>
-          <div className="h-64" dir="ltr">
-            <ResponsiveContainer>
-              <BarChart data={chart}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} width={60} />
-                <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
-                <RBar dataKey={t('income')} fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
-                <RBar dataKey={t('expense')} fill="hsl(var(--chart-5))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Panel>
-        <Panel title={t('recommendations')} action={<Link to="/insights" className="text-xs text-primary">→</Link>}>
-          <div className="space-y-3">{recs.length ? recs.map((f) => <FindingCard key={f.id} f={f} />) : <p className="text-sm text-muted-foreground">{t('noRecs')}</p>}</div>
-        </Panel>
-      </div>
+      <Panel title={`${t('income')} / ${t('expense')}`}>
+        <div className="h-64" dir="ltr">
+          <ResponsiveContainer>
+            <BarChart data={chart}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} width={60} />
+              <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
+              <RBar dataKey={t('income')} fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+              <RBar dataKey={t('expense')} fill="hsl(var(--chart-5))" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </Panel>
     </div>
   );
 }
