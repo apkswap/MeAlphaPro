@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import DropboxOAuthHandler from './components/DropboxOAuthHandler';
 import { Toaster } from '@project/components/ui/sonner';
 import { StoreProvider, useStore } from './lib/store';
 import Layout from './components/Layout';
@@ -28,5 +29,5 @@ function Shell() {
   </Route></Routes></BrowserRouter>;
 }
 export default function App() {
-  return <StoreProvider><Shell /><Toaster /></StoreProvider>;
+  return <StoreProvider><DropboxOAuthHandler /><Shell /><Toaster /></StoreProvider>;
 }
