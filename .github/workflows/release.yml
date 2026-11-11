@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: mealpha-release-${{ github.ref }}
@@ -26,6 +26,8 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Read application version
         id: version
         run: |
@@ -38,6 +40,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "22.14.0"
@@ -99,6 +103,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "22.14.0"
@@ -137,6 +143,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "22.14.0"
@@ -182,6 +190,10 @@ jobs:
               xml = xml[:activity_end] + intent_filter + xml[activity_end:]
               path.write_text(xml)
           PY
+      - name: Generate consistent Android launcher icons
+        run: |
+          python3 -m pip install --user --break-system-packages Pillow
+          python3 apps/mealpha-pro/scripts/generate-android-icons.py
       - name: Build installable Android APK
         working-directory: apps/mealpha-pro/android
         run: chmod +x ./gradlew && ./gradlew assembleDebug
@@ -230,6 +242,8 @@ jobs:
 
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     needs: [version, windows, android, linux]
     steps:
       - name: Download release binaries
