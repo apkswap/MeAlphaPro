@@ -31,30 +31,30 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
-      <aside className="md:w-60 md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-e bg-[hsl(var(--sidebar-background))]/80 backdrop-blur flex md:flex-col">
-        <div className="p-4 md:p-5 flex items-center gap-3 shrink-0">
-          <div className="h-16 w-16 shrink-0 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 to-accent/10 p-0.5 shadow-lg shadow-primary/10">
-            <img src={`${window.location.pathname.startsWith("/MeAlphaPro/preview") ? "/MeAlphaPro/preview" : ""}/mealpha-infinity.png`} alt="MeAlpha" className="h-full w-full object-contain" />
+      <aside className="md:w-60 md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-e bg-[hsl(var(--sidebar-background))]/80 backdrop-blur flex flex-col">
+        <div className="p-3 md:p-5 flex items-center gap-3 shrink-0">
+          <div className="h-11 w-11 md:h-16 md:w-16 shrink-0 rounded-xl md:rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 to-accent/10 p-0.5 shadow-lg shadow-primary/10">
+            <img src="/mealpha-infinity.png" alt="MeAlpha" className="h-full w-full object-contain" />
           </div>
-          <div className="hidden md:block min-w-0">
-            <div className="font-extrabold leading-tight">MeAlpha</div>
+          <div className="min-w-0">
+            <div className="font-extrabold leading-tight">MeAlpha Pro</div>
             <div className="text-[10px] text-muted-foreground">{t('appTagline')}</div>
           </div>
         </div>
-        <nav className="flex md:flex-col gap-1 px-2 md:px-3 overflow-x-auto md:overflow-visible flex-1 items-center md:items-stretch">
+        <nav aria-label="Main navigation" className="flex md:flex-col gap-1 px-2 md:px-3 py-2 md:py-0 overflow-x-auto md:overflow-x-visible md:overflow-y-auto md:flex-1 items-center md:items-stretch border-y md:border-y-0">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'} className={link}>
-              <n.icon className="h-4 w-4 shrink-0" /><span className="hidden lg:inline md:inline">{t(n.k)}</span>
+              <n.icon className="h-4 w-4 shrink-0" /><span>{t(n.k)}</span>
             </NavLink>
           ))}
         </nav>
-        <div className="p-2 md:p-3 flex md:flex-col gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}<span className="hidden md:inline">{settings.theme === 'light' ? (settings.language === 'fa' ? 'حالت تاریک' : 'Dark mode') : (settings.language === 'fa' ? 'حالت روشن' : 'Light mode')}</span></Button>
-          <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleLang}><Languages className="h-4 w-4" /><span className="hidden md:inline">{settings.language === 'fa' ? 'English' : 'فارسی'}</span></Button>
-          <div className="flex items-center gap-2 px-3 py-2 text-xs text-emerald-500"><Cloud className="h-4 w-4" /><span className="hidden md:inline">{t('offlineReady')}</span></div>
+        <div className="p-2 md:p-3 flex flex-row md:flex-col justify-end md:justify-start gap-1 shrink-0">
+          <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}<span>{settings.theme === 'light' ? (settings.language === 'fa' ? 'حالت تاریک' : 'Dark mode') : (settings.language === 'fa' ? 'حالت روشن' : 'Light mode')}</span></Button>
+          <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleLang}><Languages className="h-4 w-4" /><span>{settings.language === 'fa' ? 'English' : 'فارسی'}</span></Button>
+          <div className="flex items-center gap-2 px-3 py-2 text-xs text-emerald-500"><Cloud className="h-4 w-4" /><span>{t('offlineReady')}</span></div>
         </div>
       </aside>
-      <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto"><Outlet /></main>
+      <main className="flex-1 min-w-0 p-4 md:p-8 max-w-7xl w-full mx-auto"><Outlet /></main>
     </div>
   );
 }
