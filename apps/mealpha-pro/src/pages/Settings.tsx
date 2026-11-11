@@ -167,7 +167,6 @@ export default function SettingsPage() {
         dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000,
         dropboxAccountName: account?.name?.display_name || ''
       };
-      setS(nextSettings);
       const saved = await setLocalSettings(nextSettings);
       if (!saved) {
         sessionStorage.removeItem('mealpha.dropbox.appKey');
@@ -175,6 +174,7 @@ export default function SettingsPage() {
         sessionStorage.removeItem('mealpha.dropbox.state');
         return;
       }
+      setS(nextSettings);
       sessionStorage.removeItem('mealpha.dropbox.appKey');
       sessionStorage.removeItem('mealpha.dropbox.verifier');
       sessionStorage.removeItem('mealpha.dropbox.state');
