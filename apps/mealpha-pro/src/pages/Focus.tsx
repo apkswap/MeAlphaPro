@@ -27,6 +27,7 @@ const load = (): Session[] => {
     return [];
   }
 };
+const restoredSegmentStart = () => { const saved = loadTimer(); return saved.running && saved.endAt ? saved.endAt - saved.left * 1000 : null; };
 const sessionSeconds = (session: Session) =>
   Number.isFinite(session.seconds) ? Math.max(0, Number(session.seconds)) : Math.max(0, Number(session.minutes) || 0) * 60;
 
@@ -45,7 +46,7 @@ export default function Focus() {
   const [manualTaskId, setManualTaskId] = useState<string>('none');
   const intervalRef = useRef<number | undefined>(undefined);
   const endAtRef = useRef<number | null>(loadTimer().endAt);
-  const segmentStartedAtRef = useRef<number | null>(() => { const saved = loadTimer(); return saved.running && saved.endAt ? saved.endAt - saved.left * 1000 : null; });
+  const segmentStartedAtRef = useRef<number | null>(restoredSegmentStart());
   const accumulatedMsRef = useRef(loadTimer().accumulatedMs || 0);
   const finishingRef = useRef(false);
 
