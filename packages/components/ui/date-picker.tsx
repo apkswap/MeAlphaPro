@@ -185,7 +185,7 @@ function DatePicker({
   const close = () => { commitTyped(); setOpen(false); };
 
   return (
-    <Popover open={open} onOpenChange={isOpen => (isOpen ? setOpen(true) : close())}>
+    <Popover open={open} onOpenChange={isOpen => { if (isOpen) { setMonth(value ?? new Date()); setOpen(true); } else close(); }}>
       <PopoverAnchor asChild>
         <div ref={wrapperRef} className={cn(
           'flex h-9 w-full items-center rounded-md border border-input bg-transparent shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring',
@@ -231,7 +231,7 @@ function DatePicker({
           <JalaliCalendar selected={value} month={month} onMonthChange={setMonth}
             onSelect={date => { commit(date); setOpen(false); }} lang={lang} />
         ) : (
-          <Calendar mode="single" selected={value} month={month} onMonthChange={setMonth}
+          <Calendar mode="single" selected={value} month={month} onMonthChange={setMonth} captionLayout="dropdown" fromYear={1950} toYear={2100}
             onSelect={date => { commit(date ?? undefined); setOpen(false); }} />
         )}
       </PopoverContent>
