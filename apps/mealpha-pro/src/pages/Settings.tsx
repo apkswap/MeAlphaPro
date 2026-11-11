@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useStore, Settings } from '../lib/store';
 import { Panel, PageHeader } from '../components/ui-bits';
 import { getSnapshot } from '../lib/localDb';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 
 const AVATARS = ['α', '🌟', '🚀', '🦊', '🐼', '🐺', '🦁', '🦉', '🎯', '💎', '🌙', '🔥'];
 const COLORS = ['#168be5', '#00b8d4', '#1261a0', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
@@ -69,24 +71,40 @@ export default function SettingsPage() {
     const appKey = (s.dropboxAppKey || '').trim();
     if (!appKey) return toast.error(fa ? 'ابتدا App Key دراپ‌باکس را وارد کنید.' : 'Enter your Dropbox App Key first.');
     setDropboxBusy(true);
+    const isAndroid = Capacitor.getPlatform() === 'android';
+    const oauthRedirectUri = isAndroid
+      ? 'https://apkswap.github.io/MeAlphaPro/oauth/dropbox/callback/'
+      : redirectUri();
     try {
-      if (!window.mealphaDesktop?.openExternal) {
-        throw new Error('Dropbox desktop sign-in is unavailable. Please install the latest Windows build.');
-      }
       const bytes = crypto.getRandomValues(new Uint8Array(48));
       const verifier = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
       const stateBytes = crypto.getRandomValues(new Uint8Array(16));
       const state = Array.from(stateBytes, b => b.toString(16).padStart(2, '0')).join('');
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-      const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-      sessionStorage.setItem('mealpha.dropbox.appKey', appKey);
-      sessionStorage.setItem('mealpha.dropbox.verifier', verifier);
-      sessionStorage.setItem('mealpha.dropbox.state', state);
+      const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
       const params = new URLSearchParams({
         client_id: appKey, response_type: 'code', token_access_type: 'offline',
         code_challenge: challenge, code_challenge_method: 'S256',
-        redirect_uri: redirectUri(), state
+        redirect_uri: oauthRedirectUri, state
       });
+
+      if (isAndroid) {
+        // Persist the PKCE transaction because Android may recreate the WebView
+        // while the user is authenticating in the external browser.
+        localStorage.setItem('mealpha.dropbox.pending', JSON.stringify({
+          appKey, verifier, state, createdAt: Date.now()
+        }));
+        await Browser.open({ url: 'https://www.dropbox.com/oauth2/authorize?' + params.toString() });
+        toast.info(fa ? 'ورود Dropbox را در مرورگر کامل کنید و به برنامه برگردید.' : 'Complete Dropbox sign-in in your browser, then return to MeAlpha Pro.');
+        return;
+      }
+
+      if (!window.mealphaDesktop?.openExternal) {
+        throw new Error('Dropbox desktop sign-in is unavailable. Please install the latest Windows build.');
+      }
+      sessionStorage.setItem('mealpha.dropbox.appKey', appKey);
+      sessionStorage.setItem('mealpha.dropbox.verifier', verifier);
+      sessionStorage.setItem('mealpha.dropbox.state', state);
       await window.mealphaDesktop.openExternal('https://www.dropbox.com/oauth2/authorize?' + params.toString());
       const callback = await pollDropboxCallback(state);
       if (callback.state !== state) throw new Error('Dropbox sign-in state validation failed.');
@@ -95,7 +113,7 @@ export default function SettingsPage() {
 
       const body = new URLSearchParams({
         code: callback.code, grant_type: 'authorization_code', client_id: appKey,
-        redirect_uri: redirectUri(), code_verifier: verifier
+        redirect_uri: oauthRedirectUri, code_verifier: verifier
       });
       const response = await fetch('https://api.dropboxapi.com/oauth2/token', {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body
@@ -118,6 +136,7 @@ export default function SettingsPage() {
       sessionStorage.removeItem('mealpha.dropbox.state');
       toast.success(fa ? 'حساب Dropbox متصل شد.' : 'Dropbox connected.');
     } catch (error) {
+      localStorage.removeItem('mealpha.dropbox.pending');
       sessionStorage.removeItem('mealpha.dropbox.appKey');
       sessionStorage.removeItem('mealpha.dropbox.verifier');
       sessionStorage.removeItem('mealpha.dropbox.state');
