@@ -48,6 +48,25 @@ jobs:
         run: ./apps/mealpha-pro/scripts/prepare-windows-icon.ps1
       - name: Build Windows installer
         run: npm run desktop:build --workspace apps/mealpha-pro
+      - name: Sign Windows installer when a publisher certificate is configured
+        if: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 != '' && secrets.WINDOWS_CERTIFICATE_PASSWORD != '' }}
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $certPath = Join-Path $env:RUNNER_TEMP "mealpha-publisher.pfx"
+          [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\\Windows Kits\\10\\bin\\*\\x64\\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw "Windows SDK SignTool was not found." }
+          $installer = Get-ChildItem "apps/mealpha-pro/release" -Filter "*.exe" -File | Select-Object -First 1
+          if (-not $installer) { throw "Windows installer not found for signing." }
+          & $signtool.FullName sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f $certPath /p $env:WINDOWS_CERTIFICATE_PASSWORD $installer.FullName
+          if ($LASTEXITCODE -ne 0) { throw "Authenticode signing failed." }
+          & $signtool.FullName verify /pa /v $installer.FullName
+          if ($LASTEXITCODE -ne 0) { throw "Authenticode signature verification failed." }
+          Remove-Item $certPath -Force
+
       - name: Prepare stable release filename
         shell: pwsh
         run: |
@@ -130,6 +149,25 @@ jobs:
       - name: Build installable Android APK
         working-directory: apps/mealpha-pro/android
         run: chmod +x ./gradlew && ./gradlew assembleDebug
+      - name: Sign Android APK with the official release key when configured
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          KEYSTORE_PATH="$RUNNER_TEMP/mealpha-release.jks"
+          APK_IN="apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk"
+          APK_OUT="apps/mealpha-pro/android/app/build/outputs/apk/debug/app-release-signed.apk"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          test -x "$APKSIGNER" || { echo "Android apksigner was not found."; exit 1; }
+          "$APKSIGNER" sign --ks "$KEYSTORE_PATH" --ks-key-alias "$ANDROID_KEY_ALIAS" --ks-pass "env:ANDROID_KEYSTORE_PASSWORD" --key-pass "env:ANDROID_KEY_PASSWORD" --out "$APK_OUT" "$APK_IN"
+          "$APKSIGNER" verify --verbose --print-certs "$APK_OUT"
+          mv "$APK_OUT" "$APK_IN"
+          rm -f "$KEYSTORE_PATH"
+
       - name: Prepare stable release filename
         run: |
           mkdir -p release-assets
@@ -169,8 +207,8 @@ jobs:
 
             Download the Windows installer, Android APK, or Linux packages below.
 
-            - **Windows:** `MeAlpha-Pro-Windows-x64.exe`
-            - **Android:** `MeAlpha-Pro-Android.apk` (debug-signed APK for direct installation and evaluation; not a Play Store production-signed package)
+            - **Windows:** `MeAlpha-Pro-Windows-x64.exe` (Authenticode-signed when a trusted publisher certificate is configured)
+            - **Android:** `MeAlpha-Pro-Android.apk` (signed with the official release key when Android signing secrets are configured; otherwise debug-signed for evaluation)
             - **Integrity:** verify downloads with `SHA256SUMS.txt`
 
             See the repository README for setup notes and current feature scope.
