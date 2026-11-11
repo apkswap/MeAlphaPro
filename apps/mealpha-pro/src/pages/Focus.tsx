@@ -15,6 +15,9 @@ type Session = {
   status?: 'completed' | 'interrupted';
 };
 const KEY = 'mealpha-focus-sessions';
+const TIMER_KEY = 'mealpha-focus-timer';
+type TimerState = { endAt: number | null; left: number; accumulatedMs: number; running: boolean; taskId?: string };
+const loadTimer = (): TimerState => { try { return JSON.parse(localStorage.getItem(TIMER_KEY) || 'null') || { endAt: null, left: 1500, accumulatedMs: 0, running: false }; } catch { return { endAt: null, left: 1500, accumulatedMs: 0, running: false }; } };
 const PRESETS = [15, 25, 45, 60];
 const load = (): Session[] => {
   try {
@@ -32,24 +35,29 @@ export default function Focus() {
   const L = settings.language;
   const [minutesInput, setMinutesInput] = useState('25');
   const [secondsInput, setSecondsInput] = useState('00');
-  const [left, setLeft] = useState(25 * 60);
-  const [running, setRunning] = useState(false);
-  const [taskId, setTaskId] = useState<string>();
+  const [left, setLeft] = useState(() => { const saved = loadTimer(); return saved.running && saved.endAt ? Math.max(0, Math.ceil((saved.endAt - Date.now()) / 1000)) : saved.left; });
+  const [running, setRunning] = useState(() => { const saved = loadTimer(); return !!saved.running && !!saved.endAt; });
+  const [taskId, setTaskId] = useState<string | undefined>(() => loadTimer().taskId);
   const [hist, setHist] = useState<Session[]>(load);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualMinutes, setManualMinutes] = useState('25');
   const [manualSeconds, setManualSeconds] = useState('00');
   const [manualTaskId, setManualTaskId] = useState<string>('none');
   const intervalRef = useRef<number | undefined>(undefined);
-  const endAtRef = useRef<number | null>(null);
+  const endAtRef = useRef<number | null>(loadTimer().endAt);
   const segmentStartedAtRef = useRef<number | null>(null);
-  const accumulatedMsRef = useRef(0);
+  const accumulatedMsRef = useRef(loadTimer().accumulatedMs || 0);
   const finishingRef = useRef(false);
 
   const configuredSeconds = Math.max(0, Math.min(999, Number.parseInt(minutesInput || '0', 10) || 0)) * 60
     + Math.max(0, Math.min(59, Number.parseInt(secondsInput || '0', 10) || 0));
   const elapsedSeconds = () => Math.max(0, Math.floor((accumulatedMsRef.current
     + (segmentStartedAtRef.current === null ? 0 : Date.now() - segmentStartedAtRef.current)) / 1000));
+
+  useEffect(() => {
+    const saved = loadTimer();
+    localStorage.setItem(TIMER_KEY, JSON.stringify({ endAt: running ? endAtRef.current : null, left, accumulatedMs: accumulatedMsRef.current, running, taskId } satisfies TimerState));
+  }, [left, running, taskId]);
 
   useEffect(() => {
     if (!running) return;
@@ -91,11 +99,13 @@ export default function Focus() {
     accumulatedMsRef.current = 0;
     await persistSession(actual, 'completed');
     toast.success(t('sessionDone'));
+    localStorage.removeItem(TIMER_KEY);
     setLeft(configuredSeconds || 1);
     finishingRef.current = false;
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('MeAlpha Pro', { body: t('sessionDone') });
+      new Notification('MeAlpha Pro', { body: t('sessionDone'), tag: 'mealpha-focus-finished' });
     }
+    try { const AudioCtx = window.AudioContext || (window as any).webkitAudioContext; if (AudioCtx) { const ctx = new AudioCtx(); const oscillator = ctx.createOscillator(); const gain = ctx.createGain(); oscillator.connect(gain); gain.connect(ctx.destination); oscillator.frequency.value = 880; gain.gain.setValueAtTime(0.0001, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.03); gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.55); oscillator.start(); oscillator.stop(ctx.currentTime + 0.6); oscillator.onended = () => void ctx.close(); } } catch (error) { console.warn('Focus alarm audio unavailable', error); }
   };
 
   useEffect(() => {
@@ -112,6 +122,7 @@ export default function Focus() {
     const now = Date.now();
     segmentStartedAtRef.current = now;
     endAtRef.current = now + duration * 1000;
+    localStorage.setItem(TIMER_KEY, JSON.stringify({ endAt: endAtRef.current, left: duration, accumulatedMs: accumulatedMsRef.current, running: true, taskId } satisfies TimerState));
     setLeft(duration);
     setRunning(true);
   };
@@ -124,6 +135,7 @@ export default function Focus() {
     }
     segmentStartedAtRef.current = null;
     endAtRef.current = null;
+    localStorage.setItem(TIMER_KEY, JSON.stringify({ endAt: null, left: remaining, accumulatedMs: accumulatedMsRef.current, running: false, taskId } satisfies TimerState));
     setLeft(remaining);
     setRunning(false);
   };
