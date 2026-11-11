@@ -11,7 +11,7 @@ type Ctx = {
   reload: () => Promise<void>;
   save: (entity: Entity, record: Rec, id?: string) => Promise<boolean>;
   remove: (entity: Entity, id: string) => Promise<void>;
-  setLocalSettings: (s: Settings) => void;
+  setLocalSettings: (s: Settings) => Promise<boolean>;
 };
 const C = createContext<Ctx>(null as unknown as Ctx);
 export const useStore = () => useContext(C);
@@ -52,9 +52,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try { await deleteRecord(entity, id); toast.success(t('deleted')); await reload(); }
     catch (error) { console.error(error); toast.error(t('error')); }
   };
-  const setLocalSettings = useCallback((next: Settings) => {
-    setSettings(next);
-    void persistSettings(next).catch((error) => { console.error(error); toast.error(t('error')); });
+  const setLocalSettings = useCallback(async (next: Settings): Promise<boolean> => {
+    try {
+      await persistSettings(next);
+      setSettings(next);
+      return true;
+    } catch (error) {
+      console.error(error);
+      toast.error(t('error'));
+      return false;
+    }
   }, [t]);
   return <C.Provider value={{ data, settings, t, reload, save, remove, setLocalSettings }}>{children}</C.Provider>;
 }
