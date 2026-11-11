@@ -1,0 +1,44 @@
+name: MeAlpha Pro UI smoke tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/mealpha-pro/src/**"
+      - "apps/mealpha-pro/scripts/ui-smoke.mjs"
+      - ".github/workflows/ui-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ui-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+      - name: Install project dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Playwright
+        run: npm install --no-save --no-audit --no-fund playwright
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start application
+        run: |
+          npm run dev --workspace apps/mealpha-pro -- --host 127.0.0.1 > /tmp/mealpha-vite.log 2>&1 &
+          npx wait-on http://127.0.0.1:8080
+      - name: Test all routes on desktop and mobile
+        run: node apps/mealpha-pro/scripts/ui-smoke.mjs
+      - name: Upload UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mealpha-ui-smoke-screenshots
+          path: ui-*.png
+          if-no-files-found: ignore
+          retention-days: 7
