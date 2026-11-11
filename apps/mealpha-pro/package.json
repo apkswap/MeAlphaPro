@@ -16,8 +16,8 @@
   "dependencies": {
     "@amplitude/analytics-browser": "2.45.6",
     "@capacitor/android": "8.6.0",
-    "@capacitor/app": "8.0.3",
-    "@capacitor/browser": "8.0.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5",
     "@capacitor/core": "8.6.0",
     "@capacitor/filesystem": "8.1.5",
     "@capacitor/share": "8.0.3",
