@@ -26,7 +26,7 @@ export default function Layout() {
     setLocalSettings(s);
   };
   const link = ({ isActive }: { isActive: boolean }) =>
-    cn('flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
+    cn('flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-1 md:px-3 py-2 rounded-lg text-[10px] md:text-sm font-medium transition-colors',
       isActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary');
 
   return (
@@ -41,7 +41,7 @@ export default function Layout() {
             <div className="text-[10px] text-muted-foreground">{t('appTagline')}</div>
           </div>
         </div>
-        <nav aria-label="Main navigation" className="flex md:flex-col gap-1 px-2 md:px-3 py-2 md:py-0 overflow-x-auto md:overflow-x-visible md:overflow-y-auto md:flex-1 items-center md:items-stretch border-y md:border-y-0">
+        <nav aria-label="Main navigation" className="grid grid-cols-5 md:flex md:flex-col gap-1 px-2 md:px-3 py-2 md:py-0 overflow-visible md:overflow-x-visible md:overflow-y-auto md:flex-1 items-stretch border-y md:border-y-0">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'} className={link}>
               <n.icon className="h-4 w-4 shrink-0" /><span>{t(n.k)}</span>
