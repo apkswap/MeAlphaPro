@@ -68,7 +68,7 @@ async function createWindow() {
     let parsed;
     try { parsed = new URL(target); } catch { event.preventDefault(); return; }
     const allowed = app.isPackaged
-      ? parsed.origin === 'http://127.0.0.1:4173'
+      ? parsed.origin === 'http://localhost:4173'
       : parsed.origin === 'http://127.0.0.1:8080';
     if (!allowed) event.preventDefault();
   });
@@ -95,7 +95,7 @@ async function createWindow() {
     };
     win.webContents.once('did-finish-load', checkRenderer);
   }
-  if (app.isPackaged) await win.loadURL('http://127.0.0.1:4173');
+  if (app.isPackaged) await win.loadURL('http://localhost:4173');
   else await win.loadURL('http://127.0.0.1:8080');
 }
 
@@ -103,7 +103,7 @@ ipcMain.handle('mealpha:open-external', async (event, rawUrl) => {
   let senderUrl;
   try { senderUrl = new URL(event.senderFrame?.url || ''); } catch { throw new Error('Untrusted application frame.'); }
   const allowedSender = app.isPackaged
-    ? senderUrl.origin === 'http://127.0.0.1:4173'
+    ? senderUrl.origin === 'http://localhost:4173'
     : senderUrl.origin === 'http://127.0.0.1:8080';
   if (!allowedSender) throw new Error('External links can only be opened by the MeAlpha application.');
   let url;
