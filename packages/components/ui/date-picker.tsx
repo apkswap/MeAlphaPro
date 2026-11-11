@@ -108,7 +108,7 @@ function JalaliCalendar({ selected, month, onMonthChange, onSelect, lang }: {
         <button type="button" aria-label={lang === 'fa' ? 'ماه قبل' : 'Previous month'}
           className="inline-flex h-8 w-8 items-center justify-center rounded-md border hover:bg-accent"
           disabled={!previous} onClick={() => previous && onMonthChange(previous)}>
-          <ChevronLeft className="h-4 w-4" />
+          {lang === "fa" ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" /> }
         </button>
         <div className="flex items-center gap-1">
           <select aria-label={lang === 'fa' ? 'ماه' : 'Month'} className="h-8 max-w-[112px] rounded-md border bg-background px-1 text-xs" value={jm} onChange={event => { const next = fromJalali(year, Number(event.target.value), 1); if (next) onMonthChange(next); }}>
@@ -121,7 +121,7 @@ function JalaliCalendar({ selected, month, onMonthChange, onSelect, lang }: {
         <button type="button" aria-label={lang === 'fa' ? 'ماه بعد' : 'Next month'}
           className="inline-flex h-8 w-8 items-center justify-center rounded-md border hover:bg-accent"
           disabled={!next} onClick={() => next && onMonthChange(next)}>
-          <ChevronRight className="h-4 w-4" />
+          {lang === "fa" ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" /> }
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1 text-center">
