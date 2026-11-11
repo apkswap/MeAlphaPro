@@ -33,7 +33,7 @@ jobs:
         with:
           enablement: true
       - name: Upload public website only
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: docs
       - name: Deploy website
