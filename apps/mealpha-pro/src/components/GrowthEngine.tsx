@@ -77,7 +77,7 @@ export default function GrowthEngine() {
         </div>
       </div>
       <div className="grid lg:grid-cols-[1fr_1.15fr] gap-4">
-        <Panel title={<span className="flex items-center gap-2"><Gauge className="h-4 w-4 text-primary" />Life Score</span>}>
+        <Panel title="Life Score">
           <div className="flex items-center gap-5 mb-4">
             <div className="h-24 w-24 shrink-0 rounded-full grid place-items-center border-[7px] border-primary/20 relative">
               <div className="absolute inset-[-7px] rounded-full border-[7px] border-primary border-b-transparent border-l-transparent" style={{ transform: `rotate(${lifeScore == null ? 0 : lifeScore * 3.6}deg)`, opacity: lifeScore == null ? 0.25 : 1 }} />
@@ -101,7 +101,7 @@ export default function GrowthEngine() {
         </Panel>
 
         <div className="space-y-4">
-          <Panel title={<span className="flex items-center gap-2"><Activity className="h-4 w-4 text-primary" />{fa ? 'Consistency Engine · موتور استمرار' : 'Consistency Engine'}</span>}>
+          <Panel title={fa ? "Consistency Engine · موتور استمرار" : "Consistency Engine"}>
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-xl bg-muted/60 p-3"><div className="text-xl font-bold tabular-nums">{weeklyHabitRate == null ? '—' : `${fmtNum(settings.language, Math.round(weeklyHabitRate))}%`}</div><div className="text-[11px] text-muted-foreground">{fa ? 'نرخ عادت هفتگی' : 'Weekly habits'}</div></div>
               <div className="rounded-xl bg-muted/60 p-3"><div className="text-xl font-bold tabular-nums">{fmtNum(settings.language, Math.round(focusMinutes))}</div><div className="text-[11px] text-muted-foreground">{fa ? 'دقیقه تمرکز' : 'Focus minutes'}</div></div>
@@ -112,7 +112,7 @@ export default function GrowthEngine() {
             <p className="text-[11px] text-muted-foreground mt-3">{fa ? 'افت یک روزه باعث صفر شدن زنجیره پیشرفت نمی‌شود؛ روند هفتگی و ۳۰ روزه مبناست.' : 'A missed day does not erase progress; weekly and 30-day trends are considered.'}</p>
           </Panel>
 
-          <Panel title={<span className="flex items-center gap-2"><BrainCircuit className="h-4 w-4 text-primary" />Alpha Intelligence</span>} action={<Link to="/insights" className="text-xs text-primary">{fa ? 'همه تحلیل‌ها' : 'All insights'} →</Link>}>
+          <Panel title="Alpha Intelligence" action={<Link to="/insights" className="text-xs text-primary">{fa ? 'همه تحلیل‌ها' : 'All insights'} →</Link>}>
             {recommendations.length ? <div className="space-y-3">
               {recommendations.map((f) => (
                 <div key={f.id} className="rounded-xl border bg-card/60 p-3 space-y-2">
