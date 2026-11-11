@@ -155,6 +155,19 @@ export async function mergeSnapshot(remote: Snapshot) {
   assertValidSnapshot(remote);
   const local = await getSnapshot();
   const db = await openDb();
+
+  // Keep the newest deletion timestamp so an older remote snapshot cannot
+  // resurrect a record that was deleted more recently on this device.
+  const mergedTombstones: Record<string, number> = {};
+  for (const source of [local.tombstones, remote.tombstones]) {
+    for (const [key, timestamp] of Object.entries(source ?? {})) {
+      mergedTombstones[key] = Math.max(mergedTombstones[key] ?? 0, Number(timestamp) || 0);
+    }
+  }
+
+  // Apply every entity and metadata update atomically. Interrupted syncs must
+  // not leave only part of the local database merged.
+  const tx = db.transaction([...ENTITIES, 'appMeta'], 'readwrite');
   for (const entity of ENTITIES) {
     const merged = new Map<string, Rec>();
     for (const item of local.data[entity] ?? []) merged.set(item.id, item);
@@ -163,21 +176,20 @@ export async function mergeSnapshot(remote: Snapshot) {
       const current = merged.get(item.id);
       if (!current || Number(item.updatedAt ?? 0) > Number(current.updatedAt ?? 0)) merged.set(item.id, item);
     }
-    const allTombstones = { ...local.tombstones, ...remote.tombstones };
-    const tx = db.transaction(entity, 'readwrite');
     const store = tx.objectStore(entity);
-    const existingRequest = store.getAll();
-    existingRequest.onsuccess = () => {
-      for (const item of existingRequest.result) store.delete(item.id);
-      for (const item of merged.values()) {
-        const deletedAt = allTombstones[`${entity}:${item.id}`] ?? 0;
-        if (deletedAt < Number(item.updatedAt ?? 0)) store.put(item);
-      }
-    };
-    await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error); });
+    store.clear();
+    for (const item of merged.values()) {
+      const deletedAt = mergedTombstones[`${entity}:${item.id}`] ?? 0;
+      if (deletedAt < Number(item.updatedAt ?? 0)) store.put(item);
+    }
   }
-  const remoteSettingsTime = Number(remote.settingsUpdatedAt ?? new Date(remote.exportedAt).getTime());
+  const remoteSettingsTime = Number(remote.settingsUpdatedAt ?? new Date(remote.exportedAt).getTime()) || 0;
   const localSettingsTime = Number(local.settingsUpdatedAt ?? 0);
-  if (remoteSettingsTime > localSettingsTime) { await writeMeta('settings', remote.settings); await writeMeta('settingsUpdatedAt', remoteSettingsTime); }
-  await writeMeta('tombstones', { ...local.tombstones, ...remote.tombstones });
+  const meta = tx.objectStore('appMeta');
+  if (remoteSettingsTime > localSettingsTime) {
+    meta.put({ key: 'settings', value: remote.settings });
+    meta.put({ key: 'settingsUpdatedAt', value: remoteSettingsTime });
+  }
+  meta.put({ key: 'tombstones', value: mergedTombstones });
+  await transactionDone(tx);
 }
