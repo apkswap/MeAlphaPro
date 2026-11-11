@@ -81,7 +81,7 @@ export default function SettingsPage() {
       const stateBytes = crypto.getRandomValues(new Uint8Array(16));
       const state = Array.from(stateBytes, b => b.toString(16).padStart(2, '0')).join('');
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-      const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
+      const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
       const params = new URLSearchParams({
         client_id: appKey, response_type: 'code', token_access_type: 'offline',
         code_challenge: challenge, code_challenge_method: 'S256',
