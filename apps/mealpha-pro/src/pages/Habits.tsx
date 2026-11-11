@@ -37,7 +37,7 @@ export default function Habits() {
   const { toggle, busy } = useHabitToggle();
   const L = settings.language;
   const monthStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
-  const calendarStart = new Date(monthStart); calendarStart.setDate(1 - calendarStart.getDay());
+  const calendarStart = new Date(monthStart); calendarStart.setDate(1 - (L === 'fa' ? (calendarMonth.getDay() + 1) % 7 : calendarMonth.getDay()));
   const days = Array.from({ length: 42 }, (_, i) => { const d = new Date(calendarStart); d.setDate(calendarStart.getDate() + i); return d; });
   const monthLabel = new Intl.DateTimeFormat(L === 'fa' ? 'fa-IR-u-ca-persian' : 'en-US', { month: 'long', year: 'numeric' }).format(calendarMonth);
 
