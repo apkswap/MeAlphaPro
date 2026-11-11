@@ -62,10 +62,12 @@ export function netWorth(assets: Rec[], liabs: Rec[], st: Settings) {
 export type GoalStatus = 'Completed' | 'On Track' | 'At Risk' | 'Delayed' | 'Unknown';
 export function goalInfo(g: Rec) {
   const target = Number(g.targetValue) || 0;
-  const progress = g.completed ? 1 : target > 0 ? Math.min(1, (Number(g.currentValue) || 0) / target) : null;
+  const qualitative = g.trackingType === 'qualitative' || target <= 0;
+  const progress = g.completed ? 1 : qualitative ? null : Math.min(1, (Number(g.currentValue) || 0) / target);
   const today = todayISO();
   let status: GoalStatus = 'Unknown', expected: number | null = null, predicted: string | null = null;
   if (g.completed || progress === 1) status = 'Completed';
+  else if (qualitative) status = g.dueDate && todayISO() > g.dueDate ? 'Delayed' : 'On Track';
   else if (progress != null && g.startDate && g.dueDate) {
     const total = Math.max(1, daysBetween(g.startDate, g.dueDate));
     const elapsed = Math.max(0, daysBetween(g.startDate, today));
