@@ -46,7 +46,7 @@ export default function GrowthEngine() {
   const lifeParts = { ...base.parts, consistency: consistencyScore };
   const available = Object.values(lifeParts).filter((v): v is number => v != null);
   const lifeScore = available.length ? Math.round(available.reduce((a, b) => a + b, 0) / available.length) : null;
-  const recommendations = findings(d, settings, settings.language).filter((f) => !dismissed.includes(f.id)).slice(0, 3);
+  const recommendations = findings(d, settings, settings.language).filter((f) => f.kind === 'weakness' && !dismissed.includes(f.id)).slice(0, 3);
   const labels = fa
     ? { finance: 'مالی', goals: 'اهداف', tasks: 'وظایف', habits: 'عادت‌ها', consistency: 'استمرار' }
     : { finance: 'Finance', goals: 'Goals', tasks: 'Tasks', habits: 'Habits', consistency: 'Consistency' };
@@ -59,7 +59,7 @@ export default function GrowthEngine() {
       priority: f.severity === 'high' ? 'High' : 'Medium',
       dueDate: new Date().toISOString().slice(0, 10)
     });
-    if (ok) toast.success(fa ? 'پیشنهاد به وظیفه تبدیل شد.' : 'Recommendation added as a task.');
+    if (ok) { toast.success(fa ? 'پیشنهاد به وظیفه تبدیل شد.' : 'Recommendation added as a task.'); dismiss(f.id); }
   };
   const dismiss = (id: string) => {
     const next = [...dismissed, id];
