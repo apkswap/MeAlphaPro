@@ -32,7 +32,7 @@ folder = RES / "mipmap-xxxhdpi"
 foreground.save(folder / "ic_launcher_foreground.png", optimize=True)
 drawable = RES / "drawable"
 drawable.mkdir(parents=True, exist_ok=True)
-Image.new("RGB", (1, 1), (12, 19, 42)).save(drawable / "ic_launcher_background.png")
+# Capacitor already generates drawable/ic_launcher_background.xml; keep its resource name unique.
 adaptive = RES / "mipmap-anydpi-v26"
 adaptive.mkdir(parents=True, exist_ok=True)
 (adaptive / "ic_launcher.xml").write_text(
@@ -43,4 +43,4 @@ adaptive.mkdir(parents=True, exist_ok=True)
     '</adaptive-icon>\n',
     encoding="utf-8",
 )
-print("Generated Android launcher icons from mealpha-original.png")
+print("Generated Android launcher icons from build/mealpha.ico")
