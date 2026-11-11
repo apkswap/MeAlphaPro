@@ -16,6 +16,7 @@ import { Share } from '@capacitor/share';
 
 const AVATARS = ['α', '🌟', '🚀', '🦊', '🐼', '🐺', '🦁', '🦉', '🎯', '💎', '🌙', '🔥'];
 const COLORS = ['#168be5', '#00b8d4', '#1261a0', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
+const MAX_BACKUP_BYTES = 50 * 1024 * 1024;
 const THEMES = [{ id: 'violet', fa: 'بنفش', en: 'Violet', color: '#8b5cf6' }, { id: 'blue', fa: 'آبی', en: 'Blue', color: '#279be8' }, { id: 'green', fa: 'سبز', en: 'Green', color: '#2aa876' }, { id: 'cyan', fa: 'فیروزه‌ای', en: 'Cyan', color: '#06b6d4' }, { id: 'orange', fa: 'نارنجی', en: 'Orange', color: '#f28a35' }, { id: 'pink', fa: 'صورتی', en: 'Pink', color: '#ec4899' }] as const;
 
 export default function SettingsPage() {
@@ -206,7 +207,9 @@ export default function SettingsPage() {
       });
       let snapshot;
       if (download.ok) {
-        snapshot = JSON.parse(await download.text());
+        const backupBlob = await download.blob();
+        if (backupBlob.size > MAX_BACKUP_BYTES) throw new Error('Dropbox backup exceeds the 50 MB safety limit.');
+        snapshot = JSON.parse(await backupBlob.text());
         if (snapshot?.version !== 1 || !snapshot?.data) throw new Error('The Dropbox backup format is invalid.');
         const { mergeSnapshot } = await import('../lib/localDb');
         await mergeSnapshot(snapshot);
@@ -239,6 +242,7 @@ export default function SettingsPage() {
   const importBackup = async (file?: File) => {
     if (!file) return;
     try {
+      if (file.size > MAX_BACKUP_BYTES) throw new Error(fa ? 'حجم فایل پشتیبان نباید بیشتر از ۵۰ مگابایت باشد.' : 'Backup file must be 50 MB or smaller.');
       const parsed = JSON.parse(await file.text());
       if (parsed?.version !== 1 || !parsed?.data || typeof parsed.data !== 'object') {
         throw new Error(fa ? 'فایل انتخاب‌شده، پشتیبان معتبر MeAlpha Pro نیست.' : 'The selected file is not a valid MeAlpha Pro backup.');
