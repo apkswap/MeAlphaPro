@@ -11,7 +11,7 @@ import { Panel, PageHeader } from '../components/ui-bits';
 import { getSnapshot } from '../lib/localDb';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
-import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 
 const AVATARS = ['α', '🌟', '🚀', '🦊', '🐼', '🐺', '🦁', '🦉', '🎯', '💎', '🌙', '🔥'];
@@ -61,7 +61,7 @@ export default function SettingsPage() {
           path: fileName,
           data: json,
           directory: Directory.Cache,
-          encoding: 'utf8'
+          encoding: Encoding.UTF8
         });
         await Share.share({
           title: fa ? 'پشتیبان MeAlpha Pro' : 'MeAlpha Pro backup',
