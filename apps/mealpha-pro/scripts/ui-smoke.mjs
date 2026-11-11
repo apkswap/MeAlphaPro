@@ -41,6 +41,19 @@ for (const viewport of viewports) {
     if (route === '/focus' && !(await page.getByRole('button', { name: /افزودن جلسه|Add session/ }).count())) {
       failures.push(`${viewport.name} focus: manual session control missing`);
     }
+    if (route === '/insights') {
+      for (const [label, pattern] of [['3-month', /3 (mo|ماه)/], ['6-month', /6 (mo|ماه)/], ['12-month', /12 (mo|ماه)/]]) {
+        const periodButton = page.getByRole('button', { name: pattern });
+        if (!(await periodButton.count())) {
+          failures.push(`${viewport.name} insights: ${label} period control missing`);
+        } else {
+          await periodButton.click();
+          if ((await periodButton.getAttribute('aria-pressed')) !== 'true') {
+            failures.push(`${viewport.name} insights: ${label} period control did not activate`);
+          }
+        }
+      }
+    }
   }
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
   if (await page.getByRole('button', { name: /English/ }).count()) {
