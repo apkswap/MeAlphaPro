@@ -57,6 +57,12 @@ jobs:
       - name: Sync Capacitor
         working-directory: apps/mealpha-pro
         run: npx cap sync android
+      - name: Generate Android launcher icons from Windows branding
+        working-directory: apps/mealpha-pro
+        run: |
+          python3 -m pip install --user Pillow
+          python3 scripts/generate-android-icons.py
+
       - name: Configure Android Dropbox deep link
         working-directory: apps/mealpha-pro
         run: |
