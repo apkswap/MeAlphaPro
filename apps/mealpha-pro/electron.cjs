@@ -11,19 +11,30 @@ function callbackPage(message) {
 
 async function startLocalServer() {
   const serverApp = express();
+  serverApp.disable('x-powered-by');
+  serverApp.use((_req, res, next) => {
+    res.set({
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'no-referrer',
+      'X-Frame-Options': 'DENY',
+      'Cache-Control': 'no-store',
+      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"
+    });
+    next();
+  });
   serverApp.get('/oauth/dropbox/callback', (req, res) => {
     const state = String(req.query.state || '');
     const code = typeof req.query.code === 'string' ? req.query.code : undefined;
     const error = typeof req.query.error === 'string' ? req.query.error : undefined;
     const error_description = typeof req.query.error_description === 'string' ? req.query.error_description : undefined;
-    if (!state || (!code && !error)) {
+    if (!/^[a-f0-9]{32}$/.test(state) || (!code && !error) || (code && code.length > 4096) || (error_description && error_description.length > 1024)) {
       return res.status(400).send(callbackPage('Dropbox sign-in response is incomplete.'));
     }
     oauthResults.set(state, { status: 'complete', state, code, error, error_description, createdAt: Date.now() });
     return res.status(200).set('Cache-Control', 'no-store').send(callbackPage(error ? 'Dropbox authorization was not completed.' : 'Dropbox authorization successful.'));
   });
   serverApp.get('/oauth/dropbox/result', (req, res) => {
-    res.set('Access-Control-Allow-Origin', '*').set('Cache-Control', 'no-store');
+    res.set('Cache-Control', 'no-store');
     const state = String(req.query.state || '');
     const result = oauthResults.get(state);
     if (!result) return res.json({ status: 'pending' });
@@ -51,6 +62,15 @@ async function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true, nodeIntegration: false, sandbox: true
     }
+  });
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', (event, target) => {
+    let parsed;
+    try { parsed = new URL(target); } catch { event.preventDefault(); return; }
+    const allowed = app.isPackaged
+      ? parsed.origin === 'http://localhost:4173'
+      : parsed.origin === 'http://127.0.0.1:8080';
+    if (!allowed) event.preventDefault();
   });
   if (app.isPackaged) await win.loadURL('http://localhost:4173');
   else await win.loadURL('http://127.0.0.1:8080');
