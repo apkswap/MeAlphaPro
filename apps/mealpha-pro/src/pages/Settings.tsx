@@ -32,8 +32,8 @@ export default function SettingsPage() {
     if (!s.currency.trim()) return toast.error(t('currency'));
     setBusy(true);
     try {
-      setLocalSettings({ ...s, currency: s.currency.trim().toUpperCase() });
-      toast.success(t('saved'));
+      const saved = await setLocalSettings({ ...s, currency: s.currency.trim().toUpperCase() });
+      if (saved) toast.success(t('saved'));
     } catch { toast.error(t('error')); }
     finally { setBusy(false); }
   };
@@ -167,7 +167,14 @@ export default function SettingsPage() {
         dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000,
         dropboxAccountName: account?.name?.display_name || ''
       };
-      setS(nextSettings); setLocalSettings(nextSettings);
+      setS(nextSettings);
+      const saved = await setLocalSettings(nextSettings);
+      if (!saved) {
+        sessionStorage.removeItem('mealpha.dropbox.appKey');
+        sessionStorage.removeItem('mealpha.dropbox.verifier');
+        sessionStorage.removeItem('mealpha.dropbox.state');
+        return;
+      }
       sessionStorage.removeItem('mealpha.dropbox.appKey');
       sessionStorage.removeItem('mealpha.dropbox.verifier');
       sessionStorage.removeItem('mealpha.dropbox.state');
