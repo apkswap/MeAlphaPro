@@ -6,6 +6,7 @@ import { cn } from '@project/components/lib/utils';
 import { useStore } from '../lib/store';
 import { Key } from '../lib/i18n';
 import { isoOf, todayISO } from '../lib/analytics';
+import GlobalSearch from './GlobalSearch';
 
 const NAV: { to: string; k: Key; icon: typeof Target; group: 'main' | 'manage' | 'system' }[] = [
   { to: '/', k: 'dashboard', icon: LayoutDashboard, group: 'main' },
@@ -146,7 +147,7 @@ export default function Layout() {
             <div className="hidden text-xs text-muted-foreground sm:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{t(NAV.find(n => n.to === location.pathname)?.k ?? 'dashboard')}</span></div>
           </div>
           <div className="relative flex items-center gap-2">
-            <div className="hidden h-9 w-56 items-center gap-2 rounded-xl border bg-card/70 px-3 lg:flex"><Search className="h-4 w-4 text-muted-foreground" /><span className="text-xs text-muted-foreground">{fa ? 'جستجو در برنامه...' : 'Search your workspace...'}</span><kbd className="ms-auto rounded border px-1.5 py-0.5 text-[9px] text-muted-foreground">⌘ K</kbd></div>
+            <GlobalSearch />
             <button type="button" className={cn('relative grid h-10 w-10 place-items-center rounded-xl border bg-card/70 transition-colors hover:bg-secondary', activePopover === 'notifications' && 'border-primary text-primary')} aria-label={fa ? 'اعلان‌ها' : 'Notifications'} aria-expanded={activePopover === 'notifications'} onClick={() => setActivePopover(v => v === 'notifications' ? null : 'notifications')}>
               <Bell className="h-4 w-4" />
               {notifications.length > 0 && <span className="absolute -end-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">{notifications.length}</span>}
