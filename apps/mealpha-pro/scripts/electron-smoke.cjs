@@ -2,7 +2,9 @@ const { spawn } = require('node:child_process');
 const path = require('node:path');
 
 const executable = process.argv[2] || path.resolve(__dirname, '..', 'release', 'win-unpacked', 'MeAlpha Pro.exe');
-const child = spawn(executable, ['--smoke-test'], { windowsHide: true, stdio: 'ignore' });
+const child = spawn(executable, ['--smoke-test'], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+child.stdout.on('data', (chunk) => process.stdout.write(chunk));
+child.stderr.on('data', (chunk) => process.stderr.write(chunk));
 let finished = false;
 const timeout = setTimeout(() => {
   if (finished) return;
