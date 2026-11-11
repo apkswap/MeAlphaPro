@@ -59,9 +59,9 @@ jobs:
         working-directory: apps/mealpha-pro
         run: |
           py -3 -m venv .venv
-          .venv\\Scripts\\python.exe -m pip install --upgrade pip
-          .venv\\Scripts\\python.exe -m pip install Pillow
-          .venv\\Scripts\\python.exe scripts/generate-android-icons.py
+          .venv\Scripts\python.exe -m pip install --upgrade pip
+          .venv\Scripts\python.exe -m pip install Pillow
+          .venv\Scripts\python.exe scripts/generate-android-icons.py
 
       - name: Configure Android Dropbox deep link
         working-directory: apps/mealpha-pro
@@ -91,7 +91,7 @@ jobs:
 
       - name: Build debug APK
         working-directory: apps/mealpha-pro/android
-        run: .\\gradlew.bat assembleDebug
+        run: .\gradlew.bat assembleDebug
 
       - name: Verify APK
         shell: bash
