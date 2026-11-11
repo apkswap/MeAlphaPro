@@ -74,18 +74,39 @@ async function createWindow() {
   });
   if (process.argv.includes('--smoke-test')) {
     const startedAt = Date.now();
+    win.webContents.on('console-message', (_event, level, message) => {
+      if (level >= 2) console.error('MEALPHA_RENDERER_CONSOLE_ERROR:', message);
+    });
+    win.webContents.on('render-process-gone', (_event, details) => {
+      console.error('MEALPHA_RENDERER_CRASH:', JSON.stringify(details));
+      app.exit(1);
+    });
+    win.webContents.on('did-fail-load', (_event, code, description, validatedURL) => {
+      if (code !== -3) {
+        console.error('MEALPHA_RENDERER_LOAD_FAILED:', code, description, validatedURL);
+        app.exit(1);
+      }
+    });
     const checkRenderer = () => {
       if (win.isDestroyed()) return;
-      win.webContents.executeJavaScript("Boolean(document.querySelector('#root')?.firstElementChild)")
-        .then((ready) => {
-          if (ready) {
-            console.log('MEALPHA_SMOKE_OK');
+      win.webContents.executeJavaScript(`(() => {
+        const root = document.querySelector('#root');
+        const text = (root?.innerText || '').replace(/\\s+/g, ' ').trim();
+        const visible = !!root && root.getBoundingClientRect().width > 0 && root.getBoundingClientRect().height > 0;
+        const fallback = text.includes('could not load this screen');
+        const splashOnly = !!root?.querySelector('.animate-pulse') && text.length < 20;
+        const shell = !!root?.querySelector('header') && !!root?.querySelector('nav');
+        return { ready: visible && shell && !fallback && !splashOnly && text.length >= 35, textLength: text.length, text: text.slice(0, 180), visible, shell, fallback, splashOnly, title: document.title, url: location.href };
+      })()`)
+        .then((state) => {
+          if (state.ready) {
+            console.log('MEALPHA_SMOKE_OK:', JSON.stringify(state));
             app.quit();
-          } else if (Date.now() - startedAt > 20000) {
-            console.error('MEALPHA_SMOKE_FAILED: renderer did not mount within 20 seconds.');
+          } else if (Date.now() - startedAt > 30000) {
+            console.error('MEALPHA_SMOKE_FAILED: app did not render a usable screen:', JSON.stringify(state));
             app.exit(1);
           } else {
-            setTimeout(checkRenderer, 250);
+            setTimeout(checkRenderer, 300);
           }
         })
         .catch((error) => {
