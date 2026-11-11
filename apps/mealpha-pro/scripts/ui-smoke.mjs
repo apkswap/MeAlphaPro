@@ -64,13 +64,13 @@ for (const viewport of viewports) {
   }
   const languageButton = isMobile
     ? page.getByRole('button', { name: /English/ })
-    : page.getByRole('button', { name: /EN|فا/ });
+    : page.getByRole('button', { name: /^(EN|فا)$/i });
   if (await languageButton.count()) {
     await languageButton.click();
     await page.waitForFunction(() => document.documentElement.dir === 'ltr');
     const persianButton = isMobile
       ? page.getByRole('button', { name: /فارسی/ })
-      : page.getByRole('button', { name: /EN|فا/ });
+      : page.getByRole('button', { name: /^(EN|فا)$/i });
     if (await persianButton.count()) {
       await persianButton.click();
       await page.waitForFunction(() => document.documentElement.dir === 'rtl');
