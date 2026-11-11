@@ -18,7 +18,7 @@ async function startLocalServer() {
       'Referrer-Policy': 'no-referrer',
       'X-Frame-Options': 'DENY',
       'Cache-Control': 'no-store',
-      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"
+      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://www.dropbox.com; manifest-src 'self'; worker-src 'self' blob:"
     });
     next();
   });
@@ -68,17 +68,48 @@ async function createWindow() {
     let parsed;
     try { parsed = new URL(target); } catch { event.preventDefault(); return; }
     const allowed = app.isPackaged
-      ? parsed.origin === 'http://localhost:4173'
+      ? parsed.origin === 'http://127.0.0.1:4173'
       : parsed.origin === 'http://127.0.0.1:8080';
     if (!allowed) event.preventDefault();
   });
-  if (app.isPackaged) await win.loadURL('http://localhost:4173');
+  if (process.argv.includes('--smoke-test')) {
+    const startedAt = Date.now();
+    const checkRenderer = () => {
+      if (win.isDestroyed()) return;
+      win.webContents.executeJavaScript("Boolean(document.querySelector('#root')?.firstElementChild)")
+        .then((ready) => {
+          if (ready) {
+            console.log('MEALPHA_SMOKE_OK');
+            app.quit();
+          } else if (Date.now() - startedAt > 20000) {
+            console.error('MEALPHA_SMOKE_FAILED: renderer did not mount within 20 seconds.');
+            app.exit(1);
+          } else {
+            setTimeout(checkRenderer, 250);
+          }
+        })
+        .catch((error) => {
+          console.error('MEALPHA_SMOKE_FAILED:', error);
+          app.exit(1);
+        });
+    };
+    win.webContents.once('did-finish-load', checkRenderer);
+  }
+  if (app.isPackaged) await win.loadURL('http://127.0.0.1:4173');
   else await win.loadURL('http://127.0.0.1:8080');
 }
 
-ipcMain.handle('mealpha:open-external', async (_event, rawUrl) => {
-  const url = new URL(String(rawUrl));
-  if (url.protocol !== 'https:' || !['www.dropbox.com', 'dropbox.com'].includes(url.hostname)) {
+ipcMain.handle('mealpha:open-external', async (event, rawUrl) => {
+  let senderUrl;
+  try { senderUrl = new URL(event.senderFrame?.url || ''); } catch { throw new Error('Untrusted application frame.'); }
+  const allowedSender = app.isPackaged
+    ? senderUrl.origin === 'http://127.0.0.1:4173'
+    : senderUrl.origin === 'http://127.0.0.1:8080';
+  if (!allowedSender) throw new Error('External links can only be opened by the MeAlpha application.');
+
+  let url;
+  try { url = new URL(String(rawUrl)); } catch { throw new Error('Invalid Dropbox authorization URL.'); }
+  if (url.protocol !== 'https:' || url.hostname !== 'www.dropbox.com' || url.pathname !== '/oauth2/authorize' || url.username || url.password) {
     throw new Error('Only the official Dropbox authorization page can be opened.');
   }
   await shell.openExternal(url.toString());
