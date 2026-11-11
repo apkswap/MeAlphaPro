@@ -21,7 +21,7 @@ export default function DropboxOAuthHandler() {
   }, [settings]);
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform() || !data) return;
+    if (!Capacitor.isNativePlatform()) return;
     let active = true;
 
     const completeDropboxSignIn = async (url: string) => {
@@ -104,7 +104,7 @@ export default function DropboxOAuthHandler() {
       active = false;
       void listener?.remove();
     };
-  }, [Boolean(data), setLocalSettings]);
+  }, [setLocalSettings]);
 
   return null;
 }
