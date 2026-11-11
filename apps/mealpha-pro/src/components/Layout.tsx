@@ -28,7 +28,42 @@ export default function Layout() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [activePopover, setActivePopover] = useState<'notifications' | 'profile' | null>(null);
   const location = useLocation();
-  useEffect(() => { const on = () => setOnline(true); const off = () => setOnline(false); window.addEventListener('online', on); window.addEventListener('offline', off); return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); }; }, []);
+  useEffect(() => {
+    let disposed = false;
+    let timeoutId: number | undefined;
+    let intervalId: number | undefined;
+    let controller: AbortController | undefined;
+    const checkInternet = async () => {
+      if (!navigator.onLine) { setOnline(false); return; }
+      controller?.abort();
+      controller = new AbortController();
+      timeoutId = window.setTimeout(() => controller?.abort(), 5000);
+      try {
+        await fetch('https://www.gstatic.com/generate_204', {
+          method: 'GET', mode: 'no-cors', cache: 'no-store', signal: controller.signal,
+        });
+        if (!disposed) setOnline(true);
+      } catch {
+        if (!disposed) setOnline(false);
+      } finally {
+        if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      }
+    };
+    const onOnline = () => { void checkInternet(); };
+    const onOffline = () => { controller?.abort(); setOnline(false); };
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    void checkInternet();
+    intervalId = window.setInterval(() => { void checkInternet(); }, 30000);
+    return () => {
+      disposed = true;
+      controller?.abort();
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      if (intervalId !== undefined) window.clearInterval(intervalId);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
   useEffect(() => { setMobileMenu(false); setActivePopover(null); }, [location.pathname]);
   const toggleTheme = () => setLocalSettings({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' });
   const toggleLang = () => setLocalSettings({ ...settings, language: settings.language === 'fa' ? 'en' : 'fa' });
