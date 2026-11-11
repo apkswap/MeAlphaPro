@@ -91,6 +91,57 @@ for (const viewport of viewports) {
   } else {
     failures.push(`${viewport.name}: theme switch control not visible`);
   }
+  await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+  const notificationsButton = page.getByRole('button', { name: /اعلان‌ها|Notifications/ });
+  if (await notificationsButton.count()) {
+    await notificationsButton.click();
+    if (!(await page.getByRole('dialog', { name: /مرکز اعلان‌ها|Notification center/ }).count())) {
+      failures.push(`${viewport.name}: notification bell did not open its panel`);
+    }
+    await page.getByRole('button', { name: /بستن اعلان‌ها|Close notifications/ }).click();
+  } else {
+    failures.push(`${viewport.name}: notification bell control missing`);
+  }
+  const profileButton = page.getByRole('button', { name: /پروفایل کاربری|User profile/ });
+  if (await profileButton.count()) {
+    await profileButton.click();
+    if (!(await page.getByRole('dialog', { name: /منوی پروفایل|Profile menu/ }).count())) {
+      failures.push(`${viewport.name}: profile button did not open its menu`);
+    }
+    const profileLink = page.getByRole('link', { name: /مشاهده و ویرایش پروفایل|View and edit profile/ });
+    if (await profileLink.count()) {
+      await profileLink.click();
+      await page.waitForURL('**/settings');
+    } else {
+      failures.push(`${viewport.name}: profile menu has no working settings link`);
+    }
+  } else {
+    failures.push(`${viewport.name}: profile control missing`);
+  }
+  if (isMobile) {
+    await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+    const bottomNav = page.locator('nav[aria-label="ناوبری اصلی"]');
+    if (!(await bottomNav.count())) failures.push(`${viewport.name}: mobile bottom navigation missing`);
+    else {
+      const layout = await bottomNav.evaluate(el => {
+        const nav = el.getBoundingClientRect();
+        const links = [...el.querySelectorAll('a')].map(a => {
+          const r = a.getBoundingClientRect();
+          return { top: r.top, bottom: r.bottom, width: r.width };
+        });
+        return { navTop: nav.top, navBottom: nav.bottom, viewportHeight: innerHeight, links };
+      });
+      if (layout.links.length !== 5 || layout.links.some(link => link.width < 42)) {
+        failures.push(`${viewport.name}: mobile navigation items are missing or too narrow ${JSON.stringify(layout)}`);
+      }
+      if (layout.links.length && Math.max(...layout.links.map(link => link.top)) - Math.min(...layout.links.map(link => link.top)) > 3) {
+        failures.push(`${viewport.name}: mobile navigation items are stacked instead of aligned in one row ${JSON.stringify(layout)}`);
+      }
+      if (layout.navBottom < layout.viewportHeight - 2 || layout.navTop < layout.viewportHeight - 130) {
+        failures.push(`${viewport.name}: mobile navigation is not anchored to the bottom safe area ${JSON.stringify(layout)}`);
+      }
+    }
+  }
   if (viewport.name === 'desktop' || viewport.name === 'mobile' || viewport.name === 'small-mobile') {
     await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
     await page.screenshot({ path: `ui-${viewport.name}.png`, fullPage: true });
