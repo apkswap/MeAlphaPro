@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Languages, Layers3, Sun, Moon } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
@@ -20,6 +21,8 @@ const NAV: { to: string; k: Key; icon: typeof Target }[] = [
 
 export default function Layout() {
   const { t, settings, setLocalSettings } = useStore();
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
+  useEffect(() => { const on = () => setOnline(true); const off = () => setOnline(false); window.addEventListener('online', on); window.addEventListener('offline', off); return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); }; }, []);
   const toggleTheme = () => setLocalSettings({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' });
   const toggleLang = () => {
     const s = { ...settings, language: settings.language === 'fa' ? 'en' as const : 'fa' as const };
@@ -51,7 +54,7 @@ export default function Layout() {
         <div className="p-2 md:p-2.5 flex flex-row md:flex-col justify-end md:justify-start gap-1 shrink-0">
           <Button variant="ghost" size="sm" className="h-8 justify-start gap-2 px-2 text-xs" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}<span>{settings.theme === 'light' ? (settings.language === 'fa' ? 'حالت تاریک' : 'Dark mode') : (settings.language === 'fa' ? 'حالت روشن' : 'Light mode')}</span></Button>
           <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleLang}><Languages className="h-4 w-4" /><span>{settings.language === 'fa' ? 'English' : 'فارسی'}</span></Button>
-          <div className="flex items-center gap-2 px-2 py-1.5 text-[11px] text-emerald-500"><Cloud className="h-4 w-4" /><span>{t('offlineReady')}</span></div>
+          <div role="status" className={cn("flex items-center gap-2 px-2 py-1.5 text-[11px]", online ? "text-emerald-500" : "text-amber-500")}><span className={cn("h-2 w-2 rounded-full", online ? "bg-emerald-500" : "bg-amber-500")} /><span>{online ? (settings.language === "fa" ? "اینترنت متصل" : "Online") : (settings.language === "fa" ? "بدون اینترنت" : "Offline")}</span></div>
         </div>
       </aside>
       <main className="flex-1 min-w-0 p-4 md:p-8 max-w-7xl w-full mx-auto"><Outlet /></main>
