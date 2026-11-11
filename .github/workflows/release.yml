@@ -146,6 +146,30 @@ jobs:
       - name: Sync Capacitor
         working-directory: apps/mealpha-pro
         run: npx cap sync android
+      - name: Configure Android Dropbox deep link
+        working-directory: apps/mealpha-pro
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("android/app/src/main/AndroidManifest.xml")
+          xml = path.read_text()
+          marker = 'android:scheme="com.mealpha.pro"'
+          if marker not in xml:
+              activity_start = xml.find("<activity")
+              activity_end = xml.find("</activity>", activity_start)
+              if activity_start < 0 or activity_end < 0:
+                  raise SystemExit("Could not locate the Android main activity in AndroidManifest.xml")
+              intent_filter = """
+                      <intent-filter>
+                          <action android:name="android.intent.action.VIEW" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                          <category android:name="android.intent.category.BROWSABLE" />
+                          <data android:scheme="com.mealpha.pro" android:host="oauth" android:pathPrefix="/dropbox/callback" />
+                      </intent-filter>
+              """
+              xml = xml[:activity_end] + intent_filter + xml[activity_end:]
+              path.write_text(xml)
+          PY
       - name: Build installable Android APK
         working-directory: apps/mealpha-pro/android
         run: chmod +x ./gradlew && ./gradlew assembleDebug
