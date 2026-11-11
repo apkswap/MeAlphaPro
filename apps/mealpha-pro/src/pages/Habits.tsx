@@ -33,9 +33,13 @@ export default function Habits() {
   const [edit, setEdit] = useState<Rec | null>(null);
   const [open, setOpen] = useState(false);
   const [del, setDel] = useState<Rec | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const { toggle, busy } = useHabitToggle();
   const L = settings.language;
-  const days = Array.from({ length: 30 }, (_, i) => isoOf(new Date(Date.now() - (29 - i) * 86400000)));
+  const monthStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+  const calendarStart = new Date(monthStart); calendarStart.setDate(1 - calendarStart.getDay());
+  const days = Array.from({ length: 42 }, (_, i) => { const d = new Date(calendarStart); d.setDate(calendarStart.getDate() + i); return d; });
+  const monthLabel = new Intl.DateTimeFormat(L === 'fa' ? 'fa-IR-u-ca-persian' : 'en-US', { month: 'long', year: 'numeric' }).format(calendarMonth);
 
   return (
     <div>
@@ -62,9 +66,13 @@ export default function Habits() {
                 <span className="flex items-center gap-1"><Flame className="h-4 w-4 text-[hsl(var(--warning))]" />{t('streak')}: <b>{fmtNum(L, s.current)}</b></span>
                 <span className="text-muted-foreground">{t('best')}: {fmtNum(L, s.best)}</span>
               </div>
-              <div className="grid grid-cols-[repeat(30,minmax(0,1fr))] gap-1">
-                {days.map((d) => <div key={d} title={d} className={cn('aspect-square rounded-[3px]', s.dates.has(d) ? 'bg-emerald-500' : 'bg-rose-500/80')} />)}
+              <div className="flex items-center justify-between gap-2">
+                <button type="button" className="rounded-lg border px-2 py-1 text-xs" onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}>‹</button>
+                <span className="text-xs font-semibold">{monthLabel}</span>
+                <button type="button" className="rounded-lg border px-2 py-1 text-xs" onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}>›</button>
               </div>
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-muted-foreground">{(L === 'fa' ? ['ش','ی','د','س','چ','پ','ج'] : ['S','M','T','W','T','F','S']).map((x,i) => <span key={i}>{x}</span>)}</div>
+              <div className="grid grid-cols-7 gap-1">{days.map((date) => { const key = isoOf(date); const done = s.dates.has(key); const inMonth = date.getMonth() === calendarMonth.getMonth(); const future = key > todayISO(); return <div key={key} title={key} className={cn('aspect-square rounded-md grid place-items-center text-[10px]', !inMonth && 'opacity-30', done ? 'bg-emerald-500 text-white' : future ? 'bg-muted/50 text-muted-foreground' : 'bg-rose-500/80 text-white')}>{new Intl.NumberFormat(L === 'fa' ? 'fa-IR-u-ca-persian' : 'en-US', { day: 'numeric' }).format(date)}</div>; })}</div>
             </div>
           );
         })}
