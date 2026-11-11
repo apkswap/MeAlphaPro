@@ -42,6 +42,7 @@ export default function Transactions() {
   const cur = settings.currency;
   const fields = useMemo<Field[]>(() => [
     ...BASE_FIELDS,
+    { key: 'assetId', label: 'asset', type: 'select', options: data!.assets.map((a: Rec) => ({ value: a.id, label: `${a.name} (${a.currency})` })) },
     { key: 'accountId', label: 'account', type: 'select', options: data!.accounts.map((a: Rec) => ({ value: a.id, label: `${a.bankName} · ${a.name} (${a.currency})` })) },
   ], [data!.accounts]);
   const reminderFields = useMemo<Field[]>(() => [
@@ -99,7 +100,8 @@ export default function Transactions() {
     { key: 'date', label: t('date'), render: (r) => fmtDate(L, settings.calendar, r.date) },
     { key: 'description', label: t('description'), render: (r) => {
       const account = data!.accounts.find((a: Rec) => a.id === r.accountId);
-      return <div><div className="font-medium">{r.description}</div><div className="text-xs text-muted-foreground">{r.category || '—'} · {opt(L, r.nature)}{account ? ` · ${account.bankName} / ${account.name}` : ''}</div></div>;
+      const asset = data!.assets.find((a: Rec) => a.id === r.assetId);
+      return <div><div className="font-medium">{r.description}</div><div className="text-xs text-muted-foreground">{r.category || '—'} · {opt(L, r.nature)}{account ? ` · ${account.bankName} / ${account.name}` : ''}{asset ? ` · ${asset.name}` : ''}</div></div>;
     } },
     { key: 'kind', label: t('kind'), render: (r) => opt(L, r.kind) },
     { key: 'amount', label: t('amount'), sortValue: (r) => Number(r.amount), render: (r) => <span className={cn('font-semibold tabular-nums', r.kind === 'Income' ? 'text-[hsl(var(--success))]' : 'text-destructive')}>{r.kind === 'Income' ? '+' : '−'}{fmtMoney(L, Number(r.amount), r.currency)}</span> },
