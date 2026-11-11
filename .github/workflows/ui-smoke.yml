@@ -2,6 +2,9 @@ name: MeAlpha Pro UI smoke tests
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -9,6 +12,8 @@ on:
       - "apps/mealpha-pro/src/**"
       - "apps/mealpha-pro/scripts/ui-smoke.mjs"
       - ".github/workflows/ui-smoke.yml"
+      - "package.json"
+      - "package-lock.json"
 
 permissions:
   contents: read
