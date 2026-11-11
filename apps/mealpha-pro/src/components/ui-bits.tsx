@@ -3,10 +3,10 @@ import { cn } from '@project/components/lib/utils';
 
 export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+    <div className="flex flex-wrap items-end justify-between gap-4 mb-6 min-w-0">
+      <div className="min-w-0">
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight break-words">{title}</h1>
+        {subtitle && <p className="text-sm text-muted-foreground mt-1 break-words">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -15,8 +15,8 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
 
 export function Panel({ title, children, className, action }: { title?: string; children: ReactNode; className?: string; action?: ReactNode }) {
   return (
-    <section className={cn('rounded-2xl border bg-card/70 backdrop-blur p-5 shadow-[0_8px_24px_-16px_hsl(152_58%_30%/0.24)]', className)}>
-      {title && <div className="flex items-center justify-between mb-4"><h2 className="font-bold text-sm tracking-wide text-muted-foreground uppercase">{title}</h2>{action}</div>}
+    <section className={cn('min-w-0 rounded-2xl border bg-card/70 backdrop-blur p-5 shadow-[0_8px_24px_-16px_hsl(152_58%_30%/0.24)]', className)}>
+      {title && <div className="flex flex-wrap items-center justify-between gap-2 mb-4 min-w-0"><h2 className="font-bold text-sm tracking-wide text-muted-foreground uppercase break-words">{title}</h2>{action}</div>}
       {children}
     </section>
   );
@@ -25,10 +25,10 @@ export function Panel({ title, children, className, action }: { title?: string; 
 export function Kpi({ label, value, hint, tone = 'default', icon }: { label: string; value: ReactNode; hint?: ReactNode; tone?: 'default' | 'good' | 'bad' | 'accent'; icon?: ReactNode }) {
   const toneCls = { default: 'text-foreground', good: 'text-[hsl(var(--success))]', bad: 'text-destructive', accent: 'text-accent' }[tone];
   return (
-    <div className="rounded-2xl border bg-card/70 p-4 flex flex-col gap-1">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">{label}{icon}</div>
-      <div className={cn('text-2xl font-extrabold tabular-nums', toneCls)}>{value}</div>
-      {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
+    <div className="min-w-0 rounded-2xl border bg-card/70 p-4 flex flex-col gap-1">
+      <div className="flex items-center justify-between gap-1 text-xs text-muted-foreground min-w-0"><span className="min-w-0 break-words">{label}</span>{icon}</div>
+      <div className={cn('min-w-0 text-xl sm:text-2xl leading-tight font-extrabold tabular-nums break-words', toneCls)}>{value}</div>
+      {hint && <div className="min-w-0 text-xs text-muted-foreground break-words">{hint}</div>}
     </div>
   );
 }
