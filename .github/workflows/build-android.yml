@@ -10,7 +10,6 @@ on:
       - main
       - fix/blue-dual-theme-build-validation
       - feature/cinematic-3d-dashboard
-      - feature/premium-command-center-ui
     paths:
       - "apps/**"
       - "packages/**"
