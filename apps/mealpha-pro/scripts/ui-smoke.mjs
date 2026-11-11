@@ -32,6 +32,15 @@ for (const viewport of viewports) {
     if (await page.getByText('MeAlpha Pro could not load this screen').count()) {
       failures.push(`${viewport.name} ${route}: React runtime error fallback`);
     }
+    if (route === '/') {
+      for (const label of ['Life Score', 'Alpha Intelligence']) {
+        if (!(await page.getByText(label, { exact: true }).count())) failures.push(`${viewport.name} dashboard: missing ${label}`);
+      }
+      if (!(await page.getByText(/Consistency Engine/).count())) failures.push(`${viewport.name} dashboard: missing Consistency Engine`);
+    }
+    if (route === '/focus' && !(await page.getByRole('button', { name: /افزودن جلسه|Add session/ }).count())) {
+      failures.push(`${viewport.name} focus: manual session control missing`);
+    }
   }
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
   if (await page.getByRole('button', { name: /English/ }).count()) {
