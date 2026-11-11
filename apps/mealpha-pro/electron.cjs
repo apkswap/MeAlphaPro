@@ -121,7 +121,8 @@ app.whenReady().then(async () => {
     await createWindow();
   } catch (error) {
     console.error(error);
-    app.quit();
+    if (process.argv.includes('--smoke-test')) app.exit(1);
+    else app.quit();
   }
   app.on('activate', () => {
     if (!BrowserWindow.getAllWindows().length) createWindow();
