@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Languages, Layers3, Sun, Moon, Search, Bell, Cloud, Menu, X, UserRound, ChevronLeft, CalendarClock } from 'lucide-react';
+import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Languages, Layers3, Sun, Moon, Bell, Cloud, Menu, X, UserRound, ChevronLeft, CalendarClock } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { cn } from '@project/components/lib/utils';
 import { useStore } from '../lib/store';
