@@ -26,32 +26,32 @@ export default function Layout() {
     setLocalSettings(s);
   };
   const link = ({ isActive }: { isActive: boolean }) =>
-    cn('flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-1 md:px-3 py-2 rounded-lg text-[10px] md:text-sm font-medium transition-colors',
-      isActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary');
+    cn('flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-2.5 px-1.5 md:px-2.5 py-2 md:py-2.5 rounded-xl text-[10px] md:text-[13px] font-medium transition-colors',
+      isActive ? 'bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80');
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
-      <aside className="md:w-60 md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-e bg-[hsl(var(--sidebar-background))]/80 backdrop-blur flex flex-col">
-        <div className="p-3 md:p-5 flex items-center gap-3 shrink-0">
-          <div className="h-11 w-11 md:h-16 md:w-16 shrink-0 rounded-xl md:rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 to-accent/10 p-0.5 shadow-lg shadow-primary/10">
+      <aside className="md:w-52 md:min-w-52 md:h-screen md:sticky md:top-0 border-b md:border-b-0 md:border-e bg-[hsl(var(--sidebar-background))]/80 backdrop-blur flex flex-col">
+        <div className="p-3 md:p-4 flex items-center gap-2.5 shrink-0">
+          <div className="h-10 w-10 md:h-12 md:w-12 shrink-0 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/20 to-accent/10 p-0.5 shadow-lg shadow-primary/10">
             <img src="/mealpha-infinity.png" alt="MeAlpha" className="h-full w-full object-contain" />
           </div>
           <div className="min-w-0">
-            <div className="font-extrabold leading-tight">MeAlpha Pro</div>
-            <div className="text-[10px] text-muted-foreground">{t('appTagline')}</div>
+            <div className="font-extrabold leading-tight text-sm md:text-[15px]">MeAlpha Pro</div>
+            <div className="text-[9px] text-muted-foreground tracking-wide">{t('appTagline')}</div>
           </div>
         </div>
-        <nav aria-label="Main navigation" className="grid grid-cols-5 md:flex md:flex-col gap-1 px-2 md:px-3 py-2 md:py-0 overflow-visible md:overflow-x-visible md:overflow-y-auto md:flex-1 items-stretch border-y md:border-y-0">
+        <nav aria-label="Main navigation" className="grid grid-cols-5 md:flex md:flex-col gap-1.5 px-2 md:px-2.5 py-2 md:py-3 overflow-visible md:overflow-x-visible md:overflow-y-auto md:flex-1 items-stretch border-y md:border-y-0">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'} className={link}>
               <n.icon className="h-4 w-4 shrink-0" /><span>{t(n.k)}</span>
             </NavLink>
           ))}
         </nav>
-        <div className="p-2 md:p-3 flex flex-row md:flex-col justify-end md:justify-start gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}<span>{settings.theme === 'light' ? (settings.language === 'fa' ? 'حالت تاریک' : 'Dark mode') : (settings.language === 'fa' ? 'حالت روشن' : 'Light mode')}</span></Button>
+        <div className="p-2 md:p-2.5 flex flex-row md:flex-col justify-end md:justify-start gap-1 shrink-0">
+          <Button variant="ghost" size="sm" className="h-8 justify-start gap-2 px-2 text-xs" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}<span>{settings.theme === 'light' ? (settings.language === 'fa' ? 'حالت تاریک' : 'Dark mode') : (settings.language === 'fa' ? 'حالت روشن' : 'Light mode')}</span></Button>
           <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={toggleLang}><Languages className="h-4 w-4" /><span>{settings.language === 'fa' ? 'English' : 'فارسی'}</span></Button>
-          <div className="flex items-center gap-2 px-3 py-2 text-xs text-emerald-500"><Cloud className="h-4 w-4" /><span>{t('offlineReady')}</span></div>
+          <div className="flex items-center gap-2 px-2 py-1.5 text-[11px] text-emerald-500"><Cloud className="h-4 w-4" /><span>{t('offlineReady')}</span></div>
         </div>
       </aside>
       <main className="flex-1 min-w-0 p-4 md:p-8 max-w-7xl w-full mx-auto"><Outlet /></main>
