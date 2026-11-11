@@ -1,0 +1,65 @@
+name: Publish Preview Builds
+
+on:
+  workflow_dispatch:
+    inputs:
+      windows_run_id:
+        description: "Successful Windows build workflow run ID"
+        required: true
+        default: "43094361230"
+        type: string
+      android_run_id:
+        description: "Successful Android build workflow run ID"
+        required: true
+        default: "43094361379"
+        type: string
+      tag_name:
+        description: "Preview release tag"
+        required: true
+        default: "v2.0.0-preview.1"
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: MeAlpha-Pro-Windows-x64
+          path: dist/windows
+          run-id: ${{ inputs.windows_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Android build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: MeAlpha-Pro-Android-APK
+          path: dist/android
+          run-id: ${{ inputs.android_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package public downloads
+        run: |
+          set -euo pipefail
+          cd dist
+          zip -r ../MeAlpha-Pro-Windows-x64.zip windows
+          zip -r ../MeAlpha-Pro-Android-APK.zip android
+          cd ..
+          sha256sum MeAlpha-Pro-Windows-x64.zip MeAlpha-Pro-Android-APK.zip > SHA256SUMS.txt
+
+      - name: Publish preview release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          name: MeAlpha Pro 2.0 Preview
+          prerelease: true
+          generate_release_notes: true
+          files: |
+            MeAlpha-Pro-Windows-x64.zip
+            MeAlpha-Pro-Android-APK.zip
+            SHA256SUMS.txt
