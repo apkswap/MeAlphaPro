@@ -13,6 +13,7 @@ const FIELDS: Field[] = [
   { key: 'horizon', label: 'horizon', type: 'select', options: ['Lifetime', 'Annual', 'Quarterly', 'Monthly', 'Weekly'] },
   { key: 'priority', label: 'priority', type: 'select', options: ['Low', 'Medium', 'High'] },
   { key: 'category', label: 'category', type: 'text' },
+  { key: 'trackingType', label: 'trackingType', type: 'select', options: [{ value: 'measurable', label: 'Measurable' }, { value: 'qualitative', label: 'Learning / qualitative' }] },
   { key: 'completed', label: 'completed', type: 'checkbox' },
   { key: 'startDate', label: 'startDate', type: 'date' },
   { key: 'dueDate', label: 'dueDate', type: 'date' },
@@ -48,7 +49,7 @@ export default function Goals() {
     <div>
       <PageHeader title={t('goals')} action={<Button onClick={() => openForm(null)}><Plus className="h-4 w-4 me-1" />{t('add')}</Button>} />
       <DataList rows={data!.goals} cols={cols} entity="goals" onEdit={openForm} searchKeys={['title', 'category', 'description']} />
-      <EntityForm open={open} onOpenChange={setOpen} entity="goals" fields={FIELDS} initial={edit} defaults={{ horizon: 'Quarterly', priority: 'Medium' }} title={t('goals')} />
+      <EntityForm open={open} onOpenChange={setOpen} entity="goals" fields={FIELDS} initial={edit} defaults={{ horizon: 'Quarterly', priority: 'Medium', trackingType: 'measurable' }} title={t('goals')} />
     </div>
   );
 }
