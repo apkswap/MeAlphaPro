@@ -43,6 +43,9 @@ jobs:
       - name: Build Windows installer
         run: npm run desktop:build --workspace apps/mealpha-pro
 
+      - name: Smoke-test packaged Windows application
+        run: node apps/mealpha-pro/scripts/electron-smoke.cjs
+
       - name: Verify installer
         shell: pwsh
         run: |
