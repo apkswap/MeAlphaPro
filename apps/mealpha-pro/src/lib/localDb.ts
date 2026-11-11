@@ -110,8 +110,49 @@ export async function getSnapshot(): Promise<Snapshot> {
   return { version: 1, exportedAt: new Date().toISOString(), settingsUpdatedAt: await readMeta('settingsUpdatedAt', 0), data, settings: all.settings ?? { language: 'fa', calendar: 'jalali', currency: 'IRT', exchangeRates: '', monthlyBudget: null }, tombstones: await readMeta('tombstones', {}) };
 }
 
+const MAX_SNAPSHOT_RECORDS = 100_000;
+const MAX_SNAPSHOT_TOMBSTONES = 200_000;
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+export function assertValidSnapshot(value: unknown): asserts value is Snapshot {
+  if (!isObject(value) || value.version !== 1 || !isObject(value.data)) {
+    throw new Error('Unsupported or invalid MeAlpha backup format.');
+  }
+  if (!isObject(value.settings)) throw new Error('Backup settings are missing or invalid.');
+  if (value.exportedAt != null && typeof value.exportedAt !== 'string') throw new Error('Backup export date is invalid.');
+  if (value.settingsUpdatedAt != null && !Number.isFinite(Number(value.settingsUpdatedAt))) throw new Error('Backup settings timestamp is invalid.');
+  let totalRecords = 0;
+  for (const entity of ENTITIES) {
+    const rows = value.data[entity];
+    if (rows == null) continue;
+    if (!Array.isArray(rows)) throw new Error(`Backup section "${entity}" is invalid.`);
+    totalRecords += rows.length;
+    if (totalRecords > MAX_SNAPSHOT_RECORDS) throw new Error('Backup contains too many records to safely import.');
+    for (const row of rows) {
+      if (!isObject(row) || typeof row.id !== 'string' || !row.id.trim() || row.id.length > 256) {
+        throw new Error(`Backup section "${entity}" contains an invalid record identifier.`);
+      }
+      if (row.updatedAt != null && (!Number.isFinite(Number(row.updatedAt)) || Number(row.updatedAt) < 0)) {
+        throw new Error(`Backup section "${entity}" contains an invalid update timestamp.`);
+      }
+    }
+  }
+  const tombstones = value.tombstones;
+  if (tombstones != null) {
+    if (!isObject(tombstones)) throw new Error('Backup deletion history is invalid.');
+    const entries = Object.entries(tombstones);
+    if (entries.length > MAX_SNAPSHOT_TOMBSTONES) throw new Error('Backup deletion history is too large.');
+    for (const [key, timestamp] of entries) {
+      if (!key || key.length > 512 || !Number.isFinite(Number(timestamp)) || Number(timestamp) < 0) {
+        throw new Error('Backup deletion history contains an invalid entry.');
+      }
+    }
+  }
+}
+
 export async function mergeSnapshot(remote: Snapshot) {
-  if (!remote || remote.version !== 1 || !remote.data) throw new Error('Unsupported or invalid MeAlpha backup format.');
+  assertValidSnapshot(remote);
   const local = await getSnapshot();
   const db = await openDb();
   for (const entity of ENTITIES) {
