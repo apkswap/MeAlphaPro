@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pause, Play, RotateCcw, Check, Clock3 } from 'lucide-react';
+import { Pause, Play, RotateCcw, Check, Clock3, Plus, X } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@project/components/ui/select';
 import { toast } from 'sonner';
@@ -36,6 +36,10 @@ export default function Focus() {
   const [running, setRunning] = useState(false);
   const [taskId, setTaskId] = useState<string>();
   const [hist, setHist] = useState<Session[]>(load);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualMinutes, setManualMinutes] = useState('25');
+  const [manualSeconds, setManualSeconds] = useState('00');
+  const [manualTaskId, setManualTaskId] = useState<string>('none');
   const intervalRef = useRef<number | undefined>(undefined);
   const endAtRef = useRef<number | null>(null);
   const segmentStartedAtRef = useRef<number | null>(null);
@@ -135,6 +139,36 @@ export default function Focus() {
       toast.message(L === 'fa' ? 'زمان تمرکز ثبت شد.' : 'Focus time saved.');
     }
     setLeft(configuredSeconds);
+  };
+
+  const addManualSession = async () => {
+    const minutes = Math.max(0, Math.min(999, Number.parseInt(manualMinutes || '0', 10) || 0));
+    const seconds = Math.max(0, Math.min(59, Number.parseInt(manualSeconds || '0', 10) || 0));
+    const totalSeconds = minutes * 60 + seconds;
+    if (totalSeconds <= 0) {
+      toast.error(L === 'fa' ? 'مدت جلسه باید بیشتر از صفر باشد.' : 'Session duration must be greater than zero.');
+      return;
+    }
+    const task = manualTaskId === 'none' ? undefined : data!.tasks.find((item) => item.id === manualTaskId);
+    const session: Session = {
+      date: new Date().toISOString(),
+      seconds: totalSeconds,
+      minutes: Math.round((totalSeconds / 60) * 100) / 100,
+      task: task?.title,
+      status: 'completed'
+    };
+    const next = [session, ...hist].slice(0, 500);
+    setHist(next);
+    localStorage.setItem(KEY, JSON.stringify(next));
+    if (task) {
+      const previous = Number(task.actualMinutes) || 0;
+      await save('tasks', { actualMinutes: Math.round((previous + totalSeconds / 60) * 100) / 100 }, task.id);
+    }
+    setManualOpen(false);
+    setManualMinutes('25');
+    setManualSeconds('00');
+    setManualTaskId('none');
+    toast.success(L === 'fa' ? 'جلسه به تاریخچه تمرکز اضافه شد.' : 'Session added to focus history.');
   };
 
   const changeDuration = (minutes: string, seconds: string) => {
@@ -247,7 +281,39 @@ export default function Focus() {
             <div className="flex justify-between mb-1"><span>{L === 'fa' ? 'مجموع تمرکز' : 'Total focus time'}</span><span className="font-semibold">{formatDuration(totalSeconds)}</span></div>
             <div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary" style={{ width: `${totalSeconds ? Math.min(100, todaySeconds / Math.max(todaySeconds, weekSeconds) * 100) : 0}%` }} /></div>
           </div>
-          <div className="text-sm font-semibold mb-3">{L === 'fa' ? 'تاریخچه جلسات' : 'Session history'}</div>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="text-sm font-semibold">{L === 'fa' ? 'تاریخچه جلسات' : 'Session history'}</div>
+            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setManualOpen((value) => !value)}>
+              {manualOpen ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {manualOpen ? (L === 'fa' ? 'بستن' : 'Close') : (L === 'fa' ? 'افزودن جلسه' : 'Add session')}
+            </Button>
+          </div>
+          {manualOpen && (
+            <div className="mb-4 rounded-xl border border-primary/20 bg-primary/[0.04] p-3 space-y-3">
+              <div className="text-xs font-medium text-muted-foreground">{L === 'fa' ? 'ثبت دستی جلسه تمرکز' : 'Manually log a focus session'}</div>
+              <div className="flex items-end gap-2" dir="ltr">
+                <label className="flex-1 space-y-1">
+                  <span className="block text-[11px] text-muted-foreground">{L === 'fa' ? 'دقیقه' : 'Minutes'}</span>
+                  <input aria-label={L === 'fa' ? 'دقیقه جلسه' : 'Session minutes'} type="number" min="0" max="999" value={manualMinutes} onChange={(event) => setManualMinutes(event.target.value)} className="h-9 w-full rounded-lg border bg-background px-2 text-center text-sm tabular-nums" />
+                </label>
+                <span className="pb-2 text-muted-foreground">:</span>
+                <label className="flex-1 space-y-1">
+                  <span className="block text-[11px] text-muted-foreground">{L === 'fa' ? 'ثانیه' : 'Seconds'}</span>
+                  <input aria-label={L === 'fa' ? 'ثانیه جلسه' : 'Session seconds'} type="number" min="0" max="59" value={manualSeconds} onChange={(event) => setManualSeconds(event.target.value)} className="h-9 w-full rounded-lg border bg-background px-2 text-center text-sm tabular-nums" />
+                </label>
+              </div>
+              <Select value={manualTaskId} onValueChange={setManualTaskId}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={t('linkTask')} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{L === 'fa' ? 'بدون اتصال به تسک' : 'No linked task'}</SelectItem>
+                  {data!.tasks.map((item) => <SelectItem key={item.id} value={item.id}>{item.title}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button size="sm" className="w-full" onClick={() => void addManualSession()}>
+                <Plus className="h-3.5 w-3.5 me-1.5" />{L === 'fa' ? 'ثبت جلسه' : 'Save session'}
+              </Button>
+            </div>
+          )}
           {hist.length === 0 && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
           <ul className="space-y-2 max-h-[330px] overflow-y-auto">
             {hist.slice(0, 40).map((item, index) => (
