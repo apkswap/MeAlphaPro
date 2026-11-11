@@ -258,10 +258,13 @@ jobs:
 
             - **Windows:** `MeAlpha-Pro-Windows-x64.exe` (Authenticode-signed when a trusted publisher certificate is configured)
             - **Android:** `MeAlpha-Pro-Android.apk` (signed with the official release key when Android signing secrets are configured; otherwise debug-signed for evaluation)
+            - **Linux:** `MeAlpha-Pro-Linux-x64.AppImage` and `MeAlpha-Pro-Linux-x64.deb`
             - **Integrity:** verify downloads with `SHA256SUMS.txt`
 
             See the repository README for setup notes and current feature scope.
           files: |
             release-assets/MeAlpha-Pro-Windows-x64.exe
             release-assets/MeAlpha-Pro-Android.apk
+            release-assets/MeAlpha-Pro-Linux-x64.AppImage
+            release-assets/MeAlpha-Pro-Linux-x64.deb
             release-assets/SHA256SUMS.txt
