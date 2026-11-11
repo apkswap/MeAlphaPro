@@ -18,7 +18,7 @@ export default function Dashboard() {
   const sc = scores(d, settings);
   const ts = taskStats(d.tasks);
   const m = monthFinance(d.transactions, settings);
-  const nw = netWorth(d.assets, d.liabilities, settings);
+  const nw = netWorth(d.assets, d.liabilities, settings, d.transactions);
   const goals = d.goals.map((g) => ({ g, i: goalInfo(g) })).filter((x) => x.i.status !== 'Completed');
   const atRisk = goals.filter((x) => x.i.status === 'At Risk' || x.i.status === 'Delayed');
   const habits = d.habits.filter((h) => !h.archived);
