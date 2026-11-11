@@ -63,7 +63,7 @@ export default function Habits() {
                 <span className="text-muted-foreground">{t('best')}: {fmtNum(L, s.best)}</span>
               </div>
               <div className="grid grid-cols-[repeat(30,minmax(0,1fr))] gap-1">
-                {days.map((d) => <div key={d} title={d} className={cn('aspect-square rounded-[3px]', s.dates.has(d) ? 'bg-primary' : 'bg-muted')} />)}
+                {days.map((d) => <div key={d} title={d} className={cn('aspect-square rounded-[3px]', s.dates.has(d) ? 'bg-emerald-500' : 'bg-rose-500/80')} />)}
               </div>
             </div>
           );
