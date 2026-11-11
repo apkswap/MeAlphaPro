@@ -184,6 +184,20 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
+    },
+    "linux": {
+      "maintainer": "apkswapp@gmail.com",
+      "category": "Utility",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     }
+  },
+  "description": "MeAlpha Pro — personal finance, goals and productivity planner",
+  "homepage": "https://apkswap.github.io/MeAlphaPro/",
+  "author": {
+    "name": "MeAlpha",
+    "email": "apkswapp@gmail.com"
   }
 }
