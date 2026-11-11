@@ -37,6 +37,8 @@ const dict = {
   startDate: ['تاریخ شروع', 'Start date'],
   dueDate: ['موعد', 'Due date'],
   target: ['مقدار هدف', 'Target value'],
+  trackingType: ['روش پیگیری هدف', 'Goal tracking method'],
+  asset: ['دارایی مرتبط', 'Linked asset'],
   current: ['مقدار فعلی', 'Current value'],
   progress: ['پیشرفت', 'Progress'],
   completed: ['تکمیل‌شده', 'Completed'],
