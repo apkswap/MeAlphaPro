@@ -110,7 +110,14 @@ function JalaliCalendar({ selected, month, onMonthChange, onSelect, lang }: {
           disabled={!previous} onClick={() => previous && onMonthChange(previous)}>
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <div className="text-sm font-semibold">{monthTitle}</div>
+        <div className="flex items-center gap-1">
+          <select aria-label={lang === 'fa' ? 'ماه' : 'Month'} className="h-8 max-w-[112px] rounded-md border bg-background px-1 text-xs" value={jm} onChange={event => { const next = fromJalali(year, Number(event.target.value), 1); if (next) onMonthChange(next); }}>
+            {Array.from({ length: 12 }, (_, index) => { const m = index + 1; const date = fromJalali(year, m, 1); return <option key={m} value={m}>{date ? new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(utcNoon(date)) : m}</option>; })}
+          </select>
+          <select aria-label={lang === 'fa' ? 'سال' : 'Year'} className="h-8 w-[76px] rounded-md border bg-background px-1 text-xs" value={year} onChange={event => { const next = fromJalali(Number(event.target.value), jm, 1); if (next) onMonthChange(next); }}>
+            {Array.from({ length: 101 }, (_, index) => year - 50 + index).map(y => <option key={y} value={y}>{new Intl.NumberFormat(lang === 'fa' ? 'fa-IR' : 'en-US', { useGrouping: false }).format(y)}</option>)}
+          </select>
+        </div>
         <button type="button" aria-label={lang === 'fa' ? 'ماه بعد' : 'Next month'}
           className="inline-flex h-8 w-8 items-center justify-center rounded-md border hover:bg-accent"
           disabled={!next} onClick={() => next && onMonthChange(next)}>
