@@ -42,7 +42,7 @@ export default function Wealth() {
   const L = settings.language, cal = settings.calendar, cur = settings.currency;
   const assetValue = (asset: Rec) => Number(asset.currentValue || 0) + data!.transactions.filter((tx: Rec) => tx.assetId === asset.id && tx.currency === asset.currency).reduce((sum: number, tx: Rec) => sum + (tx.kind === 'Income' ? 1 : -1) * Number(tx.amount || 0), 0);
 
-  const nw = netWorth(data!.assets.map((asset: Rec) => ({ ...asset, currentValue: assetValue(asset) })), data!.liabilities, settings);
+  const nw = netWorth(data!.assets, data!.liabilities, settings, data!.transactions);
 
   const aCols: Col[] = [
     { key: 'name', label: t('name'), render: (r) => <div><div className="font-medium">{r.name}</div><div className="text-xs text-muted-foreground">{r.assetType}</div></div> },
