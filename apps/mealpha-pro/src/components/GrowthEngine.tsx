@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, BrainCircuit, Gauge, Sparkles, Target, Timer, CheckCircle2, ArrowUpRight } from 'lucide-react';
+import { Activity, BrainCircuit, Gauge, Sparkles, CheckCircle2, ArrowUpRight } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { useStore } from '../lib/store';
 import { fmtNum } from '../lib/i18n';
