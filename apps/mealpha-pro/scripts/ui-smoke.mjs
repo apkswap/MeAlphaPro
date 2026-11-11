@@ -56,22 +56,37 @@ for (const viewport of viewports) {
     }
   }
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
-  if (await page.getByRole('button', { name: /English/ }).count()) {
-    await page.getByRole('button', { name: /English/ }).click();
+  const isMobile = viewport.width < 768;
+  if (isMobile) {
+    const menuToggle = page.getByRole('button', { name: /بازکردن منو|Open menu/ });
+    if (await menuToggle.count()) await menuToggle.click();
+    else failures.push(`${viewport.name}: mobile menu control not visible`);
+  }
+  const languageButton = isMobile
+    ? page.getByRole('button', { name: /English/ })
+    : page.getByRole('button', { name: /EN|فا/ });
+  if (await languageButton.count()) {
+    await languageButton.click();
     await page.waitForFunction(() => document.documentElement.dir === 'ltr');
-    if (await page.getByRole('button', { name: /فارسی/ }).count()) {
-      await page.getByRole('button', { name: /فارسی/ }).click();
+    const persianButton = isMobile
+      ? page.getByRole('button', { name: /فارسی/ })
+      : page.getByRole('button', { name: /EN|فا/ });
+    if (await persianButton.count()) {
+      await persianButton.click();
       await page.waitForFunction(() => document.documentElement.dir === 'rtl');
+    } else {
+      failures.push(`${viewport.name}: return-to-Persian control not visible`);
     }
   } else {
     failures.push(`${viewport.name}: language switch control not visible`);
   }
-  const themeButton = page.getByRole('button', { name: /حالت روشن|Light mode/ });
+  const themeButton = isMobile
+    ? page.getByRole('button', { name: /تغییر تم|Toggle theme/ })
+    : page.getByRole('button', { name: /شب|روز|Night|Day/ });
   if (await themeButton.count()) {
     await themeButton.click();
     await page.waitForFunction(() => !document.documentElement.classList.contains('dark'));
-    const darkButton = page.getByRole('button', { name: /حالت تاریک|Dark mode/ });
-    await darkButton.click();
+    await themeButton.click();
     await page.waitForFunction(() => document.documentElement.classList.contains('dark'));
   } else {
     failures.push(`${viewport.name}: theme switch control not visible`);
