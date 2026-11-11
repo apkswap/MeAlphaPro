@@ -91,6 +91,34 @@ for (const viewport of viewports) {
   } else {
     failures.push(`${viewport.name}: theme switch control not visible`);
   }
+  await page.goto('http://127.0.0.1:8080/settings', { waitUntil: 'networkidle' });
+  const palettes = [
+    { id: 'violet', label: 'بنفش' },
+    { id: 'blue', label: 'آبی' },
+    { id: 'green', label: 'سبز' },
+    { id: 'cyan', label: 'فیروزه‌ای' },
+    { id: 'orange', label: 'نارنجی' },
+    { id: 'pink', label: 'صورتی' }
+  ];
+  for (const palette of palettes) {
+    const paletteButton = page.getByRole('button', { name: palette.label, exact: true });
+    if (!(await paletteButton.count())) {
+      failures.push(`${viewport.name}: ${palette.id} accent palette is missing`);
+      continue;
+    }
+    await paletteButton.click();
+    const saveSettings = page.getByRole('button', { name: /ذخیره|Save/ }).first();
+    await saveSettings.click();
+    try {
+      await page.waitForFunction(id => document.documentElement.dataset.colorTheme === id, palette.id, { timeout: 5000 });
+    } catch {
+      failures.push(`${viewport.name}: ${palette.id} accent palette did not persist after save`);
+    }
+  }
+  await page.reload({ waitUntil: 'networkidle' });
+  if ((await page.locator('html').getAttribute('data-color-theme')) !== 'pink') {
+    failures.push(`${viewport.name}: selected accent palette did not survive reload`);
+  }
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
   const notificationsButton = page.getByRole('button', { name: /اعلان‌ها|Notifications/ });
   if (await notificationsButton.count()) {
