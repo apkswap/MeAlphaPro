@@ -37,7 +37,10 @@ export default function Tasks() {
   const rows = data!.tasks.filter((x) =>
     filter === 'all' ? true : filter === 'open' ? x.status !== 'Done' : filter === 'overdue' ? x.status !== 'Done' && x.dueDate && x.dueDate < today : filter === 'today' ? x.dueDate === today : x.status === 'Done');
 
-  const toggle = (r: Rec) => save('tasks', completeTx({ status: r.status === 'Done' ? 'Todo' : 'Done' }, r), r.id);
+  // Update the existing task instead of saving a status-only object. IndexedDB
+  // writes replace the record, so omitting its fields would erase its title,
+  // due date, goal link, priority, and other task data.
+  const toggle = (r: Rec) => save('tasks', completeTx({ ...r, status: r.status === 'Done' ? 'Todo' : 'Done' }, r), r.id);
 
   const cols: Col[] = [
     { key: 'title', label: t('title'), render: (r) => (
