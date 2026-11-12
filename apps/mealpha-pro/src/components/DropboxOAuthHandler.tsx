@@ -80,7 +80,12 @@ export default function DropboxOAuthHandler() {
           dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000,
           dropboxAccountName: account?.name?.display_name || ''
         };
-        setLocalSettings(nextSettings);
+        const saved = await setLocalSettings(nextSettings);
+        if (!saved) {
+          localStorage.removeItem('mealpha.dropbox.pending');
+          await Browser.close().catch(() => undefined);
+          return;
+        }
         localStorage.removeItem('mealpha.dropbox.pending');
         await Browser.close().catch(() => undefined);
         toast.success(settingsRef.current.language === 'fa' ? 'حساب Dropbox متصل شد.' : 'Dropbox connected.');

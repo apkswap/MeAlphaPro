@@ -18,7 +18,7 @@ async function startLocalServer() {
       'Referrer-Policy': 'no-referrer',
       'X-Frame-Options': 'DENY',
       'Cache-Control': 'no-store',
-      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"
+      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://www.dropbox.com; manifest-src 'self'; worker-src 'self' blob:"
     });
     next();
   });
@@ -72,13 +72,66 @@ async function createWindow() {
       : parsed.origin === 'http://127.0.0.1:8080';
     if (!allowed) event.preventDefault();
   });
+  if (process.argv.includes('--smoke-test')) {
+    const startedAt = Date.now();
+    win.webContents.on('console-message', (_event, details, legacyMessage) => {
+      const level = typeof details === 'object' && details !== null ? details.level : details;
+      const message = typeof details === 'object' && details !== null ? details.message : legacyMessage;
+      if (Number(level) >= 2) console.error('MEALPHA_RENDERER_CONSOLE_ERROR:', message);
+    });
+    win.webContents.on('render-process-gone', (_event, details) => {
+      console.error('MEALPHA_RENDERER_CRASH:', JSON.stringify(details));
+      app.exit(1);
+    });
+    win.webContents.on('did-fail-load', (_event, code, description, validatedURL) => {
+      if (code !== -3) {
+        console.error('MEALPHA_RENDERER_LOAD_FAILED:', code, description, validatedURL);
+        app.exit(1);
+      }
+    });
+    const checkRenderer = () => {
+      if (win.isDestroyed()) return;
+      win.webContents.executeJavaScript(`(() => {
+        const root = document.querySelector('#root');
+        const text = (root?.innerText || '').replace(/\\s+/g, ' ').trim();
+        const visible = !!root && root.getBoundingClientRect().width > 0 && root.getBoundingClientRect().height > 0;
+        const fallback = text.includes('could not load this screen');
+        const splashOnly = !!root?.querySelector('.animate-pulse') && text.length < 20;
+        const shell = !!root?.querySelector('header') && !!root?.querySelector('nav');
+        return { ready: visible && shell && !fallback && !splashOnly && text.length >= 35, textLength: text.length, text: text.slice(0, 180), visible, shell, fallback, splashOnly, title: document.title, url: location.href };
+      })()`)
+        .then((state) => {
+          if (state.ready) {
+            console.log('MEALPHA_SMOKE_OK:', JSON.stringify(state));
+            app.quit();
+          } else if (Date.now() - startedAt > 30000) {
+            console.error('MEALPHA_SMOKE_FAILED: app did not render a usable screen:', JSON.stringify(state));
+            app.exit(1);
+          } else {
+            setTimeout(checkRenderer, 300);
+          }
+        })
+        .catch((error) => {
+          console.error('MEALPHA_SMOKE_FAILED:', error);
+          app.exit(1);
+        });
+    };
+    win.webContents.once('did-finish-load', checkRenderer);
+  }
   if (app.isPackaged) await win.loadURL('http://localhost:4173');
   else await win.loadURL('http://127.0.0.1:8080');
 }
 
-ipcMain.handle('mealpha:open-external', async (_event, rawUrl) => {
-  const url = new URL(String(rawUrl));
-  if (url.protocol !== 'https:' || !['www.dropbox.com', 'dropbox.com'].includes(url.hostname)) {
+ipcMain.handle('mealpha:open-external', async (event, rawUrl) => {
+  let senderUrl;
+  try { senderUrl = new URL(event.senderFrame?.url || ''); } catch { throw new Error('Untrusted application frame.'); }
+  const allowedSender = app.isPackaged
+    ? senderUrl.origin === 'http://localhost:4173'
+    : senderUrl.origin === 'http://127.0.0.1:8080';
+  if (!allowedSender) throw new Error('External links can only be opened by the MeAlpha application.');
+  let url;
+  try { url = new URL(String(rawUrl)); } catch { throw new Error('Invalid Dropbox authorization URL.'); }
+  if (url.protocol !== 'https:' || url.hostname !== 'www.dropbox.com' || url.pathname !== '/oauth2/authorize' || url.username || url.password) {
     throw new Error('Only the official Dropbox authorization page can be opened.');
   }
   await shell.openExternal(url.toString());
@@ -90,7 +143,8 @@ app.whenReady().then(async () => {
     await createWindow();
   } catch (error) {
     console.error(error);
-    app.quit();
+    if (process.argv.includes('--smoke-test')) app.exit(1);
+    else app.quit();
   }
   app.on('activate', () => {
     if (!BrowserWindow.getAllWindows().length) createWindow();

@@ -1,0 +1,63 @@
+name: Install UI UX Pro Max Skill
+
+on:
+  push:
+    branches:
+      - feature/ui-ux-pro-max-skill
+    paths:
+      - .github/workflows/install-ui-ux-pro-max.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: install-ui-ux-pro-max-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install the official pinned CLI and generate the Universal skill
+        env:
+          CI: "true"
+        run: npx --yes ui-ux-pro-max-cli@2.15.0 init --ai universal
+
+      - name: Verify generated skill and run its search engine
+        run: |
+          test -s .agents/skills/ui-ux-pro-max/SKILL.md
+          test -s .agents/skills/ui-ux-pro-max/scripts/search.py
+          python3 .agents/skills/ui-ux-pro-max/scripts/search.py "personal finance dashboard" --domain style
+          echo "UI UX Pro Max skill files and search engine verified."
+
+      - name: Commit generated skill files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .agents/skills/ui-ux-pro-max
+          if git diff --cached --quiet; then
+            echo "No generated skill changes to commit."
+            exit 0
+          fi
+          git commit -m "Install UI UX Pro Max v2.15.0 for Codex and universal agents"
+          AUTH="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $AUTH" push origin "HEAD:${GITHUB_REF_NAME}"

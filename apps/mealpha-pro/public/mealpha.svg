@@ -1,13 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-<defs>
- <linearGradient id="bg" x1="18" y1="12" x2="236" y2="244" gradientUnits="userSpaceOnUse"><stop stop-color="#17132f"/><stop offset=".52" stop-color="#101a36"/><stop offset="1" stop-color="#071d2c"/></linearGradient>
- <linearGradient id="mark" x1="42" y1="54" x2="211" y2="205" gradientUnits="userSpaceOnUse"><stop stop-color="#c4b5fd"/><stop offset=".48" stop-color="#8b5cf6"/><stop offset="1" stop-color="#22d3ee"/></linearGradient>
- <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
-</defs>
-<rect x="8" y="8" width="240" height="240" rx="62" fill="url(#bg)"/>
-<circle cx="188" cy="66" r="38" fill="#22d3ee" opacity=".18" filter="url(#glow)"/>
-<circle cx="64" cy="196" r="44" fill="#8b5cf6" opacity=".2" filter="url(#glow)"/>
-<path d="M43 190V67h30l55 70 55-70h30v123h-35v-68l-50 61-50-61v68z" fill="url(#mark)"/>
-<path d="M183 40l6 15 15 6-15 6-6 15-6-15-15-6 15-6z" fill="#67e8f9"/>
-<path d="M32 216h192" stroke="#fff" stroke-opacity=".12" stroke-width="2" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">MeAlpha brand mark</title>
+  <desc id="desc">A continuous monogram combining a rising path and an infinity loop.</desc>
+  <defs>
+    <linearGradient id="bg" x1="24" y1="16" x2="232" y2="240" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17132f"/><stop offset=".55" stop-color="#101d39"/><stop offset="1" stop-color="#071f2d"/>
+    </linearGradient>
+    <linearGradient id="alpha" x1="48" y1="48" x2="211" y2="211" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c4b5fd"/><stop offset=".48" stop-color="#8b5cf6"/><stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="64" fill="url(#bg)"/>
+  <circle cx="190" cy="65" r="34" fill="#22d3ee" opacity=".2" filter="url(#softGlow)"/>
+  <circle cx="65" cy="190" r="38" fill="#8b5cf6" opacity=".2" filter="url(#softGlow)"/>
+  <path d="M43 177V88c0-15 19-21 29-9l56 68 56-68c10-12 29-6 29 9v89"
+        fill="none" stroke="url(#alpha)" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M55 139c18-27 39-40 62-40 23 0 35 29 11 48-24 19-12 48 12 48 22 0 42-14 61-42"
+        fill="none" stroke="#f8fafc" stroke-opacity=".92" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="128" cy="147" r="6" fill="#67e8f9"/>
+  <path d="M194 34l5 13 13 5-13 5-5 13-5-13-13-5 13-5z" fill="#67e8f9"/>
 </svg>

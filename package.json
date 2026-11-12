@@ -10,5 +10,6 @@
     "build": "npm --workspace apps/mealpha-pro run build",
     "desktop:build": "npm --workspace apps/mealpha-pro run desktop:build"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "packageManager": "npm@10.9.2"
 }

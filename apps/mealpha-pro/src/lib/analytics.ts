@@ -53,7 +53,7 @@ export function monthFinance(tx: Rec[], st: Settings, offset = 0) {
 
 export function netWorth(assets: Rec[], liabs: Rec[], st: Settings, transactions: Rec[] = []) {
   const { conv, missing } = makeConverter(st);
-  const effectiveAssets = assets.map(asset => ({ ...asset, currentValue: Number(asset.currentValue || 0) + transactions.filter(tx => tx.assetId === asset.id && tx.currency === asset.currency).reduce((sum, tx) => sum + (tx.kind === 'Income' ? 1 : -1) * Number(tx.amount || 0), 0) }));
+  const effectiveAssets: Rec[] = assets.map((asset): Rec => ({ ...asset, currentValue: Number(asset.currentValue || 0) + transactions.filter(tx => tx.assetId === asset.id && tx.currency === asset.currency).reduce((sum, tx) => sum + (tx.kind === 'Income' ? 1 : -1) * Number(tx.amount || 0), 0) }));
   const a = effectiveAssets.reduce((s, x) => s + conv(Number(x.currentValue) || 0, x.currency), 0);
   const l = liabs.reduce((s, x) => s + conv(Number(x.outstandingAmount) || 0, x.currency), 0);
   return { assets: a / 100, liabilities: l / 100, net: (a - l) / 100, missing: [...missing] };

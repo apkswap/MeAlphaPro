@@ -1,0 +1,53 @@
+name: Generate npm lockfile
+
+on:
+  push:
+    branches:
+      - feature/premium-command-center-ui
+    paths:
+      - "package.json"
+      - "apps/mealpha-pro/package.json"
+      - ".github/workflows/generate-lockfile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: generate-npm-lockfile
+  cancel-in-progress: false
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout source without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: false
+      - name: Set up Node.js and npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+      - name: Generate deterministic npm lockfile
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit lockfile
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -s package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund --dry-run
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            echo "Lockfile is already current."
+            exit 0
+          fi
+          git commit -m "Add reproducible npm dependency lockfile"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          AUTH="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $AUTH" push origin "HEAD:${GITHUB_REF_NAME}"

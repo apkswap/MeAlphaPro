@@ -16,7 +16,8 @@ import { Share } from '@capacitor/share';
 
 const AVATARS = ['α', '🌟', '🚀', '🦊', '🐼', '🐺', '🦁', '🦉', '🎯', '💎', '🌙', '🔥'];
 const COLORS = ['#168be5', '#00b8d4', '#1261a0', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
-const THEMES = [{ id: 'orange', fa: 'نارنجی و سرمه‌ای', en: 'Amber & navy', color: '#f28a35' }, { id: 'green', fa: 'سبز مینیمال', en: 'Minimal green', color: '#2aa876' }, { id: 'blue', fa: 'آبی و سرمه‌ای', en: 'Blue & navy', color: '#279be8' }] as const;
+const MAX_BACKUP_BYTES = 50 * 1024 * 1024;
+const THEMES = [{ id: 'violet', fa: 'بنفش', en: 'Violet', color: '#8b5cf6' }, { id: 'blue', fa: 'آبی', en: 'Blue', color: '#279be8' }, { id: 'green', fa: 'سبز', en: 'Green', color: '#2aa876' }, { id: 'cyan', fa: 'فیروزه‌ای', en: 'Cyan', color: '#06b6d4' }, { id: 'orange', fa: 'نارنجی', en: 'Orange', color: '#f28a35' }, { id: 'pink', fa: 'صورتی', en: 'Pink', color: '#ec4899' }] as const;
 
 export default function SettingsPage() {
   const { t, settings, setLocalSettings } = useStore();
@@ -31,8 +32,8 @@ export default function SettingsPage() {
     if (!s.currency.trim()) return toast.error(t('currency'));
     setBusy(true);
     try {
-      setLocalSettings({ ...s, currency: s.currency.trim().toUpperCase() });
-      toast.success(t('saved'));
+      const saved = await setLocalSettings({ ...s, currency: s.currency.trim().toUpperCase() });
+      if (saved) toast.success(t('saved'));
     } catch { toast.error(t('error')); }
     finally { setBusy(false); }
   };
@@ -166,7 +167,14 @@ export default function SettingsPage() {
         dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000,
         dropboxAccountName: account?.name?.display_name || ''
       };
-      setS(nextSettings); setLocalSettings(nextSettings);
+      const saved = await setLocalSettings(nextSettings);
+      if (!saved) {
+        sessionStorage.removeItem('mealpha.dropbox.appKey');
+        sessionStorage.removeItem('mealpha.dropbox.verifier');
+        sessionStorage.removeItem('mealpha.dropbox.state');
+        return;
+      }
+      setS(nextSettings);
       sessionStorage.removeItem('mealpha.dropbox.appKey');
       sessionStorage.removeItem('mealpha.dropbox.verifier');
       sessionStorage.removeItem('mealpha.dropbox.state');
@@ -206,11 +214,23 @@ export default function SettingsPage() {
       });
       let snapshot;
       if (download.ok) {
-        snapshot = JSON.parse(await download.text());
+        const backupBlob = await download.blob();
+        if (backupBlob.size > MAX_BACKUP_BYTES) throw new Error('Dropbox backup exceeds the 50 MB safety limit.');
+        snapshot = JSON.parse(await backupBlob.text());
         if (snapshot?.version !== 1 || !snapshot?.data) throw new Error('The Dropbox backup format is invalid.');
         const { mergeSnapshot } = await import('../lib/localDb');
         await mergeSnapshot(snapshot);
-      } else if (download.status !== 409) {
+      } else if (download.status === 409) {
+        const detail = await download.text();
+        let payload: any = null;
+        try { payload = JSON.parse(detail); } catch { /* keep the raw response for diagnostics */ }
+        const isMissingBackup =
+          (payload?.error?.['.tag'] === 'path' && payload?.error?.path?.['.tag'] === 'not_found') ||
+          /^path\/not_found(?:\/|$)/.test(String(payload?.error_summary || ''));
+        if (!isMissingBackup) {
+          throw new Error('Dropbox download conflict: ' + String(payload?.user_message || payload?.error_summary || detail).slice(0, 240));
+        }
+      } else {
         const detail = await download.text();
         throw new Error('Dropbox download failed: ' + detail.slice(0, 240));
       }
@@ -239,6 +259,7 @@ export default function SettingsPage() {
   const importBackup = async (file?: File) => {
     if (!file) return;
     try {
+      if (file.size > MAX_BACKUP_BYTES) throw new Error(fa ? 'حجم فایل پشتیبان نباید بیشتر از ۵۰ مگابایت باشد.' : 'Backup file must be 50 MB or smaller.');
       const parsed = JSON.parse(await file.text());
       if (parsed?.version !== 1 || !parsed?.data || typeof parsed.data !== 'object') {
         throw new Error(fa ? 'فایل انتخاب‌شده، پشتیبان معتبر MeAlpha Pro نیست.' : 'The selected file is not a valid MeAlpha Pro backup.');
@@ -298,7 +319,7 @@ export default function SettingsPage() {
       </Panel>
       <Panel title={fa ? 'ظاهر و شخصی‌سازی' : 'Appearance & personalization'}>
         <div className="space-y-4">
-          <div><Label>{fa ? 'پالت رنگی' : 'Color palette'}</Label><div className="mt-2 grid sm:grid-cols-3 gap-3">{THEMES.map((theme) => <button key={theme.id} type="button" onClick={() => set('colorTheme', theme.id)} className={`rounded-xl border p-3 text-start transition-all ${s.colorTheme === theme.id ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border hover:border-primary/50'}`}><div className="mb-2 flex gap-1.5"><span className="h-6 w-6 rounded-full" style={{ background: theme.color }} /><span className="h-6 w-6 rounded-full bg-slate-800" /><span className="h-6 w-6 rounded-full bg-slate-500" /></div><span className="text-sm font-medium">{fa ? theme.fa : theme.en}</span></button>)}</div></div>
+          <div><div className="flex items-center justify-between gap-2"><Label>{fa ? 'رنگ اصلی برنامه' : 'Accent color'}</Label><span className="text-[10px] text-muted-foreground">{fa ? 'در هر دو حالت روز و شب حفظ می‌شود' : 'Persists in both light and dark mode'}</span></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">{THEMES.map((theme) => <button key={theme.id} type="button" aria-pressed={s.colorTheme === theme.id} onClick={() => set('colorTheme', theme.id as Settings['colorTheme'])} className={`flex items-center gap-3 rounded-xl border p-3 text-start transition-all ${s.colorTheme === theme.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border hover:border-primary/50'}`}><span className="h-7 w-7 shrink-0 rounded-full shadow-sm" style={{ background: theme.color }} /><span className="text-sm font-medium">{fa ? theme.fa : theme.en}</span>{s.colorTheme === theme.id && <CheckCircle2 className="ms-auto h-4 w-4 text-primary" />}</button>)}</div></div>
           <div className="space-y-1.5"><Label>{fa ? 'حالت نمایش' : 'Appearance mode'}</Label><Select value={s.theme || 'dark'} onValueChange={(v) => set('theme', v as Settings['theme'])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="dark">{fa ? 'تیره' : 'Dark'}</SelectItem><SelectItem value="light">{fa ? 'روشن' : 'Light'}</SelectItem></SelectContent></Select></div>
         </div>
       </Panel>

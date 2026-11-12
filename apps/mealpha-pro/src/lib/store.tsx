@@ -11,7 +11,7 @@ type Ctx = {
   reload: () => Promise<void>;
   save: (entity: Entity, record: Rec, id?: string) => Promise<boolean>;
   remove: (entity: Entity, id: string) => Promise<void>;
-  setLocalSettings: (s: Settings) => void;
+  setLocalSettings: (s: Settings) => Promise<boolean>;
 };
 const C = createContext<Ctx>(null as unknown as Ctx);
 export const useStore = () => useContext(C);
@@ -21,19 +21,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<Data | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULTS);
   const reload = useCallback(async () => {
-    try {
-      const d = await loadAll(); setData(d);
-      if (d.settings) setSettings({ ...DEFAULTS, ...d.settings });
-    } catch (error) {
-      console.error('Failed to initialize the local database:', error);
-      // Keep the interface usable instead of leaving the app on the loading splash forever.
-      // Database writes still report their own errors, so this does not pretend data was saved.
+    let timedOut = false;
+    // A stalled IndexedDB open must never leave the desktop app on an endless blank/loading screen.
+    const timeout = window.setTimeout(() => {
+      timedOut = true;
       setData({
         goals: [], tasks: [], habits: [], habitLogs: [], transactions: [],
         accounts: [], paymentReminders: [], customItems: [], assets: [],
         liabilities: [], settings: null,
       } as Data);
-      toast.error('Local storage is unavailable. The app opened in temporary view mode; changes may not be saved.');
+      toast.error('Local storage is taking too long. MeAlpha opened in temporary view; your existing data has not been deleted.');
+    }, 12000);
+    try {
+      const d = await loadAll();
+      setData(d);
+      if (d.settings) setSettings({ ...DEFAULTS, ...d.settings });
+    } catch (error) {
+      console.error('Failed to initialize the local database:', error);
+      setData({
+        goals: [], tasks: [], habits: [], habitLogs: [], transactions: [],
+        accounts: [], paymentReminders: [], customItems: [], assets: [],
+        liabilities: [], settings: null,
+      } as Data);
+      if (!timedOut) toast.error('Local storage is unavailable. MeAlpha opened in temporary view mode; changes may not be saved.');
+    } finally {
+      window.clearTimeout(timeout);
     }
   }, []);
   useEffect(() => { void reload(); }, [reload]);
@@ -52,9 +64,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try { await deleteRecord(entity, id); toast.success(t('deleted')); await reload(); }
     catch (error) { console.error(error); toast.error(t('error')); }
   };
-  const setLocalSettings = (next: Settings) => {
-    setSettings(next);
-    void persistSettings(next).catch((error) => { console.error(error); toast.error(t('error')); });
-  };
+  const setLocalSettings = useCallback(async (next: Settings): Promise<boolean> => {
+    try {
+      await persistSettings(next);
+      setSettings(next);
+      return true;
+    } catch (error) {
+      console.error(error);
+      toast.error(t('error'));
+      return false;
+    }
+  }, [t]);
   return <C.Provider value={{ data, settings, t, reload, save, remove, setLocalSettings }}>{children}</C.Provider>;
 }

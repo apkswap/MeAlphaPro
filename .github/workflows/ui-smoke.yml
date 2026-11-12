@@ -2,16 +2,22 @@ name: MeAlpha Pro UI smoke tests
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
+      - feature/premium-command-center-ui
     paths:
       - "apps/mealpha-pro/src/**"
       - "apps/mealpha-pro/scripts/ui-smoke.mjs"
       - ".github/workflows/ui-smoke.yml"
+      - "package.json"
+      - "package-lock.json"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   ui-smoke:
@@ -23,7 +29,7 @@ jobs:
         with:
           node-version: "22.14.0"
       - name: Install project dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Install Playwright
         run: npm install --no-save --no-audit --no-fund playwright
       - name: Install Chromium
@@ -42,3 +48,40 @@ jobs:
           path: ui-*.png
           if-no-files-found: ignore
           retention-days: 7
+      - name: Prepare public screenshot gallery
+        if: success() && github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          mkdir -p preview-site
+          cp ui-*.png preview-site/
+          cat > preview-site/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>MeAlpha Pro — UI Preview</title>
+            <style>
+              body{margin:0;padding:24px;background:#10111b;color:#f4f4fa;font:16px system-ui,sans-serif}
+              main{max-width:1500px;margin:auto}h1{font-size:28px}p{color:#b8bbca}
+              section{margin:28px 0}h2{font-size:18px}img{display:block;width:100%;height:auto;border-radius:14px;border:1px solid #34364a}
+            </style>
+          </head>
+          <body><main>
+            <h1>MeAlpha Pro — Real UI screenshots</h1>
+            <p>Captured automatically by the Playwright UI smoke test from the application build.</p>
+            <section><h2>Desktop · 1440px</h2><img src="ui-desktop.png" alt="MeAlpha Pro desktop screenshot"></section>
+            <section><h2>Mobile · 390px</h2><img src="ui-mobile.png" alt="MeAlpha Pro mobile screenshot"></section>
+            <section><h2>Small mobile · 320px</h2><img src="ui-small-mobile.png" alt="MeAlpha Pro small mobile screenshot"></section>
+          </main></body></html>
+          HTML
+      - name: Publish screenshots to a public preview branch
+        if: success() && github.event_name == 'push'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: ui-preview
+          publish_dir: preview-site
+          destination_dir: latest
+          keep_files: false
+          commit_message: "Publish MeAlpha Pro UI screenshots"

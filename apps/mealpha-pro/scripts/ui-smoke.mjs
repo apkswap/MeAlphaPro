@@ -41,27 +41,134 @@ for (const viewport of viewports) {
     if (route === '/focus' && !(await page.getByRole('button', { name: /افزودن جلسه|Add session/ }).count())) {
       failures.push(`${viewport.name} focus: manual session control missing`);
     }
+    if (route === '/insights') {
+      for (const [label, pattern] of [['3-month', /3 (mo|ماه)/], ['6-month', /6 (mo|ماه)/], ['12-month', /12 (mo|ماه)/]]) {
+        const periodButton = page.getByRole('button', { name: pattern });
+        if (!(await periodButton.count())) {
+          failures.push(`${viewport.name} insights: ${label} period control missing`);
+        } else {
+          await periodButton.click();
+          if ((await periodButton.getAttribute('aria-pressed')) !== 'true') {
+            failures.push(`${viewport.name} insights: ${label} period control did not activate`);
+          }
+        }
+      }
+    }
   }
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
-  if (await page.getByRole('button', { name: /English/ }).count()) {
-    await page.getByRole('button', { name: /English/ }).click();
+  const isMobile = viewport.width < 768;
+  if (isMobile) {
+    const menuToggle = page.getByRole('button', { name: /بازکردن منو|Open menu/ });
+    if (await menuToggle.count()) await menuToggle.click();
+    else failures.push(`${viewport.name}: mobile menu control not visible`);
+  }
+  const languageButton = isMobile
+    ? page.getByRole('button', { name: /English/ })
+    : page.getByRole('button', { name: /^(EN|فا)$/i });
+  if (await languageButton.count()) {
+    await languageButton.click();
     await page.waitForFunction(() => document.documentElement.dir === 'ltr');
-    if (await page.getByRole('button', { name: /فارسی/ }).count()) {
-      await page.getByRole('button', { name: /فارسی/ }).click();
+    const persianButton = isMobile
+      ? page.getByRole('button', { name: /فارسی/ })
+      : page.getByRole('button', { name: /^(EN|فا)$/i });
+    if (await persianButton.count()) {
+      await persianButton.click();
       await page.waitForFunction(() => document.documentElement.dir === 'rtl');
+    } else {
+      failures.push(`${viewport.name}: return-to-Persian control not visible`);
     }
   } else {
     failures.push(`${viewport.name}: language switch control not visible`);
   }
-  const themeButton = page.getByRole('button', { name: /حالت روشن|Light mode/ });
+  const themeButton = isMobile
+    ? page.getByRole('button', { name: /تغییر تم|Toggle theme/ })
+    : page.getByRole('button', { name: /شب|روز|Night|Day/ });
   if (await themeButton.count()) {
     await themeButton.click();
     await page.waitForFunction(() => !document.documentElement.classList.contains('dark'));
-    const darkButton = page.getByRole('button', { name: /حالت تاریک|Dark mode/ });
-    await darkButton.click();
+    await themeButton.click();
     await page.waitForFunction(() => document.documentElement.classList.contains('dark'));
   } else {
     failures.push(`${viewport.name}: theme switch control not visible`);
+  }
+  await page.goto('http://127.0.0.1:8080/settings', { waitUntil: 'networkidle' });
+  const palettes = [
+    { id: 'violet', label: 'بنفش' },
+    { id: 'blue', label: 'آبی' },
+    { id: 'green', label: 'سبز' },
+    { id: 'cyan', label: 'فیروزه‌ای' },
+    { id: 'orange', label: 'نارنجی' },
+    { id: 'pink', label: 'صورتی' }
+  ];
+  for (const palette of palettes) {
+    const paletteButton = page.getByRole('button', { name: palette.label, exact: true });
+    if (!(await paletteButton.count())) {
+      failures.push(`${viewport.name}: ${palette.id} accent palette is missing`);
+      continue;
+    }
+    await paletteButton.click();
+    const saveSettings = page.getByRole('button', { name: /ذخیره|Save/ }).first();
+    await saveSettings.click();
+    try {
+      await page.waitForFunction(id => document.documentElement.dataset.colorTheme === id, palette.id, { timeout: 5000 });
+    } catch {
+      failures.push(`${viewport.name}: ${palette.id} accent palette did not persist after save`);
+    }
+  }
+  await page.reload({ waitUntil: 'networkidle' });
+  if ((await page.locator('html').getAttribute('data-color-theme')) !== 'pink') {
+    failures.push(`${viewport.name}: selected accent palette did not survive reload`);
+  }
+  await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+  const notificationsButton = page.getByRole('button', { name: /اعلان‌ها|Notifications/ });
+  if (await notificationsButton.count()) {
+    await notificationsButton.click();
+    if (!(await page.getByRole('dialog', { name: /مرکز اعلان‌ها|Notification center/ }).count())) {
+      failures.push(`${viewport.name}: notification bell did not open its panel`);
+    }
+    await page.getByRole('button', { name: /بستن اعلان‌ها|Close notifications/ }).click();
+  } else {
+    failures.push(`${viewport.name}: notification bell control missing`);
+  }
+  const profileButton = page.getByRole('button', { name: /پروفایل کاربری|User profile/ });
+  if (await profileButton.count()) {
+    await profileButton.click();
+    if (!(await page.getByRole('dialog', { name: /منوی پروفایل|Profile menu/ }).count())) {
+      failures.push(`${viewport.name}: profile button did not open its menu`);
+    }
+    const profileLink = page.getByRole('link', { name: /مشاهده و ویرایش پروفایل|View and edit profile/ });
+    if (await profileLink.count()) {
+      await profileLink.click();
+      await page.waitForURL('**/settings');
+    } else {
+      failures.push(`${viewport.name}: profile menu has no working settings link`);
+    }
+  } else {
+    failures.push(`${viewport.name}: profile control missing`);
+  }
+  if (isMobile) {
+    await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+    const bottomNav = page.locator('nav[aria-label="ناوبری اصلی"]');
+    if (!(await bottomNav.count())) failures.push(`${viewport.name}: mobile bottom navigation missing`);
+    else {
+      const layout = await bottomNav.evaluate(el => {
+        const nav = el.getBoundingClientRect();
+        const links = [...el.querySelectorAll('a')].map(a => {
+          const r = a.getBoundingClientRect();
+          return { top: r.top, bottom: r.bottom, width: r.width };
+        });
+        return { navTop: nav.top, navBottom: nav.bottom, viewportHeight: innerHeight, links };
+      });
+      if (layout.links.length !== 5 || layout.links.some(link => link.width < 42)) {
+        failures.push(`${viewport.name}: mobile navigation items are missing or too narrow ${JSON.stringify(layout)}`);
+      }
+      if (layout.links.length && Math.max(...layout.links.map(link => link.top)) - Math.min(...layout.links.map(link => link.top)) > 3) {
+        failures.push(`${viewport.name}: mobile navigation items are stacked instead of aligned in one row ${JSON.stringify(layout)}`);
+      }
+      if (layout.navBottom < layout.viewportHeight - 2 || layout.navTop < layout.viewportHeight - 130) {
+        failures.push(`${viewport.name}: mobile navigation is not anchored to the bottom safe area ${JSON.stringify(layout)}`);
+      }
+    }
   }
   if (viewport.name === 'desktop' || viewport.name === 'mobile' || viewport.name === 'small-mobile') {
     await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
