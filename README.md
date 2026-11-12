@@ -171,12 +171,14 @@ Source code and build workflows are maintained in this repository:
 
 ## Download MeAlpha Pro
 
-Official Windows and Android packages are published in **GitHub Releases** after both platform builds pass.
+Users can choose either supported release line; publishing V2 does not remove or replace the V1 release.
 
-- **Latest release:** https://github.com/apkswap/MeAlphaPro/releases/latest
-- **Windows installer:** `MeAlpha-Pro-Windows-x64.exe`
-- **Android APK:** `MeAlpha-Pro-Android.apk`
-- **SHA-256 checksums:** `SHA256SUMS.txt`
+- **Version 1 — V1.0.0:** https://github.com/apkswap/MeAlphaPro/releases/tag/v1.0.0
+- **Version 2 — V2.0.0:** https://github.com/apkswap/MeAlphaPro/releases/tag/v2.0.0
+- **All releases and future updates:** https://github.com/apkswap/MeAlphaPro/releases
+- **Latest overall release:** https://github.com/apkswap/MeAlphaPro/releases/latest
+
+Each release page contains its own Windows installer, Android APK and Linux packages when those builds are available, plus SHA-256 checksums.
 
 The Android package produced by the current release workflow is a debug-signed APK intended for direct installation and evaluation. It is not a Google Play production-signed build. For each public release, the app version in `apps/mealpha-pro/package.json` must be incremented; pushes to `main` that modify the app trigger the Windows and Android release pipeline.
 
