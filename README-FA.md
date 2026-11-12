@@ -99,12 +99,14 @@ Artifactها پس از موفقیت workflow در صفحه همان اجرای G
 
 ## دریافت نسخه‌ها
 
-نسخه‌های رسمی ویندوز و اندروید پس از موفقیت بیلد هر دو پلتفرم در بخش GitHub Releases منتشر می‌شوند:
+کاربر می‌تواند بین دو شاخه انتشار انتخاب کند؛ انتشار نسخه ۲ باعث حذف یا جایگزینی فایل‌های نسخه ۱ نمی‌شود:
 
-- [دریافت آخرین نسخه](https://github.com/apkswap/MeAlphaPro/releases/latest)
-- نصب‌کننده ویندوز: `MeAlpha-Pro-Windows-x64.exe`
-- فایل اندروید: `MeAlpha-Pro-Android.apk`
-- هش‌های بررسی صحت فایل: `SHA256SUMS.txt`
+- **نسخه ۱ — V1.0.0:** [دانلودها و فایل‌های نسخه اول](https://github.com/apkswap/MeAlphaPro/releases/tag/v1.0.0)
+- **نسخه ۲ — V2.0.0:** [دانلودها و فایل‌های نسخه دوم](https://github.com/apkswap/MeAlphaPro/releases/tag/v2.0.0)
+- **تمام نسخه‌ها و به‌روزرسانی‌های آینده:** [آرشیو انتشارها](https://github.com/apkswap/MeAlphaPro/releases)
+- **آخرین انتشار کلی:** [Latest Release](https://github.com/apkswap/MeAlphaPro/releases/latest)
+
+در صفحه هر انتشار، نصب‌کننده ویندوز، APK اندروید و بسته‌های لینوکس در صورت آماده بودن بیلد همان پلتفرم، به‌همراه فایل SHA-256 قرار می‌گیرد.
 
 **توجه:** APK فعلی با کلید Debug امضا می‌شود و برای نصب مستقیم و ارزیابی است؛ این فایل نسخه امضاشده مخصوص انتشار در Google Play نیست. برای هر انتشار جدید باید شماره نسخه در `apps/mealpha-pro/package.json` افزایش یابد.
 
