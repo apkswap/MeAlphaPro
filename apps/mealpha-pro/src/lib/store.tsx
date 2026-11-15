@@ -7,7 +7,7 @@ export type { Rec, Entity };
 export type Settings = AppSettings;
 type Data = Awaited<ReturnType<typeof loadAll>>;
 type Ctx = {
-  data: Data | null; settings: Settings; t: (k: Key) => string;
+  data: Data | null; storageError: string | null; settings: Settings; t: (k: Key) => string;
   reload: () => Promise<void>;
   save: (entity: Entity, record: Rec, id?: string) => Promise<boolean>;
   remove: (entity: Entity, id: string) => Promise<void>;
@@ -19,31 +19,27 @@ const DEFAULTS: Settings = { language: 'fa', calendar: 'jalali', currency: 'IRT'
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<Data | null>(null);
+  const [storageError, setStorageError] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULTS);
   const reload = useCallback(async () => {
     let timedOut = false;
+    setStorageError(null);
     // A stalled IndexedDB open must never leave the desktop app on an endless blank/loading screen.
     const timeout = window.setTimeout(() => {
       timedOut = true;
-      setData({
-        goals: [], tasks: [], habits: [], habitLogs: [], transactions: [],
-        accounts: [], paymentReminders: [], customItems: [], assets: [],
-        liabilities: [], settings: null,
-      } as Data);
-      toast.error('Local storage is taking too long. MeAlpha opened in temporary view; your existing data has not been deleted.');
+      setStorageError('Local storage did not respond within 12 seconds. Existing records were not intentionally changed. Do not clear app storage; retry or restore from a MeAlpha backup.');
     }, 12000);
     try {
       const d = await loadAll();
-      setData(d);
-      if (d.settings) setSettings({ ...DEFAULTS, ...d.settings });
+      if (!timedOut) {
+        setData(d);
+        setStorageError(null);
+        if (d.settings) setSettings({ ...DEFAULTS, ...d.settings });
+      }
     } catch (error) {
       console.error('Failed to initialize the local database:', error);
-      setData({
-        goals: [], tasks: [], habits: [], habitLogs: [], transactions: [],
-        accounts: [], paymentReminders: [], customItems: [], assets: [],
-        liabilities: [], settings: null,
-      } as Data);
-      if (!timedOut) toast.error('Local storage is unavailable. MeAlpha opened in temporary view mode; changes may not be saved.');
+      setData(null);
+      setStorageError(error instanceof Error ? error.message : 'Local storage is unavailable. Your existing data has not been deleted by this screen.');
     } finally {
       window.clearTimeout(timeout);
     }
@@ -75,5 +71,5 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return false;
     }
   }, [t]);
-  return <C.Provider value={{ data, settings, t, reload, save, remove, setLocalSettings }}>{children}</C.Provider>;
+  return <C.Provider value={{ data, storageError, settings, t, reload, save, remove, setLocalSettings }}>{children}</C.Provider>;
 }

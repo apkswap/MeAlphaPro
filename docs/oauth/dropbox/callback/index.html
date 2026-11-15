@@ -4,10 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111023">
+  <meta name="robots" content="noindex,nofollow">
   <title>Returning to MeAlpha Pro</title>
   <style>
-    body{margin:0;min-height:100vh;display:grid;place-items:center;background:#111023;color:#f7f7fb;font:16px system-ui,sans-serif}
-    main{width:min(90%,440px);padding:32px;border:1px solid #34324c;border-radius:22px;background:#1b1930;text-align:center;box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#111023;color:#f7f7fb;font:16px system-ui,sans-serif}
+    main{width:min(100%,440px);padding:32px;border:1px solid #34324c;border-radius:22px;background:#1b1930;text-align:center;box-sizing:border-box}
     a{display:inline-block;margin-top:18px;padding:12px 20px;border-radius:12px;background:#8b5cf6;color:white;text-decoration:none;font-weight:700}
     p{color:#c4c1d7;line-height:1.7}
   </style>
@@ -15,25 +16,42 @@
 <body>
   <main>
     <h1>Returning to MeAlpha Pro…</h1>
-    <p>Dropbox authorization is complete. If the app does not open automatically, use the button below.</p>
+    <p id="message">Dropbox authorization was received. Return to the app to finish connecting your account.</p>
     <a id="open-app" href="#">Open MeAlpha Pro</a>
   </main>
   <script>
     (function () {
-      var callback = window.location.pathname + window.location.search + window.location.hash;
-      var fallback = window.location.href;
-      var intent = 'intent://oauth/dropbox/callback' + window.location.search + window.location.hash
+      var params = new URLSearchParams(window.location.search);
+      var fallbackMode = params.get('fallback') === '1';
+      params.delete('fallback');
+      var query = params.toString();
+      var suffix = (query ? '?' + query : '') + window.location.hash;
+      var appUrl = 'com.mealpha.pro://oauth/dropbox/callback' + suffix;
+      var fallbackUrl = new URL(window.location.href);
+      fallbackUrl.searchParams.set('fallback', '1');
+      var intentUrl = 'intent://oauth/dropbox/callback' + suffix
         + '#Intent;scheme=com.mealpha.pro;package=com.mealpha.pro;S.browser_fallback_url='
-        + encodeURIComponent(fallback) + ';end';
+        + encodeURIComponent(fallbackUrl.toString()) + ';end';
       var button = document.getElementById('open-app');
-      button.href = intent;
-      // Explicit package targeting prevents Android from handing this callback
-      // to an unrelated app that happens to register a broad URL handler.
-      window.location.replace(intent);
+      button.href = intentUrl;
+      if (params.has('error')) {
+        document.getElementById('message').textContent =
+          params.get('error_description') || params.get('error') || 'Dropbox authorization was not completed.';
+      } else if (!params.has('code') || !params.has('state')) {
+        document.getElementById('message').textContent =
+          'The Dropbox response is incomplete. Return to MeAlpha Pro and start the connection again.';
+      }
+      if (fallbackMode) {
+        document.getElementById('message').textContent =
+          'Automatic return did not open the app. Tap the button below to try again.';
+        button.style.display = 'inline-block';
+        return;
+      }
+      window.location.replace(intentUrl);
       window.setTimeout(function () {
-        button.textContent = 'Open MeAlpha Pro';
         button.style.display = 'inline-block';
       }, 1200);
     })();
-  </script></body>
+  </script>
+</body>
 </html>

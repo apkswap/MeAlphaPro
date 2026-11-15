@@ -18,7 +18,18 @@ function openDb(): Promise<IDBDatabase> {
       const db = request.result;
       for (const name of STORES) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: name === 'appMeta' ? 'key' : 'id' });
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const db = request.result;
+      db.onversionchange = () => {
+        db.close();
+        dbPromise = undefined;
+      };
+      resolve(db);
+    };
+    request.onblocked = () => {
+      dbPromise = undefined;
+      reject(new Error('The local database upgrade is blocked by another open MeAlpha Pro tab or WebView. Close other app windows and retry.'));
+    };
     request.onerror = () => {
       // Do not cache a rejected open request forever; a later reload may recover.
       dbPromise = undefined;

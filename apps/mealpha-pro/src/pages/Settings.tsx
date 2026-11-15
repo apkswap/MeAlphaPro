@@ -8,7 +8,7 @@ import { Textarea } from '@project/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@project/components/ui/select';
 import { useStore, Settings } from '../lib/store';
 import { Panel, PageHeader } from '../components/ui-bits';
-import { getSnapshot } from '../lib/localDb';
+import { assertValidSnapshot, getSnapshot } from '../lib/localDb';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
@@ -91,6 +91,18 @@ export default function SettingsPage() {
     }
   };
   const redirectUri = () => 'http://localhost:4173/oauth/dropbox/callback';
+
+  const copyDropboxRedirectUri = async () => {
+    const uri = Capacitor.getPlatform() === 'android'
+      ? 'https://apkswap.github.io/MeAlphaPro/oauth/dropbox/callback/'
+      : redirectUri();
+    try {
+      await navigator.clipboard.writeText(uri);
+      toast.success(fa ? 'آدرس بازگشت کپی شد.' : 'Redirect URI copied.');
+    } catch {
+      window.prompt(fa ? 'آدرس را کپی کنید:' : 'Copy this redirect URI:', uri);
+    }
+  };
 
   const pollDropboxCallback = async (state: string) => {
     const deadline = Date.now() + 5 * 60 * 1000;
@@ -208,7 +220,11 @@ export default function SettingsPage() {
         const refreshed = { ...settings, ...s, dropboxAccessToken: accessToken, dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000 };
         setS(refreshed); setLocalSettings(refreshed);
       }
+      const localBeforeSync = await getSnapshot();
+      const localCount = Object.values(localBeforeSync.data).reduce((sum, rows) => sum + (Array.isArray(rows) ? rows.length : 0), 0);
       const path = '/Apps/MeAlphaPro/mealpha-pro-sync.json';
+      let backupFound = false;
+      let remoteCount = 0;
       const download = await fetch('https://content.dropboxapi.com/2/files/download', {
         method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Dropbox-API-Arg': JSON.stringify({ path }) }
       });
@@ -217,7 +233,12 @@ export default function SettingsPage() {
         const backupBlob = await download.blob();
         if (backupBlob.size > MAX_BACKUP_BYTES) throw new Error('Dropbox backup exceeds the 50 MB safety limit.');
         snapshot = JSON.parse(await backupBlob.text());
-        if (snapshot?.version !== 1 || !snapshot?.data) throw new Error('The Dropbox backup format is invalid.');
+        assertValidSnapshot(snapshot);
+        remoteCount = Object.values(snapshot.data).reduce((sum, rows) => sum + (Array.isArray(rows) ? rows.length : 0), 0);
+        backupFound = true;
+        if (localCount === 0 && remoteCount === 0) {
+          throw new Error(fa ? 'نسخه محلی و پشتیبان Dropbox هر دو خالی هستند؛ برای جلوگیری از بازنویسی، Sync متوقف شد.' : 'Both local data and the Dropbox backup are empty. Sync was stopped to prevent overwriting recoverable data.');
+        }
         const { mergeSnapshot } = await import('../lib/localDb');
         await mergeSnapshot(snapshot);
       } else if (download.status === 409) {
@@ -230,11 +251,21 @@ export default function SettingsPage() {
         if (!isMissingBackup) {
           throw new Error('Dropbox download conflict: ' + String(payload?.user_message || payload?.error_summary || detail).slice(0, 240));
         }
+        if (localCount === 0) {
+          throw new Error(fa ? 'هیچ نسخه پشتیبان Dropbox یا داده محلی پیدا نشد. برای جلوگیری از آپلود نسخه خالی، Sync متوقف شد.' : 'No Dropbox backup or local records were found. Sync was stopped so an empty snapshot cannot overwrite a recoverable backup.');
+        }
       } else {
         const detail = await download.text();
         throw new Error('Dropbox download failed: ' + detail.slice(0, 240));
       }
+      if (!backupFound && localCount === 0) {
+        throw new Error(fa ? 'داده محلی خالی است و نسخه پشتیبان Dropbox پیدا نشد؛ هیچ فایلی آپلود نشد.' : 'Local data is empty and no Dropbox backup was found. Nothing was uploaded.');
+      }
       const latest = await getSnapshot();
+      const latestCount = Object.values(latest.data).reduce((sum, rows) => sum + (Array.isArray(rows) ? rows.length : 0), 0);
+      if (latestCount === 0) {
+        throw new Error(fa ? 'Snapshot نهایی خالی است؛ برای جلوگیری از حذف اطلاعات ابری، آپلود لغو شد.' : 'The final snapshot is empty. Upload was cancelled to protect cloud data.');
+      }
       const upload = await fetch('https://content.dropboxapi.com/2/files/upload', {
         method: 'POST',
         headers: {
@@ -344,6 +375,18 @@ export default function SettingsPage() {
           <div className="grid sm:grid-cols-[1fr_auto] gap-2 items-end">
             <div className="space-y-1.5"><Label>Dropbox App Key</Label><Input dir="ltr" value={s.dropboxAppKey || ''} onChange={e => set('dropboxAppKey', e.target.value.trim())} placeholder="Enter your Dropbox app key" /></div>
             <Button type="button" variant="outline" onClick={connectDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{s.dropboxRefreshToken ? (fa ? 'اتصال مجدد' : 'Reconnect') : (fa ? 'اتصال Dropbox' : 'Connect Dropbox')}</Button>
+          </div>
+          <div className="rounded-lg border border-border/70 bg-background/60 p-3 space-y-2 text-sm">
+            <div className="font-semibold">{fa ? 'راهنمای راه‌اندازی اتصال' : 'Connection setup guide'}</div>
+            <ol className="list-decimal ps-5 space-y-1.5 text-muted-foreground">
+              <li>{fa ? 'در Dropbox App Console، برنامه خود را باز کنید و App Key را در کادر بالا وارد کنید.' : 'Open your app in Dropbox App Console and enter its App Key above.'}</li>
+              <li>{fa ? 'در بخش OAuth 2 → Redirect URIs، آدرس بازگشت مخصوص این دستگاه را دقیقاً ثبت کنید:' : 'Under OAuth 2 → Redirect URIs, register the exact redirect URI for this platform:'}</li>
+            </ol>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="min-w-0 flex-1 break-all rounded-md bg-muted px-2 py-2 text-xs" dir="ltr">{Capacitor.getPlatform() === 'android' ? 'https://apkswap.github.io/MeAlphaPro/oauth/dropbox/callback/' : redirectUri()}</code>
+              <Button type="button" size="sm" variant="outline" onClick={() => void copyDropboxRedirectUri()}>{fa ? 'کپی آدرس' : 'Copy URI'}</Button>
+            </div>
+            <p className="text-xs leading-6 text-muted-foreground">{fa ? 'در اندروید پس از تأیید Dropbox، مرورگر باید خودکار به MeAlpha Pro برگردد. اگر برگشت خودکار انجام نشد، دکمه Open MeAlpha Pro را در صفحه بازگشت بزنید. در ویندوز، برنامه دسکتاپ باید در حال اجرا باشد.' : 'On Android, after Dropbox approval the browser should return to MeAlpha Pro automatically. If it does not, tap Open MeAlpha Pro on the callback page. On Windows, keep the desktop app running.'}</p>
           </div>
           {s.dropboxRefreshToken && <div className="flex items-center justify-between gap-3 text-xs text-emerald-500"><span>{fa ? 'متصل' : 'Connected'}{s.dropboxAccountName ? ' · ' + s.dropboxAccountName : ''}</span><Button type="button" size="sm" onClick={syncDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{fa ? 'همگام‌سازی اکنون' : 'Sync now'}</Button></div>}
         </div>
