@@ -8,7 +8,7 @@ import { Textarea } from '@project/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@project/components/ui/select';
 import { useStore, Settings } from '../lib/store';
 import { Panel, PageHeader } from '../components/ui-bits';
-import { getSnapshot } from '../lib/localDb';
+import { assertValidSnapshot, getSnapshot } from '../lib/localDb';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
@@ -208,7 +208,11 @@ export default function SettingsPage() {
         const refreshed = { ...settings, ...s, dropboxAccessToken: accessToken, dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000 };
         setS(refreshed); setLocalSettings(refreshed);
       }
+      const localBeforeSync = await getSnapshot();
+      const localCount = Object.values(localBeforeSync.data).reduce((sum, rows) => sum + rows.length, 0);
       const path = '/Apps/MeAlphaPro/mealpha-pro-sync.json';
+      let backupFound = false;
+      let remoteCount = 0;
       const download = await fetch('https://content.dropboxapi.com/2/files/download', {
         method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Dropbox-API-Arg': JSON.stringify({ path }) }
       });
@@ -217,7 +221,12 @@ export default function SettingsPage() {
         const backupBlob = await download.blob();
         if (backupBlob.size > MAX_BACKUP_BYTES) throw new Error('Dropbox backup exceeds the 50 MB safety limit.');
         snapshot = JSON.parse(await backupBlob.text());
-        if (snapshot?.version !== 1 || !snapshot?.data) throw new Error('The Dropbox backup format is invalid.');
+        assertValidSnapshot(snapshot);
+        remoteCount = Object.values(snapshot.data).reduce((sum, rows) => sum + (Array.isArray(rows) ? rows.length : 0), 0);
+        backupFound = true;
+        if (localCount === 0 && remoteCount === 0) {
+          throw new Error(fa ? 'نسخه محلی و پشتیبان Dropbox هر دو خالی هستند؛ برای جلوگیری از بازنویسی، Sync متوقف شد.' : 'Both local data and the Dropbox backup are empty. Sync was stopped to prevent overwriting recoverable data.');
+        }
         const { mergeSnapshot } = await import('../lib/localDb');
         await mergeSnapshot(snapshot);
       } else if (download.status === 409) {
@@ -230,11 +239,21 @@ export default function SettingsPage() {
         if (!isMissingBackup) {
           throw new Error('Dropbox download conflict: ' + String(payload?.user_message || payload?.error_summary || detail).slice(0, 240));
         }
+        if (localCount === 0) {
+          throw new Error(fa ? 'هیچ نسخه پشتیبان Dropbox یا داده محلی پیدا نشد. برای جلوگیری از آپلود نسخه خالی، Sync متوقف شد.' : 'No Dropbox backup or local records were found. Sync was stopped so an empty snapshot cannot overwrite a recoverable backup.');
+        }
       } else {
         const detail = await download.text();
         throw new Error('Dropbox download failed: ' + detail.slice(0, 240));
       }
+      if (!backupFound && localCount === 0) {
+        throw new Error(fa ? 'داده محلی خالی است و نسخه پشتیبان Dropbox پیدا نشد؛ هیچ فایلی آپلود نشد.' : 'Local data is empty and no Dropbox backup was found. Nothing was uploaded.');
+      }
       const latest = await getSnapshot();
+      const latestCount = Object.values(latest.data).reduce((sum, rows) => sum + rows.length, 0);
+      if (latestCount === 0) {
+        throw new Error(fa ? 'Snapshot نهایی خالی است؛ برای جلوگیری از حذف اطلاعات ابری، آپلود لغو شد.' : 'The final snapshot is empty. Upload was cancelled to protect cloud data.');
+      }
       const upload = await fetch('https://content.dropboxapi.com/2/files/upload', {
         method: 'POST',
         headers: {
