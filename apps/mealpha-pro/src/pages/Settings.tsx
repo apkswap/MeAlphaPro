@@ -209,7 +209,7 @@ export default function SettingsPage() {
         setS(refreshed); setLocalSettings(refreshed);
       }
       const localBeforeSync = await getSnapshot();
-      const localCount = Object.values(localBeforeSync.data).reduce((sum, rows) => sum + rows.length, 0);
+      const localCount = Object.values(localBeforeSync.data).reduce((sum, rows) => sum + (Array.isArray(rows) ? rows.length : 0), 0);
       const path = '/Apps/MeAlphaPro/mealpha-pro-sync.json';
       let backupFound = false;
       let remoteCount = 0;
@@ -250,7 +250,7 @@ export default function SettingsPage() {
         throw new Error(fa ? 'داده محلی خالی است و نسخه پشتیبان Dropbox پیدا نشد؛ هیچ فایلی آپلود نشد.' : 'Local data is empty and no Dropbox backup was found. Nothing was uploaded.');
       }
       const latest = await getSnapshot();
-      const latestCount = Object.values(latest.data).reduce((sum, rows) => sum + rows.length, 0);
+      const latestCount = Object.values(latest.data).reduce((sum, rows) => sum + (Array.isArray(rows) ? rows.length : 0), 0);
       if (latestCount === 0) {
         throw new Error(fa ? 'Snapshot نهایی خالی است؛ برای جلوگیری از حذف اطلاعات ابری، آپلود لغو شد.' : 'The final snapshot is empty. Upload was cancelled to protect cloud data.');
       }
