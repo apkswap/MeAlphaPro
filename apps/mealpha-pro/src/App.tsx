@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { assertValidSnapshot, mergeSnapshot } from './lib/localDb';
 import DropboxOAuthHandler from './components/DropboxOAuthHandler';
 import { Toaster } from '@project/components/ui/sonner';
@@ -53,7 +53,15 @@ function Shell() {
     </main>
   );
   if (!data) return <Splash />;
-  return <BrowserRouter basename={window.location.pathname.startsWith("/MeAlphaPro/preview") ? "/MeAlphaPro/preview" : undefined}><Routes><Route element={<Layout />}>
+  const localRecordCount = Object.values(data).reduce((sum, value) => sum + (Array.isArray(value) ? value.length : 0), 0);
+  const looksLikeFreshOrMissingStore = localRecordCount === 0 && !data.settings;
+  return <BrowserRouter basename={window.location.pathname.startsWith("/MeAlphaPro/preview") ? "/MeAlphaPro/preview" : undefined}>
+    {looksLikeFreshOrMissingStore && <div role="alert" className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm">
+      <span className="font-semibold">هیچ رکورد محلی پیدا نشد.</span>
+      <span className="mx-2 text-muted-foreground">اگر قبلاً اطلاعات ثبت کرده‌اید، ممکن است برنامه به فضای ذخیره‌سازی دیگری وصل شده باشد؛ قبل از بازیابی یا Sync، نسخه پشتیبان را بررسی کنید.</span>
+      <Link to="/settings" className="font-bold text-primary underline underline-offset-4">رفتن به بازیابی و Dropbox</Link>
+    </div>}
+    <Routes><Route element={<Layout />}>
     <Route path="/" element={<Dashboard />} /><Route path="/goals" element={<Goals />} />
     <Route path="/tasks" element={<Tasks />} /><Route path="/habits" element={<Habits />} />
     <Route path="/focus" element={<Focus />} /><Route path="/transactions" element={<Transactions />} />
