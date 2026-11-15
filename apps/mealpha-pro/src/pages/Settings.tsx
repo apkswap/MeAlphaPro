@@ -92,6 +92,18 @@ export default function SettingsPage() {
   };
   const redirectUri = () => 'http://localhost:4173/oauth/dropbox/callback';
 
+  const copyDropboxRedirectUri = async () => {
+    const uri = Capacitor.getPlatform() === 'android'
+      ? 'https://apkswap.github.io/MeAlphaPro/oauth/dropbox/callback/'
+      : redirectUri();
+    try {
+      await navigator.clipboard.writeText(uri);
+      toast.success(fa ? 'آدرس بازگشت کپی شد.' : 'Redirect URI copied.');
+    } catch {
+      window.prompt(fa ? 'آدرس را کپی کنید:' : 'Copy this redirect URI:', uri);
+    }
+  };
+
   const pollDropboxCallback = async (state: string) => {
     const deadline = Date.now() + 5 * 60 * 1000;
     while (Date.now() < deadline) {
@@ -363,6 +375,18 @@ export default function SettingsPage() {
           <div className="grid sm:grid-cols-[1fr_auto] gap-2 items-end">
             <div className="space-y-1.5"><Label>Dropbox App Key</Label><Input dir="ltr" value={s.dropboxAppKey || ''} onChange={e => set('dropboxAppKey', e.target.value.trim())} placeholder="Enter your Dropbox app key" /></div>
             <Button type="button" variant="outline" onClick={connectDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{s.dropboxRefreshToken ? (fa ? 'اتصال مجدد' : 'Reconnect') : (fa ? 'اتصال Dropbox' : 'Connect Dropbox')}</Button>
+          </div>
+          <div className="rounded-lg border border-border/70 bg-background/60 p-3 space-y-2 text-sm">
+            <div className="font-semibold">{fa ? 'راهنمای راه‌اندازی اتصال' : 'Connection setup guide'}</div>
+            <ol className="list-decimal ps-5 space-y-1.5 text-muted-foreground">
+              <li>{fa ? 'در Dropbox App Console، برنامه خود را باز کنید و App Key را در کادر بالا وارد کنید.' : 'Open your app in Dropbox App Console and enter its App Key above.'}</li>
+              <li>{fa ? 'در بخش OAuth 2 → Redirect URIs، آدرس بازگشت مخصوص این دستگاه را دقیقاً ثبت کنید:' : 'Under OAuth 2 → Redirect URIs, register the exact redirect URI for this platform:'}</li>
+            </ol>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="min-w-0 flex-1 break-all rounded-md bg-muted px-2 py-2 text-xs" dir="ltr">{Capacitor.getPlatform() === 'android' ? 'https://apkswap.github.io/MeAlphaPro/oauth/dropbox/callback/' : redirectUri()}</code>
+              <Button type="button" size="sm" variant="outline" onClick={() => void copyDropboxRedirectUri()}>{fa ? 'کپی آدرس' : 'Copy URI'}</Button>
+            </div>
+            <p className="text-xs leading-6 text-muted-foreground">{fa ? 'در اندروید پس از تأیید Dropbox، مرورگر باید خودکار به MeAlpha Pro برگردد. اگر برگشت خودکار انجام نشد، دکمه Open MeAlpha Pro را در صفحه بازگشت بزنید. در ویندوز، برنامه دسکتاپ باید در حال اجرا باشد.' : 'On Android, after Dropbox approval the browser should return to MeAlpha Pro automatically. If it does not, tap Open MeAlpha Pro on the callback page. On Windows, keep the desktop app running.'}</p>
           </div>
           {s.dropboxRefreshToken && <div className="flex items-center justify-between gap-3 text-xs text-emerald-500"><span>{fa ? 'متصل' : 'Connected'}{s.dropboxAccountName ? ' · ' + s.dropboxAccountName : ''}</span><Button type="button" size="sm" onClick={syncDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{fa ? 'همگام‌سازی اکنون' : 'Sync now'}</Button></div>}
         </div>
