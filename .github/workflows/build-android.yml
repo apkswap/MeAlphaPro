@@ -47,6 +47,15 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Render refreshed MeAlpha brand source
+        run: |
+          py -3 -m pip install --user cairosvg
+          py -3 apps/mealpha-pro/scripts/render-brand-source.py
+
+      - name: Prepare Windows icon source for Android resources
+        shell: pwsh
+        run: ./apps/mealpha-pro/scripts/prepare-windows-icon.ps1
+
       - name: Build web application
         run: npm run build --workspace apps/mealpha-pro
 
