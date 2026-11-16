@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, X, ArrowRight, Command as CommandIcon } from 'lucide-react';
 import { useStore } from '../lib/store';
 
@@ -29,9 +29,15 @@ const normalize = (value: unknown) => String(value ?? '')
 export default function GlobalSearch() {
   const { data, settings } = useStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const fa = settings.language === 'fa';
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    setOpen(false);
+    setQuery('');
+  }, [location.pathname]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

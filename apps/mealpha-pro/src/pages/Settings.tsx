@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Download, Upload, CheckCircle2, Camera, Cloud } from 'lucide-react';
+import { Loader2, Download, Upload, CheckCircle2, Camera, Cloud, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
@@ -91,6 +91,15 @@ export default function SettingsPage() {
     }
   };
   const redirectUri = () => 'http://localhost:4173/oauth/dropbox/callback';
+
+  const copyRedirectUri = async (uri: string) => {
+    try {
+      await navigator.clipboard.writeText(uri);
+      toast.success(fa ? 'آدرس بازگشت کپی شد.' : 'Redirect URI copied.');
+    } catch {
+      window.prompt(fa ? 'آدرس را کپی کنید:' : 'Copy this redirect URI:', uri);
+    }
+  };
 
   const pollDropboxCallback = async (state: string) => {
     const deadline = Date.now() + 5 * 60 * 1000;
@@ -194,10 +203,23 @@ export default function SettingsPage() {
     setDropboxBusy(true);
     try {
       const appKey = (s.dropboxAppKey || settings.dropboxAppKey || '').trim();
-      let accessToken = s.dropboxAccessToken || settings.dropboxAccessToken || '';
       const refreshToken = s.dropboxRefreshToken || settings.dropboxRefreshToken || '';
       if (!appKey || !refreshToken) throw new Error(fa ? 'ابتدا App Key را وارد و Dropbox را متصل کنید.' : 'Enter the App Key and connect Dropbox first.');
-      if (!accessToken || Number(s.dropboxExpiresAt || settings.dropboxExpiresAt || 0) < Date.now() + 60000) {
+
+      // Persist the complete Settings-page draft before taking the Dropbox snapshot.
+      // Profile fields and currency otherwise remain only in React state and are omitted.
+      const syncSettings: Settings = {
+        ...settings,
+        ...s,
+        currency: (s.currency || settings.currency || 'IRT').trim().toUpperCase()
+      };
+      const settingsSaved = await setLocalSettings(syncSettings);
+      if (!settingsSaved) throw new Error(fa ? 'ذخیره تنظیمات پیش از همگام‌سازی ناموفق بود.' : 'Could not save settings before Dropbox sync.');
+      setS(syncSettings);
+
+      let currentSettings = syncSettings;
+      let accessToken = currentSettings.dropboxAccessToken || '';
+      if (!accessToken || Number(currentSettings.dropboxExpiresAt || 0) < Date.now() + 60000) {
         const response = await fetch('https://api.dropboxapi.com/oauth2/token', {
           method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken, client_id: appKey })
@@ -205,8 +227,11 @@ export default function SettingsPage() {
         const token = await response.json();
         if (!response.ok) throw new Error(token.error_description || token.error || 'Dropbox token refresh failed');
         accessToken = token.access_token;
-        const refreshed = { ...settings, ...s, dropboxAccessToken: accessToken, dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000 };
-        setS(refreshed); setLocalSettings(refreshed);
+        const refreshed = { ...currentSettings, dropboxAccessToken: accessToken, dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000 };
+        const tokenSaved = await setLocalSettings(refreshed);
+        if (!tokenSaved) throw new Error(fa ? 'ذخیره نشست Dropbox ناموفق بود.' : 'Could not save the refreshed Dropbox session.');
+        currentSettings = refreshed;
+        setS(refreshed);
       }
       const path = '/Apps/MeAlphaPro/mealpha-pro-sync.json';
       const download = await fetch('https://content.dropboxapi.com/2/files/download', {
@@ -248,7 +273,23 @@ export default function SettingsPage() {
         const detail = await upload.text();
         throw new Error('Dropbox upload failed: ' + detail.slice(0, 240));
       }
-      toast.success(fa ? 'همگام‌سازی Dropbox انجام شد.' : 'Dropbox sync completed.');
+
+      // Read the cloud copy back once so a successful HTTP response is not
+      // mistaken for a verified profile/settings upload.
+      const verification = await fetch('https://content.dropboxapi.com/2/files/download', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + accessToken, 'Dropbox-API-Arg': JSON.stringify({ path }) }
+      });
+      if (!verification.ok) throw new Error(fa ? 'بارگذاری انجام شد اما بررسی فایل Dropbox ناموفق بود.' : 'Upload succeeded, but Dropbox read-back verification failed.');
+      const verifiedBlob = await verification.blob();
+      if (verifiedBlob.size > MAX_BACKUP_BYTES) throw new Error('Dropbox backup exceeds the 50 MB safety limit.');
+      const verifiedSnapshot = JSON.parse(await verifiedBlob.text());
+      if (verifiedSnapshot?.version !== 1 || !verifiedSnapshot?.settings) throw new Error('Dropbox verification returned an invalid backup.');
+      const profileFields: (keyof Settings)[] = ['displayName', 'username', 'bio', 'avatarDataUrl', 'coverDataUrl', 'avatarEmoji', 'avatarColor', 'currency'];
+      const mismatch = profileFields.some((field) => (verifiedSnapshot.settings?.[field] ?? '') !== (latest.settings?.[field] ?? ''));
+      if (mismatch) throw new Error(fa ? 'فایل Dropbox ذخیره شد اما اطلاعات پروفایل یا ارز با نسخه محلی یکسان نیست.' : 'Dropbox saved the file, but profile or currency values did not match the local snapshot.');
+
+      toast.success(fa ? 'همگام‌سازی Dropbox انجام و اطلاعات پروفایل تأیید شد.' : 'Dropbox sync completed and profile settings were verified.');
       window.location.reload();
     } catch (error) {
       console.error(error);
@@ -341,6 +382,30 @@ export default function SettingsPage() {
         <div className="mt-4 space-y-3 rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">
           <div className="flex items-center gap-2 font-semibold"><Cloud className="h-4 w-4 text-sky-500" />Dropbox</div>
           <p className="text-sm text-muted-foreground">{fa ? 'اطلاعات همچنان ابتدا روی دستگاه ذخیره می‌شود. با فشردن دکمه همگام‌سازی، نسخه ترکیبی داده‌ها در فضای برنامه MeAlpha Pro در Dropbox بارگذاری و دریافت می‌شود.' : 'Your data remains local-first. Manual sync merges the local and Dropbox snapshots, then uploads the merged data to your Dropbox app folder.'}</p>
+          <div className="rounded-lg border border-border/70 bg-background/60 p-3 space-y-3 text-sm">
+            <div className="font-semibold">{fa ? 'راهنمای اتصال Dropbox' : 'Dropbox connection guide'}</div>
+            <p className="text-muted-foreground">{fa ? 'این راهنما داخل خود برنامه قرار دارد و برای نمایش آن هیچ درخواستی به GitHub یا سرویس راهنمای خارجی ارسال نمی‌شود.' : 'This guide is built into the app. Displaying it does not contact GitHub or any external documentation service.'}</p>
+            <ol className="list-decimal ps-5 space-y-1.5 text-muted-foreground">
+              <li>{fa ? 'در Dropbox App Console برنامه خود را باز کنید و App Key را در کادر زیر وارد کنید.' : 'Open your app in Dropbox App Console and enter its App Key below.'}</li>
+              <li>{fa ? 'در بخش OAuth 2، قسمت Redirect URIs، آدرس متناسب با دستگاه را دقیقاً اضافه کنید.' : 'Under OAuth 2 → Redirect URIs, add the exact URI for your device.'}</li>
+              <li>{fa ? 'اتصال را از همین صفحه شروع کنید و مجوز دسترسی را در Dropbox تأیید کنید.' : 'Start connecting from this screen and approve access on Dropbox.'}</li>
+              <li>{fa ? 'همگام‌سازی فقط با فشردن دکمه انجام می‌شود؛ اطلاعات ابتدا روی دستگاه می‌ماند.' : 'Sync is manual. Your data remains stored locally first.'}</li>
+            </ol>
+            <div className="space-y-1">
+              <Label>{fa ? 'آدرس بازگشت اندروید' : 'Android Redirect URI'}</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <code dir="ltr" className="min-w-0 flex-1 break-all rounded bg-muted px-2 py-1.5 text-xs">https://apkswap.github.io/MeAlphaPro/oauth/dropbox/callback/</code>
+                <Button type="button" size="sm" variant="outline" onClick={() => void copyRedirectUri('https://apkswap.github.io/MeAlphaPro/oauth/dropbox/callback/')}><Copy className="h-3.5 w-3.5 me-1" />{fa ? 'کپی' : 'Copy'}</Button>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>{fa ? 'آدرس بازگشت ویندوز' : 'Windows Redirect URI'}</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <code dir="ltr" className="min-w-0 flex-1 break-all rounded bg-muted px-2 py-1.5 text-xs">http://localhost:4173/oauth/dropbox/callback</code>
+                <Button type="button" size="sm" variant="outline" onClick={() => void copyRedirectUri(redirectUri())}><Copy className="h-3.5 w-3.5 me-1" />{fa ? 'کپی' : 'Copy'}</Button>
+              </div>
+            </div>
+          </div>
           <div className="grid sm:grid-cols-[1fr_auto] gap-2 items-end">
             <div className="space-y-1.5"><Label>Dropbox App Key</Label><Input dir="ltr" value={s.dropboxAppKey || ''} onChange={e => set('dropboxAppKey', e.target.value.trim())} placeholder="Enter your Dropbox app key" /></div>
             <Button type="button" variant="outline" onClick={connectDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{s.dropboxRefreshToken ? (fa ? 'اتصال مجدد' : 'Reconnect') : (fa ? 'اتصال Dropbox' : 'Connect Dropbox')}</Button>
