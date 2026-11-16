@@ -9,6 +9,9 @@ SIZE = 1024
 SCALE = SIZE / 512
 
 def p(points):
+    # Pillow drawing primitives accept either a flat bounding box or a list of points.
+    if len(points) == 4 and all(isinstance(v, (int, float)) for v in points):
+        return tuple(round(v * SCALE) for v in points)
     return [(round(x * SCALE), round(y * SCALE)) for x, y in points]
 
 image = Image.new("RGBA", (SIZE, SIZE), (8, 13, 39, 255))
