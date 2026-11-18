@@ -154,7 +154,12 @@ for (const viewport of viewports) {
       await page.getByText(childName, { exact: true }).waitFor({ timeout: 5000 });
       await page.reload({ waitUntil: 'networkidle' });
       const childRow = page.locator('tr').filter({ hasText: childName });
-      if (!(await childRow.count()) || !(await childRow.getByText('زیرهدف', { exact: true }).count())) failures.push(`${viewport.name}: parent-child relationship was not persisted or displayed`);
+      const childRowCount = await childRow.count();
+      const childRowText = childRowCount ? (await childRow.first().innerText()).replace(/\\s+/g, ' ').trim() : '(missing)';
+      const hierarchyLabelCount = childRowCount ? await childRow.getByText(/زیرهدف|Subgoal/, { exact: true }).count() : 0;
+      console.log(`${viewport.name} goal hierarchy after reload: rows=${childRowCount}; labels=${hierarchyLabelCount}; row=${childRowText}`);
+      if (!childRowCount) failures.push(`${viewport.name}: subgoal record is missing after reload`);
+      else if (!hierarchyLabelCount) failures.push(`${viewport.name}: child record exists but is not displayed as a subgoal`);
     } else failures.push(`${viewport.name}: add-subgoal control is missing from goal rows`);
   } else failures.push(`${viewport.name}: add-main-goal control is missing`);
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
