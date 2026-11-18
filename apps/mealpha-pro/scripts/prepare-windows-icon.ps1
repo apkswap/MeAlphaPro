@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
-$sourcePath = Join-Path $repoRoot "apps\mealpha-pro\public\mealpha-original.png"
+$sourcePath = Join-Path $repoRoot "apps\mealpha-pro\public\mealpha-purple-gold.jpg"
 $iconPath = Join-Path $repoRoot "apps\mealpha-pro\build\mealpha.ico"
 $iconDir = Split-Path -Parent $iconPath
 
