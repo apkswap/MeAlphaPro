@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Languages, Layers3, Sun, Moon, Bell, Cloud, Menu, X, UserRound, ChevronLeft, CalendarClock } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
@@ -7,6 +7,8 @@ import { useStore } from '../lib/store';
 import { Key } from '../lib/i18n';
 import { isoOf, todayISO } from '../lib/analytics';
 import GlobalSearch from './GlobalSearch';
+import { toast } from 'sonner';
+import { syncNativeTaskReminders } from '../lib/taskNotifications';
 
 const NAV: { to: string; k: Key; icon: typeof Target; group: 'main' | 'manage' | 'system' }[] = [
   { to: '/', k: 'dashboard', icon: LayoutDashboard, group: 'main' },
@@ -28,6 +30,7 @@ export default function Layout() {
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [activePopover, setActivePopover] = useState<'notifications' | 'profile' | null>(null);
+  const firedTaskReminders = useRef(new Set<string>());
   const location = useLocation();
   useEffect(() => {
     let disposed = false;
@@ -92,8 +95,65 @@ export default function Layout() {
         detail: reminder.dueDate < today ? (fa ? 'پرداخت معوق' : 'Overdue payment') : (fa ? 'یادآوری پرداخت' : 'Payment reminder'),
         to: '/transactions', overdue: reminder.dueDate < today,
       }));
-    return [...reminderItems, ...taskItems].slice(0, 8);
+    const scheduledTaskItems = data.tasks.flatMap((task: any) =>
+      (Array.isArray(task.reminders) ? task.reminders : [])
+        .filter((reminder: any) => reminder.enabled && reminder.at && new Date(reminder.at).getTime() <= Date.now() + 24 * 60 * 60 * 1000)
+        .map((reminder: any) => ({
+          id: 'task-reminder:' + task.id + ':' + reminder.id,
+          title: task.title || (fa ? 'تسک بدون عنوان' : 'Untitled task'),
+          detail: fa ? 'یادآور ' + new Date(reminder.at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : 'Reminder ' + new Date(reminder.at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          to: '/tasks',
+          overdue: new Date(reminder.at).getTime() < Date.now(),
+        }))
+    );
+    return [...reminderItems, ...scheduledTaskItems, ...taskItems].slice(0, 8);
   }, [data, today, fa]);
+  useEffect(() => {
+    if (!data) return;
+    void syncNativeTaskReminders(data.tasks, settings.language);
+  }, [data?.tasks, settings.language]);
+
+  useEffect(() => {
+    if (!data || (window as any).Capacitor?.isNativePlatform?.()) return;
+    const tick = () => {
+      const now = Date.now();
+      data.tasks.forEach((task: any) => {
+        if (task.status === 'Done' || !Array.isArray(task.reminders)) return;
+        let changed = false;
+        const reminders = task.reminders.map((reminder: any) => {
+          if (!reminder.enabled || !reminder.at || new Date(reminder.at).getTime() > now) return reminder;
+          const key = task.id + ':' + reminder.id + ':' + reminder.at;
+          if (firedTaskReminders.current.has(key)) return reminder;
+          firedTaskReminders.current.add(key);
+          const title = settings.language === 'fa' ? 'یادآور تسک' : 'Task reminder';
+          const body = String(task.title || (settings.language === 'fa' ? 'تسک بدون عنوان' : 'Untitled task')).slice(0, 180);
+          const desktop = (window as any).mealphaDesktop;
+          if (desktop?.notify) void desktop.notify({ title, body }).catch((error: unknown) => console.warn('Desktop notification failed:', error));
+          else if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body });
+          else toast.info(title + ': ' + body);
+          changed = true;
+          const next = new Date(reminder.at);
+          if (reminder.repeat === 'daily') next.setDate(next.getDate() + 1);
+          else if (reminder.repeat === 'weekly') next.setDate(next.getDate() + 7);
+          else if (reminder.repeat === 'monthly') next.setMonth(next.getMonth() + 1);
+          if (reminder.repeat && reminder.repeat !== 'none') {
+            while (next.getTime() <= now) {
+              if (reminder.repeat === 'daily') next.setDate(next.getDate() + 1);
+              else if (reminder.repeat === 'weekly') next.setDate(next.getDate() + 7);
+              else next.setMonth(next.getMonth() + 1);
+            }
+            return { ...reminder, at: next.toISOString(), lastFiredAt: new Date(now).toISOString() };
+          }
+          return { ...reminder, enabled: false, lastFiredAt: new Date(now).toISOString() };
+        });
+        if (changed) void save('tasks', { ...task, reminders }, task.id);
+      });
+    };
+    tick();
+    const interval = window.setInterval(tick, 15000);
+    return () => window.clearInterval(interval);
+  }, [data?.tasks, settings.language]);
+
   const groups = [
     { id: 'main', label: fa ? 'نمای کلی' : 'OVERVIEW' },
     { id: 'manage', label: fa ? 'مدیریت زندگی' : 'LIFE MANAGEMENT' },
