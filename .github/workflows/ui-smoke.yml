@@ -11,6 +11,7 @@ on:
       - feature/premium-command-center-ui
       - feat/hierarchical-goals-task-reminders
       - fix/goals-hierarchy-integrity
+      - fix/restore-purple-branding-profile-goals
     paths:
       - "apps/mealpha-pro/src/**"
       - "apps/mealpha-pro/scripts/ui-smoke.mjs"
