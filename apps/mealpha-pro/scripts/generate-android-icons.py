@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Generate Android launcher icon resources from the approved MeAlpha source mark."""
+"""Generate Android launcher icon resources from the approved purple-gold app artwork."""
 from pathlib import Path
 from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "build" / "mealpha.ico"
+SOURCE = ROOT / "public" / "mealpha-purple-gold.jpg"
 RES = ROOT / "android" / "app" / "src" / "main" / "res"
 if not SOURCE.is_file():
     raise SystemExit(f"Missing approved icon source: {SOURCE}")
@@ -43,4 +43,4 @@ adaptive.mkdir(parents=True, exist_ok=True)
     '</adaptive-icon>\n',
     encoding="utf-8",
 )
-print("Generated Android launcher icons from build/mealpha.ico")
+print("Generated Android launcher icons from public/mealpha-purple-gold.jpg")
