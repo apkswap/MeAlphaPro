@@ -12,6 +12,7 @@ on:
       - feature/cinematic-3d-dashboard
       - feature/premium-command-center-ui
       - feat/hierarchical-goals-task-reminders
+      - fix/goals-hierarchy-integrity
     paths:
       - "apps/**"
       - "packages/**"
@@ -29,25 +30,19 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22.14.0"
-
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
-
       - name: Prepare 256x256 Windows application icon
         shell: pwsh
         run: ./apps/mealpha-pro/scripts/prepare-windows-icon.ps1
-
       - name: Build Windows installer
         run: npm run desktop:build --workspace apps/mealpha-pro
-
       - name: Smoke-test packaged Windows application
         run: node apps/mealpha-pro/scripts/electron-smoke.cjs
-
       - name: Verify installer
         shell: pwsh
         run: |
@@ -56,7 +51,6 @@ jobs:
             throw "Build completed but no Windows EXE installer was found."
           }
           $files | Format-Table Name, Length
-
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
