@@ -10,6 +10,7 @@ on:
       - main
       - feature/premium-command-center-ui
       - feat/hierarchical-goals-task-reminders
+      - fix/goals-hierarchy-integrity
     paths:
       - "apps/mealpha-pro/src/**"
       - "apps/mealpha-pro/scripts/ui-smoke.mjs"
