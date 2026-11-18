@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/premium-command-center-ui
+      - feat/hierarchical-goals-task-reminders
     paths:
       - "package.json"
       - "apps/mealpha-pro/package.json"

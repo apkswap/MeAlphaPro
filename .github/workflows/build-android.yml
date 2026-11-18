@@ -11,6 +11,7 @@ on:
       - fix/blue-dual-theme-build-validation
       - feature/cinematic-3d-dashboard
       - feature/premium-command-center-ui
+      - feat/hierarchical-goals-task-reminders
     paths:
       - "apps/**"
       - "packages/**"
@@ -73,6 +74,13 @@ jobs:
           from pathlib import Path
           path = Path("android/app/src/main/AndroidManifest.xml")
           xml = path.read_text()
+          permission = '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />'
+          if permission not in xml:
+              manifest_start = xml.find("<manifest")
+              manifest_end = xml.find(">", manifest_start)
+              if manifest_start < 0 or manifest_end < 0:
+                  raise SystemExit("Could not locate the Android manifest root element")
+              xml = xml[:manifest_end + 1] + "\n    " + permission + xml[manifest_end + 1:]
           marker = 'android:scheme="com.mealpha.pro"'
           if marker not in xml:
               activity_start = xml.find("<activity")

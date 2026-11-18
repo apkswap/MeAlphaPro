@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Notification } = require('electron');
 const express = require('express');
 const path = require('path');
 
@@ -135,6 +135,18 @@ ipcMain.handle('mealpha:open-external', async (event, rawUrl) => {
     throw new Error('Only the official Dropbox authorization page can be opened.');
   }
   await shell.openExternal(url.toString());
+});
+
+ipcMain.handle('mealpha:notify', async (event, payload) => {
+  let senderUrl;
+  try { senderUrl = new URL(event.senderFrame?.url || ''); } catch { throw new Error('Untrusted application frame.'); }
+  const allowedSender = app.isPackaged ? senderUrl.origin === 'http://localhost:4173' : senderUrl.origin === 'http://127.0.0.1:8080';
+  if (!allowedSender) throw new Error('Notifications can only be created by the MeAlpha application.');
+  const title = String(payload?.title || 'MeAlpha Pro').slice(0, 80);
+  const body = String(payload?.body || '').slice(0, 240);
+  if (!Notification.isSupported()) return false;
+  new Notification({ title, body }).show();
+  return true;
 });
 
 app.whenReady().then(async () => {

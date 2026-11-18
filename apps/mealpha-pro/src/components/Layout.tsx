@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Languages, Layers3, Sun, Moon, Bell, Cloud, Menu, X, UserRound, ChevronLeft, CalendarClock } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
@@ -7,6 +8,8 @@ import { useStore } from '../lib/store';
 import { Key } from '../lib/i18n';
 import { isoOf, todayISO } from '../lib/analytics';
 import GlobalSearch from './GlobalSearch';
+import { toast } from 'sonner';
+import { nextTaskReminderDate, syncNativeTaskReminders } from '../lib/taskNotifications';
 
 const NAV: { to: string; k: Key; icon: typeof Target; group: 'main' | 'manage' | 'system' }[] = [
   { to: '/', k: 'dashboard', icon: LayoutDashboard, group: 'main' },
@@ -24,10 +27,11 @@ const NAV: { to: string; k: Key; icon: typeof Target; group: 'main' | 'manage' |
 const MOBILE_NAV = NAV.filter(n => ['/', '/tasks', '/habits', '/transactions', '/settings'].includes(n.to));
 
 export default function Layout() {
-  const { t, settings, setLocalSettings, data } = useStore();
+  const { t, settings, setLocalSettings, data, save } = useStore();
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [activePopover, setActivePopover] = useState<'notifications' | 'profile' | null>(null);
+  const firedTaskReminders = useRef(new Set<string>());
   const location = useLocation();
   useEffect(() => {
     let disposed = false;
@@ -92,8 +96,68 @@ export default function Layout() {
         detail: reminder.dueDate < today ? (fa ? 'پرداخت معوق' : 'Overdue payment') : (fa ? 'یادآوری پرداخت' : 'Payment reminder'),
         to: '/transactions', overdue: reminder.dueDate < today,
       }));
-    return [...reminderItems, ...taskItems].slice(0, 8);
+    const scheduledTaskItems = data.tasks.flatMap((task: any) =>
+      (Array.isArray(task.reminders) ? task.reminders : [])
+        .filter((reminder: any) => reminder.enabled && reminder.at && nextTaskReminderDate(reminder) && nextTaskReminderDate(reminder)!.getTime() <= Date.now() + 24 * 60 * 60 * 1000)
+        .map((reminder: any) => {
+          const nextAt = nextTaskReminderDate(reminder)!;
+          return {
+            id: 'task-reminder:' + task.id + ':' + reminder.id,
+            title: task.title || (fa ? 'تسک بدون عنوان' : 'Untitled task'),
+            detail: fa ? 'یادآور ' + nextAt.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : 'Reminder ' + nextAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            to: '/tasks',
+            overdue: nextAt.getTime() < Date.now(),
+          };
+        })
+    );
+    return [...reminderItems, ...scheduledTaskItems, ...taskItems].slice(0, 8);
   }, [data, today, fa]);
+  useEffect(() => {
+    if (!data) return;
+    void syncNativeTaskReminders(data.tasks, settings.language);
+  }, [data?.tasks, settings.language]);
+
+  useEffect(() => {
+    if (!data || Capacitor.isNativePlatform()) return;
+    const tick = () => {
+      const now = Date.now();
+      data.tasks.forEach((task: any) => {
+        if (task.status === 'Done' || !Array.isArray(task.reminders)) return;
+        let changed = false;
+        const reminders = task.reminders.map((reminder: any) => {
+          if (!reminder.enabled || !reminder.at || new Date(reminder.at).getTime() > now) return reminder;
+          const key = task.id + ':' + reminder.id + ':' + reminder.at;
+          if (firedTaskReminders.current.has(key)) return reminder;
+          firedTaskReminders.current.add(key);
+          const title = settings.language === 'fa' ? 'یادآور تسک' : 'Task reminder';
+          const body = String(task.title || (settings.language === 'fa' ? 'تسک بدون عنوان' : 'Untitled task')).slice(0, 180);
+          const desktop = (window as any).mealphaDesktop;
+          if (desktop?.notify) void desktop.notify({ title, body }).catch((error: unknown) => console.warn('Desktop notification failed:', error));
+          else if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body });
+          else toast.info(title + ': ' + body);
+          changed = true;
+          const next = new Date(reminder.at);
+          if (reminder.repeat === 'daily') next.setDate(next.getDate() + 1);
+          else if (reminder.repeat === 'weekly') next.setDate(next.getDate() + 7);
+          else if (reminder.repeat === 'monthly') next.setMonth(next.getMonth() + 1);
+          if (reminder.repeat && reminder.repeat !== 'none') {
+            while (next.getTime() <= now) {
+              if (reminder.repeat === 'daily') next.setDate(next.getDate() + 1);
+              else if (reminder.repeat === 'weekly') next.setDate(next.getDate() + 7);
+              else next.setMonth(next.getMonth() + 1);
+            }
+            return { ...reminder, at: next.toISOString(), lastFiredAt: new Date(now).toISOString() };
+          }
+          return { ...reminder, enabled: false, lastFiredAt: new Date(now).toISOString() };
+        });
+        if (changed) void save('tasks', { ...task, reminders }, task.id);
+      });
+    };
+    tick();
+    const interval = window.setInterval(tick, 15000);
+    return () => window.clearInterval(interval);
+  }, [data?.tasks, settings.language]);
+
   const groups = [
     { id: 'main', label: fa ? 'نمای کلی' : 'OVERVIEW' },
     { id: 'manage', label: fa ? 'مدیریت زندگی' : 'LIFE MANAGEMENT' },
@@ -121,7 +185,7 @@ export default function Layout() {
     <div className="min-h-screen bg-background text-foreground md:flex">
       <aside className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-[248px] md:shrink-0 md:flex-col md:border-e md:border-sidebar-border md:bg-sidebar-background/90 md:px-4 md:py-5 md:backdrop-blur-xl">
         <NavLink to="/" className="mb-8 flex items-center gap-3 px-2">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25"><img src="/mealpha.svg" alt="MeAlpha" className="h-8 w-8 object-contain" /></div>
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25"><img src="/mealpha-original.png" alt="MeAlpha" className="h-8 w-8 object-contain" /></div>
           <div><div className="text-[15px] font-black tracking-tight">MeAlpha <span className="text-primary">Pro</span></div><div className="mt-0.5 text-[9px] font-semibold tracking-[.18em] text-muted-foreground">PERSONAL COMMAND CENTER</div></div>
         </NavLink>
         <nav className="min-h-0 flex-1 overflow-y-auto">{navItems()}</nav>
@@ -143,7 +207,7 @@ export default function Layout() {
         <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between border-b bg-background/90 px-3 backdrop-blur-xl sm:px-4 md:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button className="grid h-9 w-9 place-items-center rounded-xl border md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={fa ? 'بازکردن منو' : 'Open menu'}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
-            <div className="md:hidden flex items-center gap-2 text-sm font-black"><img src="/mealpha.svg" alt="" className="h-7 w-7 rounded-lg" />MeAlpha <span className="text-primary">Pro</span></div>
+            <div className="md:hidden flex items-center gap-2 text-sm font-black"><img src="/mealpha-original.png" alt="" className="h-7 w-7 rounded-lg" />MeAlpha <span className="text-primary">Pro</span></div>
             <div className="hidden text-xs text-muted-foreground sm:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{t(NAV.find(n => n.to === location.pathname)?.k ?? 'dashboard')}</span></div>
           </div>
           <div className="relative flex items-center gap-2">
