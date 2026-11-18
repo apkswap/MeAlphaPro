@@ -12,6 +12,7 @@ on:
       - feature/cinematic-3d-dashboard
       - feature/premium-command-center-ui
       - feat/hierarchical-goals-task-reminders
+      - fix/goals-hierarchy-integrity
     paths:
       - "apps/**"
       - "packages/**"
@@ -29,32 +30,26 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22.14.0"
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
-
       - name: Build web application
         run: npm run build --workspace apps/mealpha-pro
-
       - name: Create Android project
         working-directory: apps/mealpha-pro
         run: npx cap add android
-
       - name: Sync Capacitor
         working-directory: apps/mealpha-pro
         run: npx cap sync android
@@ -65,7 +60,6 @@ jobs:
           .venv\Scripts\python.exe -m pip install --upgrade pip
           .venv\Scripts\python.exe -m pip install Pillow
           .venv\Scripts\python.exe scripts/generate-android-icons.py
-
       - name: Configure Android Dropbox deep link
         working-directory: apps/mealpha-pro
         shell: bash
@@ -98,17 +92,14 @@ jobs:
               xml = xml[:activity_end] + intent_filter + xml[activity_end:]
               path.write_text(xml)
           PY
-
       - name: Build debug APK
         working-directory: apps/mealpha-pro/android
         run: .\gradlew.bat assembleDebug
-
       - name: Verify APK
         shell: bash
         run: |
           test -f apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk
           ls -lh apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
