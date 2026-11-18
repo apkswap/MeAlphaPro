@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - feature/premium-command-center-ui
+      - feat/hierarchical-goals-task-reminders
     paths:
       - "apps/mealpha-pro/src/**"
       - "apps/mealpha-pro/scripts/ui-smoke.mjs"
