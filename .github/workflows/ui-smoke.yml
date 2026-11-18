@@ -51,7 +51,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Prepare public screenshot gallery
-        if: success() && github.event_name == 'push'
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/feature/premium-command-center-ui'
         run: |
           set -euo pipefail
           mkdir -p preview-site
