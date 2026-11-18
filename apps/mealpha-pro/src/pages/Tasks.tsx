@@ -29,7 +29,7 @@ function TaskReminders({ task, language, onSave }: { task: Rec; language: 'fa' |
   const [repeat, setRepeat] = useState('none');
   const reminders: Rec[] = Array.isArray(task.reminders) ? task.reminders : [];
   const fa = language === 'fa';
-  const update = async (next: Rec[]) => { await onSave({ ...task, reminders: next }); };
+  const update = async (next: Rec[]) => onSave({ ...task, reminders: next });
   const add = async () => {
     if (!at || !Number.isFinite(new Date(at).getTime()) || new Date(at).getTime() <= Date.now()) {
       toast.error(fa ? 'زمان یادآور باید در آینده باشد.' : 'Choose a reminder time in the future.');

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Languages, Layers3, Sun, Moon, Bell, Cloud, Menu, X, UserRound, ChevronLeft, CalendarClock } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
@@ -26,7 +27,7 @@ const NAV: { to: string; k: Key; icon: typeof Target; group: 'main' | 'manage' |
 const MOBILE_NAV = NAV.filter(n => ['/', '/tasks', '/habits', '/transactions', '/settings'].includes(n.to));
 
 export default function Layout() {
-  const { t, settings, setLocalSettings, data } = useStore();
+  const { t, settings, setLocalSettings, data, save } = useStore();
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [activePopover, setActivePopover] = useState<'notifications' | 'profile' | null>(null);
@@ -114,7 +115,7 @@ export default function Layout() {
   }, [data?.tasks, settings.language]);
 
   useEffect(() => {
-    if (!data || (window as any).Capacitor?.isNativePlatform?.()) return;
+    if (!data || Capacitor.isNativePlatform()) return;
     const tick = () => {
       const now = Date.now();
       data.tasks.forEach((task: any) => {
