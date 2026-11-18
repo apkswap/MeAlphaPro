@@ -15,7 +15,7 @@ import { isoOf } from '../lib/analytics';
 
 export type Field = {
   key: string; label: Key; type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox';
-  options?: (string | { value: string; label: string })[]; required?: boolean; full?: boolean;
+  options?: (string | { value: string; label: string })[]; required?: boolean; full?: boolean; help?: string;
   onChange?: (value: unknown, current: Rec) => Partial<Rec>;
 };
 
@@ -27,7 +27,8 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
   const [err, setErr] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (open) { setV(initial ? { ...initial } : { ...defaults }); setErr({}); } }, [open, initial, defaults]);
+  const defaultsKey = JSON.stringify(defaults ?? {});
+  useEffect(() => { if (open) { setV(initial ? { ...initial } : { ...defaults }); setErr({}); } }, [open, initial, defaultsKey]);
 
   const set = (k: string, val: unknown) => setV((p) => {
     const field = fields.find((item) => item.key === k);
@@ -64,6 +65,7 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
               <Label className="text-xs text-muted-foreground">{t(f.label)}{f.required && ' *'}</Label>
               <FieldInput f={f} value={v[f.key]} onChange={(x) => set(f.key, x)}
                 lang={settings.language} calendar={settings.calendar} />
+              {f.help && <p className="text-xs leading-5 text-muted-foreground">{f.help}</p>}
               {err[f.key] && <p className="text-xs text-destructive">{settings.language === 'fa' ? (err[f.key] === '#' ? 'عدد معتبر وارد کنید' : 'الزامی است') : (err[f.key] === '#' ? 'Enter a valid number' : 'Required')}</p>}
             </div>
           ))}
