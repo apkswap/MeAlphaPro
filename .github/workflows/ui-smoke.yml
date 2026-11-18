@@ -10,6 +10,7 @@ on:
       - main
       - feature/premium-command-center-ui
       - feat/hierarchical-goals-task-reminders
+      - fix/goals-hierarchy-integrity
     paths:
       - "apps/mealpha-pro/src/**"
       - "apps/mealpha-pro/scripts/ui-smoke.mjs"
@@ -50,7 +51,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Prepare public screenshot gallery
-        if: success() && github.event_name == 'push'
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/feature/premium-command-center-ui'
         run: |
           set -euo pipefail
           mkdir -p preview-site
