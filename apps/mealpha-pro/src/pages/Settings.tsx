@@ -229,9 +229,29 @@ export default function SettingsPage() {
         setS(refreshed); setLocalSettings(refreshed);
       }
       const path = '/mealpha-pro-sync.json';
-      const download = await fetch('https://content.dropboxapi.com/2/files/download', {
-        method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Dropbox-API-Arg': JSON.stringify({ path }) }
+      const legacyPath = '/Apps/MeAlphaPro/mealpha-pro-sync.json';
+      const downloadAt = (filePath: string) => fetch('https://content.dropboxapi.com/2/files/download', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Dropbox-API-Arg': JSON.stringify({ path: filePath }) }
       });
+      let download = await downloadAt(path);
+      // Older builds wrote to this nested path. Read it as a one-time migration source
+      // so changing to the App Folder root never strands an existing Dropbox backup.
+      if (download.status === 409) {
+        const detail = await download.clone().text();
+        let payload: any = null;
+        try { payload = JSON.parse(detail); } catch { /* keep the raw response for diagnostics */ }
+        const isMissingBackup =
+          (payload?.error?.['.tag'] === 'path' && payload?.error?.path?.['.tag'] === 'not_found') ||
+          /^path\/not_found(?:\/|$)/.test(String(payload?.error_summary || ''));
+        if (isMissingBackup) {
+          const legacyDownload = await downloadAt(legacyPath);
+          if (legacyDownload.ok) download = legacyDownload;
+          else if (legacyDownload.status !== 409) {
+            const legacyDetail = await legacyDownload.text();
+            throw new Error('Dropbox legacy backup download failed: ' + legacyDetail.slice(0, 240));
+          }
+        }
+      }
       let snapshot;
       if (download.ok) {
         const backupBlob = await download.blob();
