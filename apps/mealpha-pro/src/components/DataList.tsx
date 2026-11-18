@@ -8,9 +8,9 @@ import { useStore, Entity, Rec } from '../lib/store';
 
 export type Col = { key: string; label: string; render?: (r: Rec) => ReactNode; sortValue?: (r: Rec) => string | number };
 
-type Props = { rows: Rec[]; cols: Col[]; entity: Entity; onEdit: (r: Rec) => void; searchKeys: string[]; toolbar?: ReactNode; pageSize?: number };
+type Props = { rows: Rec[]; cols: Col[]; entity: Entity; onEdit: (r: Rec) => void; searchKeys: string[]; toolbar?: ReactNode; pageSize?: number; hierarchical?: boolean };
 
-export default function DataList({ rows, cols, entity, onEdit, searchKeys, toolbar, pageSize = 15 }: Props) {
+export default function DataList({ rows, cols, entity, onEdit, searchKeys, toolbar, pageSize = 15, hierarchical = false }: Props) {
   const { t, remove } = useStore();
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null);
@@ -18,16 +18,38 @@ export default function DataList({ rows, cols, entity, onEdit, searchKeys, toolb
   const [del, setDel] = useState<Rec | null>(null);
 
   const filtered = useMemo(() => {
-    let r = rows.filter((x) => !q || searchKeys.some((k) => String(x[k] ?? '').toLowerCase().includes(q.toLowerCase())));
-    if (sort) {
-      const c = cols.find((c) => c.key === sort.key)!;
-      const val = (x: Rec) => (c.sortValue ? c.sortValue(x) : x[c.key] ?? '');
-      r = [...r].sort((a, b) => (val(a) > val(b) ? 1 : val(a) < val(b) ? -1 : 0) * sort.dir);
+    const query = q.trim().toLocaleLowerCase();
+    if (hierarchical) {
+      if (!query) return rows;
+      // Keep matching nodes and their visible ancestors so search never detaches a child.
+      const keep = new Set<string>();
+      const ancestors: Rec[] = [];
+      rows.forEach((row) => {
+        const depth = Math.max(0, Number(row._depth) || 0);
+        ancestors.length = depth;
+        ancestors[depth] = row;
+        const matches = searchKeys.some((key) => String(row[key] ?? '').toLocaleLowerCase().includes(query));
+        if (matches) {
+          keep.add(row.id);
+          ancestors.slice(0, depth).forEach((parent) => parent && keep.add(parent.id));
+        }
+      });
+      return rows.filter((row) => keep.has(row.id));
     }
-    return r;
-  }, [rows, q, sort, cols, searchKeys]);
-  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const view = filtered.slice(page * pageSize, page * pageSize + pageSize);
+
+    let result = rows.filter((row) => !query || searchKeys.some((key) => String(row[key] ?? '').toLocaleLowerCase().includes(query)));
+    if (sort) {
+      const column = cols.find((item) => item.key === sort.key);
+      if (column) {
+        const value = (row: Rec) => (column.sortValue ? column.sortValue(row) : row[column.key] ?? '');
+        result = [...result].sort((a, b) => (value(a) > value(b) ? 1 : value(a) < value(b) ? -1 : 0) * sort.dir);
+      }
+    }
+    return result;
+  }, [rows, q, sort, cols, searchKeys, hierarchical]);
+
+  const pages = hierarchical ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize));
+  const view = hierarchical ? filtered : filtered.slice(page * pageSize, page * pageSize + pageSize);
 
   return (
     <div className="space-y-3">
@@ -44,8 +66,8 @@ export default function DataList({ rows, cols, entity, onEdit, searchKeys, toolb
             <TableRow>
               {cols.map((c) => (
                 <TableHead key={c.key} className="text-start">
-                  <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSort((s) => ({ key: c.key, dir: s?.key === c.key && s.dir === 1 ? -1 : 1 }))}>
-                    {c.label}<ArrowUpDown className="h-3 w-3 opacity-50" />
+                  <button disabled={hierarchical} className="inline-flex items-center gap-1 hover:text-foreground disabled:cursor-default" onClick={() => setSort((s) => ({ key: c.key, dir: s?.key === c.key && s.dir === 1 ? -1 : 1 }))}>
+                    {c.label}{!hierarchical && <ArrowUpDown className="h-3 w-3 opacity-50" />}
                   </button>
                 </TableHead>
               ))}
