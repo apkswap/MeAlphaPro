@@ -16,6 +16,9 @@ for (const viewport of viewports) {
   page.on('console', message => { if (message.type() === 'error') failures.push(`${viewport.name} console: ${message.text()}`); });
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
   await page.locator('h1').first().waitFor({ timeout: 20000 });
+  if (viewport.name === 'desktop' || viewport.name === 'mobile' || viewport.name === 'small-mobile') {
+    await page.screenshot({ path: `ui-${viewport.name}.png`, fullPage: true });
+  }
   for (const route of routes) {
     await page.goto('http://127.0.0.1:8080' + route, { waitUntil: 'networkidle' });
     await page.locator('h1').first().waitFor({ timeout: 10000 });
@@ -91,6 +94,63 @@ for (const viewport of viewports) {
   } else {
     failures.push(`${viewport.name}: theme switch control not visible`);
   }
+  // Regression: dashboard completion must update the whole IndexedDB record, not replace it with status-only data.
+  const taskId = `smoke-dashboard-task-${viewport.name}`;
+  const taskTitle = `Dashboard persistence ${viewport.name}`;
+  const today = new Date().toISOString().slice(0, 10);
+  await page.evaluate(async ({ id, title, dueDate }) => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readwrite');
+      tx.objectStore('tasks').put({
+        id, title, status: 'Todo', priority: 'High', dueDate,
+        notes: 'Must survive dashboard completion', estimatedMinutes: 45,
+        reminders: [{ id: 'keep-reminder', at: '2030-01-01T10:00:00.000Z', enabled: true }]
+      });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    db.close();
+  }, { id: taskId, title: taskTitle, dueDate: today });
+  await page.reload({ waitUntil: 'networkidle' });
+  const taskRow = page.locator('li').filter({ hasText: taskTitle }).first();
+  await taskRow.waitFor({ timeout: 5000 });
+  await taskRow.getByRole('checkbox').click();
+  await page.waitForFunction(async ({ id }) => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const record = await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readonly');
+      const request = tx.objectStore('tasks').get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    return record?.status === 'Done' && record?.title && record?.dueDate && record?.priority === 'High'
+      && record?.notes === 'Must survive dashboard completion' && record?.reminders?.[0]?.id === 'keep-reminder';
+  }, { id: taskId }, { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: dashboard completion erased task fields or reminders`));
+  await page.evaluate(async id => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readwrite');
+      tx.objectStore('tasks').delete(id);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }, taskId);
   await page.goto('http://127.0.0.1:8080/settings', { waitUntil: 'networkidle' });
   const palettes = [
     { id: 'violet', label: 'بنفش' },
@@ -119,6 +179,57 @@ for (const viewport of viewports) {
   if ((await page.locator('html').getAttribute('data-color-theme')) !== 'pink') {
     failures.push(`${viewport.name}: selected accent palette did not survive reload`);
   }
+  const profileName = `Smoke-${viewport.name}`;
+  const profileNameInput = page.getByPlaceholder('نام شما');
+  if (await profileNameInput.count()) {
+    await profileNameInput.fill(profileName);
+    const saveProfileButton = page.getByRole('button', { name: 'ذخیره پروفایل' });
+    if (await saveProfileButton.count()) {
+      await saveProfileButton.click();
+      await page.getByText('پروفایل ذخیره و بررسی شد.').waitFor({ timeout: 5000 }).catch(() => undefined);
+      await page.reload({ waitUntil: 'networkidle' });
+      if ((await page.getByPlaceholder('نام شما').inputValue()) !== profileName) failures.push(`${viewport.name}: profile name did not persist after reload`);
+    } else failures.push(`${viewport.name}: dedicated profile save button is missing`);
+  } else failures.push(`${viewport.name}: profile name field is missing`);
+  if (!(await page.getByText('راهنمای کامل راه‌اندازی Dropbox').count())) failures.push(`${viewport.name}: Dropbox setup guide is missing`);
+  const brandImage = page.locator('img[src="/mealpha-purple-gold.jpg"]').first();
+  if (!(await brandImage.count()) || !(await brandImage.evaluate(img => img.complete && img.naturalWidth > 0))) failures.push(`${viewport.name}: purple-gold brand image failed to load`);
+  await page.goto('http://127.0.0.1:8080/goals', { waitUntil: 'networkidle' });
+  const addMainGoal = page.getByRole('button', { name: 'افزودن هدف اصلی' });
+  if (await addMainGoal.count()) {
+    await addMainGoal.click();
+    const goalDialog = page.getByRole('dialog');
+    const parentName = `Smoke Parent ${viewport.name}`;
+    const childName = `Smoke Child ${viewport.name}`;
+    await goalDialog.locator('input').first().fill(parentName);
+    await goalDialog.getByRole('button', { name: 'ذخیره' }).click();
+    await page.getByText(parentName, { exact: true }).waitFor({ timeout: 5000 });
+    const parentRow = page.locator('tr').filter({ hasText: parentName });
+    const addChild = parentRow.locator('[data-testid="add-subgoal"]');
+    if (await addChild.count()) {
+      await addChild.click();
+      const childDialog = page.getByRole('dialog');
+      const parentSelect = childDialog.getByRole('combobox').first();
+      const selectedParent = (await parentSelect.innerText()).trim();
+      console.log(`${viewport.name} subgoal parent selection: ${selectedParent}`);
+      if (!selectedParent.includes(parentName)) {
+        failures.push(`${viewport.name}: add-subgoal form did not preselect its parent`);
+        await parentSelect.click();
+        await page.getByRole('option', { name: parentName, exact: true }).click();
+      }
+      await childDialog.locator('input').first().fill(childName);
+      await childDialog.getByRole('button', { name: 'ذخیره' }).click();
+      await page.getByText(childName, { exact: true }).waitFor({ timeout: 5000 });
+      await page.reload({ waitUntil: 'networkidle' });
+      const childRow = page.locator('tr').filter({ hasText: childName });
+      const childRowCount = await childRow.count();
+      const childRowText = childRowCount ? (await childRow.first().innerText()).replace(/\\s+/g, ' ').trim() : '(missing)';
+      const hierarchyLabelCount = childRowCount ? await childRow.getByText(/زیرهدف|Subgoal/, { exact: true }).count() : 0;
+      console.log(`${viewport.name} goal hierarchy after reload: rows=${childRowCount}; labels=${hierarchyLabelCount}; row=${childRowText}`);
+      if (!childRowCount) failures.push(`${viewport.name}: subgoal record is missing after reload`);
+      else if (!hierarchyLabelCount) failures.push(`${viewport.name}: child record exists but is not displayed as a subgoal`);
+    } else failures.push(`${viewport.name}: add-subgoal control is missing from goal rows`);
+  } else failures.push(`${viewport.name}: add-main-goal control is missing`);
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
   const notificationsButton = page.getByRole('button', { name: /اعلان‌ها|Notifications/ });
   if (await notificationsButton.count()) {
@@ -169,10 +280,6 @@ for (const viewport of viewports) {
         failures.push(`${viewport.name}: mobile navigation is not anchored to the bottom safe area ${JSON.stringify(layout)}`);
       }
     }
-  }
-  if (viewport.name === 'desktop' || viewport.name === 'mobile' || viewport.name === 'small-mobile') {
-    await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
-    await page.screenshot({ path: `ui-${viewport.name}.png`, fullPage: true });
   }
   await page.close();
 }

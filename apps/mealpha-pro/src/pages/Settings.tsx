@@ -8,7 +8,7 @@ import { Textarea } from '@project/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@project/components/ui/select';
 import { useStore, Settings } from '../lib/store';
 import { Panel, PageHeader } from '../components/ui-bits';
-import { getSnapshot } from '../lib/localDb';
+import { getSnapshot, loadAll } from '../lib/localDb';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
@@ -36,6 +36,26 @@ export default function SettingsPage() {
       if (saved) toast.success(t('saved'));
     } catch { toast.error(t('error')); }
     finally { setBusy(false); }
+  };
+
+  const saveProfile = async () => {
+    setBusy(true);
+    try {
+      const next = { ...settings, ...s };
+      const saved = await setLocalSettings(next);
+      if (!saved) return;
+      const persisted = await loadAll();
+      const profileKeys: (keyof Settings)[] = ['displayName', 'username', 'bio', 'avatarEmoji', 'avatarColor', 'avatarDataUrl', 'coverDataUrl'];
+      const mismatch = profileKeys.some((key) => (persisted.settings as Settings | null)?.[key] !== next[key]);
+      if (mismatch) throw new Error(fa ? 'ذخیره پروفایل تأیید نشد؛ دوباره تلاش کنید.' : 'Profile persistence could not be verified. Please try again.');
+      setS(next);
+      toast.success(fa ? 'پروفایل ذخیره و بررسی شد.' : 'Profile saved and verified.');
+    } catch (error) {
+      console.error('Profile save failed:', error);
+      toast.error(error instanceof Error ? error.message : t('error'));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const uploadImage = (file: File | undefined, field: 'avatarDataUrl' | 'coverDataUrl') => {
@@ -208,10 +228,30 @@ export default function SettingsPage() {
         const refreshed = { ...settings, ...s, dropboxAccessToken: accessToken, dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000 };
         setS(refreshed); setLocalSettings(refreshed);
       }
-      const path = '/Apps/MeAlphaPro/mealpha-pro-sync.json';
-      const download = await fetch('https://content.dropboxapi.com/2/files/download', {
-        method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Dropbox-API-Arg': JSON.stringify({ path }) }
+      const path = '/mealpha-pro-sync.json';
+      const legacyPath = '/Apps/MeAlphaPro/mealpha-pro-sync.json';
+      const downloadAt = (filePath: string) => fetch('https://content.dropboxapi.com/2/files/download', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Dropbox-API-Arg': JSON.stringify({ path: filePath }) }
       });
+      let download = await downloadAt(path);
+      // Older builds wrote to this nested path. Read it as a one-time migration source
+      // so changing to the App Folder root never strands an existing Dropbox backup.
+      if (download.status === 409) {
+        const detail = await download.clone().text();
+        let payload: any = null;
+        try { payload = JSON.parse(detail); } catch { /* keep the raw response for diagnostics */ }
+        const isMissingBackup =
+          (payload?.error?.['.tag'] === 'path' && payload?.error?.path?.['.tag'] === 'not_found') ||
+          /^path\/not_found(?:\/|$)/.test(String(payload?.error_summary || ''));
+        if (isMissingBackup) {
+          const legacyDownload = await downloadAt(legacyPath);
+          if (legacyDownload.ok) download = legacyDownload;
+          else if (legacyDownload.status !== 409) {
+            const legacyDetail = await legacyDownload.text();
+            throw new Error('Dropbox legacy backup download failed: ' + legacyDetail.slice(0, 240));
+          }
+        }
+      }
       let snapshot;
       if (download.ok) {
         const backupBlob = await download.blob();
@@ -304,6 +344,12 @@ export default function SettingsPage() {
             <div className="space-y-2"><Label>{fa ? 'رنگ آواتار' : 'Avatar color'}</Label><div className="flex gap-2">{COLORS.map((c) => <button key={c} type="button" aria-label={c} onClick={() => set('avatarColor', c)} className={`h-7 w-7 rounded-full border-2 ${s.avatarColor === c ? 'border-foreground scale-110' : 'border-transparent'}`} style={{ background: c }} />)}</div></div>
           </div>
         </div>
+        <div className="mt-5 flex justify-end border-t pt-4">
+          <Button type="button" onClick={saveProfile} disabled={busy}>
+            {busy && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+            {fa ? 'ذخیره پروفایل' : 'Save profile'}
+          </Button>
+        </div>
       </Panel>
       <Panel title={fa ? 'کاور پروفایل' : 'Profile cover'}>
         <div className="space-y-3">
@@ -340,7 +386,21 @@ export default function SettingsPage() {
         </div>
         <div className="mt-4 space-y-3 rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">
           <div className="flex items-center gap-2 font-semibold"><Cloud className="h-4 w-4 text-sky-500" />Dropbox</div>
-          <p className="text-sm text-muted-foreground">{fa ? 'اطلاعات همچنان ابتدا روی دستگاه ذخیره می‌شود. با فشردن دکمه همگام‌سازی، نسخه ترکیبی داده‌ها در فضای برنامه MeAlpha Pro در Dropbox بارگذاری و دریافت می‌شود.' : 'Your data remains local-first. Manual sync merges the local and Dropbox snapshots, then uploads the merged data to your Dropbox app folder.'}</p>
+          <p className="text-sm text-muted-foreground">{fa ? 'اطلاعات ابتدا روی همین دستگاه ذخیره می‌شود. اتصال Dropbox اختیاری است و همگام‌سازی فقط با فرمان خودت انجام می‌شود؛ هیچ بارگذاری خودکاری در پس‌زمینه نداریم.' : 'Data is stored on this device first. Dropbox is optional and sync runs only when you explicitly start it; nothing uploads automatically in the background.'}</p>
+          <details className="rounded-xl border bg-card/60 p-3 text-sm">
+            <summary className="cursor-pointer font-semibold">{fa ? 'راهنمای کامل راه‌اندازی Dropbox' : 'Dropbox setup guide'}</summary>
+            <div className="mt-3 space-y-2 text-xs leading-6 text-muted-foreground">
+              <ol className="list-decimal space-y-1 ps-5">
+                <li>{fa ? <>در <a className="text-primary underline" href="https://www.dropbox.com/developers/apps" target="_blank" rel="noreferrer">Dropbox App Console</a> یک برنامه بساز؛ نوع دسترسی را Scoped access و سطح دسترسی را App folder انتخاب کن.</> : <>Create an app in the <a className="text-primary underline" href="https://www.dropbox.com/developers/apps" target="_blank" rel="noreferrer">Dropbox App Console</a>; choose Scoped access and App folder access.</>}</li>
+                <li>{fa ? 'در تب Permissions مجوزهای account_info.read، files.content.read و files.content.write را فعال و تغییرات را ثبت کن.' : 'In the Permissions tab, enable account_info.read, files.content.read and files.content.write, then submit the changes.'}</li>
+                <li>{fa ? <>در تب OAuth 2، آدرس بازگشت ویندوز را اضافه کن: <code dir="ltr">http://localhost:4173/oauth/dropbox/callback</code></> : <>In OAuth 2, add the Windows redirect URI: <code dir="ltr">http://localhost:4173/oauth/dropbox/callback</code>.</>}</li>
+                <li>{fa ? <>برای Android نیز این آدرس را اضافه کن: <code dir="ltr">https://apkswap.github.io/MeAlphaPro/oauth/dropbox/callback/</code></> : <>Also add this Android redirect URI: <code dir="ltr">https://apkswap.github.io/MeAlphaPro/oauth/dropbox/callback/</code>.</>}</li>
+                <li>{fa ? 'App Key را از تنظیمات برنامه کپی کن، اینجا وارد کن و اتصال Dropbox را بزن. پس از تأیید در مرورگر به برنامه برگرد.' : 'Copy the app key, paste it here and choose Connect Dropbox. Complete authorization in the browser and return to the app.'}</li>
+                <li>{fa ? 'بعد از نمایش وضعیت متصل، برای انتقال داده‌ها دکمه «همگام‌سازی اکنون» را بزن.' : 'Once the account shows as connected, press Sync now to transfer data.'}</li>
+              </ol>
+              <p>{fa ? <>فایل همگام‌سازی در ریشه پوشه اختصاصی برنامه با نام <code dir="ltr">mealpha-pro-sync.json</code> نگهداری می‌شود. در هر نوبت، داده‌های محلی و Dropbox ادغام می‌شوند.</> : <>The sync file is <code dir="ltr">mealpha-pro-sync.json</code> at the root of the app folder. Each sync merges local and Dropbox data.</>}</p>
+            </div>
+          </details>
           <div className="grid sm:grid-cols-[1fr_auto] gap-2 items-end">
             <div className="space-y-1.5"><Label>Dropbox App Key</Label><Input dir="ltr" value={s.dropboxAppKey || ''} onChange={e => set('dropboxAppKey', e.target.value.trim())} placeholder="Enter your Dropbox app key" /></div>
             <Button type="button" variant="outline" onClick={connectDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{s.dropboxRefreshToken ? (fa ? 'اتصال مجدد' : 'Reconnect') : (fa ? 'اتصال Dropbox' : 'Connect Dropbox')}</Button>

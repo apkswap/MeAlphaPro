@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
-$sourcePath = Join-Path $repoRoot "apps\mealpha-pro\public\mealpha-original.png"
+$sourcePath = Join-Path $repoRoot "apps\mealpha-pro\public\mealpha-purple-gold.jpg"
 $iconPath = Join-Path $repoRoot "apps\mealpha-pro\build\mealpha.ico"
 $iconDir = Split-Path -Parent $iconPath
 
@@ -21,7 +21,7 @@ try {
       $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
       $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
       $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-      $scale = [Math]::Min(232.0 / $source.Width, 232.0 / $source.Height)
+      $scale = [Math]::Min(256.0 / $source.Width, 256.0 / $source.Height)
       $width = [int][Math]::Round($source.Width * $scale)
       $height = [int][Math]::Round($source.Height * $scale)
       $x = [int](($canvas.Width - $width) / 2)

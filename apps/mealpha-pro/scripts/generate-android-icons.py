@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Generate Android launcher icon resources from the approved MeAlpha source mark."""
+"""Generate Android launcher icon resources from the approved purple-gold app artwork."""
 from pathlib import Path
 from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "build" / "mealpha.ico"
+SOURCE = ROOT / "public" / "mealpha-purple-gold.jpg"
 RES = ROOT / "android" / "app" / "src" / "main" / "res"
 if not SOURCE.is_file():
     raise SystemExit(f"Missing approved icon source: {SOURCE}")
 
 logo = Image.open(SOURCE).convert("RGBA")
-# Keep the mark centered and comfortably inset for Android launcher masks.
+# The approved source is already a full-bleed rounded-square app icon; do not inset it again.
 def render(size: int, padding: float = 0.18) -> Image.Image:
     canvas = Image.new("RGBA", (size, size), (12, 19, 42, 255))
     max_side = int(size * (1 - 2 * padding))
@@ -24,10 +24,10 @@ def render(size: int, padding: float = 0.18) -> Image.Image:
 for density, size in {"mdpi":48, "hdpi":72, "xhdpi":96, "xxhdpi":144, "xxxhdpi":192}.items():
     folder = RES / f"mipmap-{density}"
     folder.mkdir(parents=True, exist_ok=True)
-    render(size, 0.12).save(folder / "ic_launcher.png", optimize=True)
+    render(size, 0.0).save(folder / "ic_launcher.png", optimize=True)
 
 # Adaptive icon foreground uses the same source artwork and background color.
-foreground = render(432, 0.25)
+foreground = render(432, 0.0)
 folder = RES / "mipmap-xxxhdpi"
 foreground.save(folder / "ic_launcher_foreground.png", optimize=True)
 drawable = RES / "drawable"
@@ -43,4 +43,4 @@ adaptive.mkdir(parents=True, exist_ok=True)
     '</adaptive-icon>\n',
     encoding="utf-8",
 )
-print("Generated Android launcher icons from build/mealpha.ico")
+print("Generated Android launcher icons from public/mealpha-purple-gold.jpg")

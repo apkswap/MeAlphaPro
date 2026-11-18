@@ -45,7 +45,7 @@ const dict = {
   linkedGoal: ['هدف مرتبط', 'Linked goal'],
   parentGoal: ['هدف والد', 'Parent goal'],
   subGoals: ['زیرهدف', 'subgoals'],
-  goalHierarchyHelp: ['برای ساختاردهی اهداف، یک هدف والد انتخاب کنید. پیشرفت هدف والد به‌صورت خودکار از میانگین پیشرفت زیرهدف‌ها محاسبه می‌شود.', 'Nest goals under a parent. Parent progress is automatically calculated from the progress of its child goals.'],
+  goalHierarchyHelp: ['برای ساختاردهی، ابتدا «افزودن هدف اصلی» را بزن. برای ساخت زیرهدف، روی آیکون + کنار ردیف هدف والد بزن یا هنگام ویرایش، والد را از فهرست انتخاب کن. فلش کنار هدف، زیرهدف‌ها را باز و بسته می‌کند؛ پیشرفت والد از میانگین پیشرفت زیرهدف‌هایش محاسبه می‌شود.', 'Create a main goal first. Use the + icon beside a goal to add a subgoal, or choose its parent in the editor. Use the arrow to expand or collapse children. Parent progress is calculated from its subgoals.'],
   taskReminderHelp: ['با آیکون زنگ کنار هر تسک، چند یادآور با زمان دقیق و تکرار دلخواه بسازید. یادآورها روی Android به‌صورت اعلان سیستمی زمان‌بندی می‌شوند.', 'Use the bell beside any task to add multiple reminders with exact times and recurrence. Android reminders are scheduled as native system notifications.'],
   estMin: ['زمان تخمینی (دقیقه)', 'Estimated (min)'],
   actMin: ['زمان واقعی (دقیقه)', 'Actual (min)'],

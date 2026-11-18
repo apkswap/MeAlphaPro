@@ -15,7 +15,7 @@ import SettingsPage from './pages/Settings';
 import Workspace from './pages/Workspace';
 
 function Splash() {
-  return <div className="min-h-screen grid place-items-center"><div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-accent grid place-items-center font-black text-white text-xl animate-pulse">α</div></div>;
+  return <div className="min-h-screen grid place-items-center"><img src="/mealpha-purple-gold.jpg" alt="MeAlpha Pro" className="h-16 w-16 rounded-2xl object-cover shadow-xl animate-pulse" /></div>;
 }
 function Shell() {
   const { data } = useStore();

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, ListPlus, Plus } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { useStore, Rec } from '../lib/store';
 import { fmtDate, fmtNum, opt } from '../lib/i18n';
@@ -61,8 +61,8 @@ export default function Goals() {
 
   const fields: Field[] = [
     { key: 'title', label: 'title', type: 'text', required: true, full: true },
-    { key: 'parentGoalId', label: 'parentGoal', type: 'select', options: [
-      { value: 'none', label: L === 'fa' ? 'بدون هدف والد (هدف اصلی)' : 'No parent (top-level goal)' },
+    { key: 'parentGoalId', label: 'parentGoal', type: 'select', help: L === 'fa' ? 'برای ساخت زیرهدف، هدف والد را از فهرست انتخاب کن. اگر «بدون هدف والد» بماند، این مورد یک هدف اصلی است.' : 'Choose a parent to make this a subgoal. Leave “No parent” selected to create a main goal.', options: [
+      { value: 'none', label: L === 'fa' ? 'بدون هدف والد (هدف اصلی)' : 'No parent (main goal)' },
       ...goals.filter((goal) => !blockedParents.has(goal.id)).map((goal) => ({ value: goal.id, label: goal.title || '—' })),
     ] },
     { key: 'horizon', label: 'horizon', type: 'select', options: ['Lifetime', 'Annual', 'Quarterly', 'Monthly', 'Weekly'] },
@@ -115,7 +115,8 @@ export default function Goals() {
     { key: 'title', label: t('title'), render: (row) => (
       <div className="flex min-w-[190px] items-center gap-2" style={{ paddingInlineStart: (Math.min(Number(row._depth) || 0, 8) * 18) + 'px' }}>
         {row._hasChildren ? <button type="button" className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label={expanded[row.id] === false ? (L === 'fa' ? 'بازکردن زیرهدف‌ها' : 'Expand subgoals') : (L === 'fa' ? 'بستن زیرهدف‌ها' : 'Collapse subgoals')} aria-expanded={expanded[row.id] !== false} onClick={() => setExpanded((current) => ({ ...current, [row.id]: current[row.id] === false }))}>{expanded[row.id] === false ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button> : <span className="w-7 shrink-0" />}
-        <div className="min-w-0"><div className="font-semibold">{row.title}</div><div className="text-xs text-muted-foreground">{opt(L, row.horizon)} · {row.category || '—'}{row._hasChildren ? ' · ' + fmtNum(L, row._childCount) + ' ' + t('subGoals') : ''}</div></div>
+        <button type="button" data-testid="add-subgoal" className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-primary hover:bg-primary/10" title={L === 'fa' ? 'افزودن زیرهدف' : 'Add subgoal'} aria-label={L === 'fa' ? 'افزودن زیرهدف برای ' + row.title : 'Add subgoal to ' + row.title} onClick={() => openForm({ parentGoalId: row.id })}><ListPlus className="h-4 w-4" /></button>
+        <div className="min-w-0"><div className="font-semibold">{row.title}</div><div className="text-xs text-muted-foreground">{Number(row._depth) > 0 ? (L === 'fa' ? 'زیرهدف' : 'Subgoal') : (L === 'fa' ? 'هدف اصلی' : 'Main goal')} · {opt(L, row.horizon)} · {row.category || '—'}{row._hasChildren ? ' · ' + fmtNum(L, row._childCount) + ' ' + t('subGoals') : ''}</div></div>
       </div>) },
     { key: 'progress', label: t('progress'), render: (row) => {
       const own = goalInfo(row); const progress = row._progress as number | null;
@@ -127,7 +128,7 @@ export default function Goals() {
   ];
 
   return <div className="space-y-3">
-    <PageHeader title={t('goals')} action={<Button onClick={() => openForm(null)}><Plus className="me-1 h-4 w-4" />{t('add')}</Button>} />
+    <PageHeader title={t('goals')} action={<Button onClick={() => openForm(null)}><Plus className="me-1 h-4 w-4" />{L === 'fa' ? 'افزودن هدف اصلی' : 'Add main goal'}</Button>} />
     <div className="rounded-xl border bg-card/50 px-4 py-3 text-xs text-muted-foreground">{t('goalHierarchyHelp')}</div>
     <DataList rows={flattened} cols={cols} entity="goals" onEdit={openForm} searchKeys={['title', 'category', 'description']} hierarchical />
     <EntityForm open={open} onOpenChange={setOpen} entity="goals" fields={fields} initial={edit} defaults={{ horizon: 'Quarterly', priority: 'Medium', trackingType: 'measurable', parentGoalId: 'none' }} title={t('goals')} transform={saveGoal} />
