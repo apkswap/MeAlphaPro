@@ -16,6 +16,9 @@ for (const viewport of viewports) {
   page.on('console', message => { if (message.type() === 'error') failures.push(`${viewport.name} console: ${message.text()}`); });
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
   await page.locator('h1').first().waitFor({ timeout: 20000 });
+  if (viewport.name === 'desktop' || viewport.name === 'mobile' || viewport.name === 'small-mobile') {
+    await page.screenshot({ path: `ui-${viewport.name}.png`, fullPage: true });
+  }
   for (const route of routes) {
     await page.goto('http://127.0.0.1:8080' + route, { waitUntil: 'networkidle' });
     await page.locator('h1').first().waitFor({ timeout: 10000 });
@@ -91,6 +94,63 @@ for (const viewport of viewports) {
   } else {
     failures.push(`${viewport.name}: theme switch control not visible`);
   }
+  // Regression: dashboard completion must update the whole IndexedDB record, not replace it with status-only data.
+  const taskId = `smoke-dashboard-task-${viewport.name}`;
+  const taskTitle = `Dashboard persistence ${viewport.name}`;
+  const today = new Date().toISOString().slice(0, 10);
+  await page.evaluate(async ({ id, title, dueDate }) => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readwrite');
+      tx.objectStore('tasks').put({
+        id, title, status: 'Todo', priority: 'High', dueDate,
+        notes: 'Must survive dashboard completion', estimatedMinutes: 45,
+        reminders: [{ id: 'keep-reminder', at: '2030-01-01T10:00:00.000Z', enabled: true }]
+      });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    db.close();
+  }, { id: taskId, title: taskTitle, dueDate: today });
+  await page.reload({ waitUntil: 'networkidle' });
+  const taskRow = page.locator('li').filter({ hasText: taskTitle }).first();
+  await taskRow.waitFor({ timeout: 5000 });
+  await taskRow.getByRole('checkbox').click();
+  await page.waitForFunction(async ({ id }) => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const record = await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readonly');
+      const request = tx.objectStore('tasks').get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    return record?.status === 'Done' && record?.title && record?.dueDate && record?.priority === 'High'
+      && record?.notes === 'Must survive dashboard completion' && record?.reminders?.[0]?.id === 'keep-reminder';
+  }, { id: taskId }, { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: dashboard completion erased task fields or reminders`));
+  await page.evaluate(async id => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readwrite');
+      tx.objectStore('tasks').delete(id);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }, taskId);
   await page.goto('http://127.0.0.1:8080/settings', { waitUntil: 'networkidle' });
   const palettes = [
     { id: 'violet', label: 'بنفش' },
@@ -220,10 +280,6 @@ for (const viewport of viewports) {
         failures.push(`${viewport.name}: mobile navigation is not anchored to the bottom safe area ${JSON.stringify(layout)}`);
       }
     }
-  }
-  if (viewport.name === 'desktop' || viewport.name === 'mobile' || viewport.name === 'small-mobile') {
-    await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
-    await page.screenshot({ path: `ui-${viewport.name}.png`, fullPage: true });
   }
   await page.close();
 }
