@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { useStore, Rec } from '../lib/store';
 import { fmtDate, fmtNum, opt } from '../lib/i18n';
 import { todayISO } from '../lib/analytics';
-import { requestTaskReminderPermission } from '../lib/taskNotifications';
+import { nextTaskReminderDate, requestTaskReminderPermission } from '../lib/taskNotifications';
 import EntityForm, { Field } from '../components/EntityForm';
 import DataList, { Col } from '../components/DataList';
 import { PageHeader } from '../components/ui-bits';
@@ -62,7 +62,7 @@ function TaskReminders({ task, language, onSave }: { task: Rec; language: 'fa' |
           <div className="max-h-[42vh] space-y-2 overflow-y-auto">
             {reminders.length === 0 && <div className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">{fa ? 'هنوز یادآوری برای این تسک ثبت نشده است.' : 'No reminders have been added to this task yet.'}</div>}
             {reminders.map((item) => <div key={item.id} className="flex flex-wrap items-center gap-2 rounded-xl border p-3">
-              <div className="min-w-0 flex-1"><div className="text-sm font-semibold">{new Date(item.at).toLocaleString(fa ? 'fa-IR' : 'en-US')}</div><div className="mt-1 text-xs text-muted-foreground">{item.repeat === 'none' ? (fa ? 'بدون تکرار' : 'One time') : opt(language, item.repeat === 'daily' ? 'Daily' : item.repeat === 'weekly' ? 'Weekly' : 'Monthly')} · {item.enabled ? (fa ? 'فعال' : 'Enabled') : (fa ? 'غیرفعال' : 'Disabled')}</div></div>
+              <div className="min-w-0 flex-1"><div className="text-sm font-semibold">{(nextTaskReminderDate(item) || new Date(item.at)).toLocaleString(fa ? 'fa-IR' : 'en-US')}</div><div className="mt-1 text-xs text-muted-foreground">{item.repeat === 'none' ? (fa ? 'بدون تکرار' : 'One time') : opt(language, item.repeat === 'daily' ? 'Daily' : item.repeat === 'weekly' ? 'Weekly' : 'Monthly')} · {item.enabled ? (fa ? 'فعال' : 'Enabled') : (fa ? 'غیرفعال' : 'Disabled')}</div></div>
               <Button type="button" size="sm" variant="outline" onClick={() => snooze(item)}>{fa ? 'تعویق ۱۰ دقیقه' : 'Snooze 10m'}</Button>
               <Button type="button" size="icon" variant="ghost" aria-label={item.enabled ? (fa ? 'غیرفعال‌سازی یادآور' : 'Disable reminder') : (fa ? 'فعال‌سازی یادآور' : 'Enable reminder')} onClick={() => patch(item.id, { enabled: !item.enabled, lastFiredAt: null })}>{item.enabled ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}</Button>
               <Button type="button" size="icon" variant="ghost" aria-label={fa ? 'حذف یادآور' : 'Delete reminder'} onClick={() => remove(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>

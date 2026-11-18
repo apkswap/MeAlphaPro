@@ -9,7 +9,7 @@ import { Key } from '../lib/i18n';
 import { isoOf, todayISO } from '../lib/analytics';
 import GlobalSearch from './GlobalSearch';
 import { toast } from 'sonner';
-import { syncNativeTaskReminders } from '../lib/taskNotifications';
+import { nextTaskReminderDate, syncNativeTaskReminders } from '../lib/taskNotifications';
 
 const NAV: { to: string; k: Key; icon: typeof Target; group: 'main' | 'manage' | 'system' }[] = [
   { to: '/', k: 'dashboard', icon: LayoutDashboard, group: 'main' },
@@ -98,14 +98,17 @@ export default function Layout() {
       }));
     const scheduledTaskItems = data.tasks.flatMap((task: any) =>
       (Array.isArray(task.reminders) ? task.reminders : [])
-        .filter((reminder: any) => reminder.enabled && reminder.at && new Date(reminder.at).getTime() <= Date.now() + 24 * 60 * 60 * 1000)
-        .map((reminder: any) => ({
-          id: 'task-reminder:' + task.id + ':' + reminder.id,
-          title: task.title || (fa ? 'تسک بدون عنوان' : 'Untitled task'),
-          detail: fa ? 'یادآور ' + new Date(reminder.at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : 'Reminder ' + new Date(reminder.at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          to: '/tasks',
-          overdue: new Date(reminder.at).getTime() < Date.now(),
-        }))
+        .filter((reminder: any) => reminder.enabled && reminder.at && nextTaskReminderDate(reminder) && nextTaskReminderDate(reminder)!.getTime() <= Date.now() + 24 * 60 * 60 * 1000)
+        .map((reminder: any) => {
+          const nextAt = nextTaskReminderDate(reminder)!;
+          return {
+            id: 'task-reminder:' + task.id + ':' + reminder.id,
+            title: task.title || (fa ? 'تسک بدون عنوان' : 'Untitled task'),
+            detail: fa ? 'یادآور ' + nextAt.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : 'Reminder ' + nextAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            to: '/tasks',
+            overdue: nextAt.getTime() < Date.now(),
+          };
+        })
     );
     return [...reminderItems, ...scheduledTaskItems, ...taskItems].slice(0, 8);
   }, [data, today, fa]);
