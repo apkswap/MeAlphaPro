@@ -149,6 +149,14 @@ for (const viewport of viewports) {
     if (await addChild.count()) {
       await addChild.click();
       const childDialog = page.getByRole('dialog');
+      const parentSelect = childDialog.getByRole('combobox').first();
+      const selectedParent = (await parentSelect.innerText()).trim();
+      console.log(`${viewport.name} subgoal parent selection: ${selectedParent}`);
+      if (!selectedParent.includes(parentName)) {
+        failures.push(`${viewport.name}: add-subgoal form did not preselect its parent`);
+        await parentSelect.click();
+        await page.getByRole('option', { name: parentName, exact: true }).click();
+      }
       await childDialog.locator('input').first().fill(childName);
       await childDialog.getByRole('button', { name: 'ذخیره' }).click();
       await page.getByText(childName, { exact: true }).waitFor({ timeout: 5000 });
