@@ -67,7 +67,7 @@ export async function syncNativeTaskReminders(tasks: Rec[], language: 'fa' | 'en
         const repeat = (reminder.repeat || 'none') as ReminderRepeat;
         const count = repeat === 'daily' ? 30 : repeat === 'weekly' ? 12 : repeat === 'monthly' ? 12 : 1;
         let at = nextTaskReminderDate(reminder, now);
-        const scheduled = [];
+        const scheduled: Parameters<typeof LocalNotifications.schedule>[0]['notifications'] = [];
         for (let index = 0; at && index < count; index++) {
           const occurrence = at.toISOString();
           scheduled.push({
