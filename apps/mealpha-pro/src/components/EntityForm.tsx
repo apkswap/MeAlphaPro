@@ -28,7 +28,7 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
   const [busy, setBusy] = useState(false);
 
   const defaultsKey = JSON.stringify(defaults ?? {});
-  useEffect(() => { if (open) { setV(initial ? { ...initial } : { ...defaults }); setErr({}); } }, [open, initial, defaultsKey]);
+  useEffect(() => { if (open) { setV({ ...defaults, ...(initial ?? {}) }); setErr({}); } }, [open, initial, defaultsKey]);
 
   const set = (k: string, val: unknown) => setV((p) => {
     const field = fields.find((item) => item.key === k);
