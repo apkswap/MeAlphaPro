@@ -79,7 +79,7 @@ jobs:
           </main></body></html>
           HTML
       - name: Publish screenshots to a public preview branch
-        if: success() && github.event_name == 'push'
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/feature/premium-command-center-ui'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
