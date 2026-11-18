@@ -17,6 +17,7 @@ export default function Goals() {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const L = settings.language;
+
   const childrenById = useMemo(() => {
     const map: Record<string, Rec[]> = {};
     const ids = new Set(goals.map((goal) => goal.id));
@@ -25,6 +26,28 @@ export default function Goals() {
     });
     return map;
   }, [goals]);
+
+  const progressById = useMemo(() => {
+    const cache = new Map<string, number | null>();
+    const calculate = (goal: Rec, visiting: Set<string>): number | null => {
+      if (cache.has(goal.id)) return cache.get(goal.id) ?? null;
+      if (visiting.has(goal.id)) return null;
+      const nextVisiting = new Set(visiting).add(goal.id);
+      const children = childrenById[goal.id] || [];
+      if (!children.length) {
+        const own = goalInfo(goal).progress;
+        cache.set(goal.id, own);
+        return own;
+      }
+      const values = children.map((child) => calculate(child, nextVisiting)).filter((value): value is number => value != null);
+      const result = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : goalInfo(goal).progress;
+      cache.set(goal.id, result);
+      return result;
+    };
+    goals.forEach((goal) => calculate(goal, new Set()));
+    return cache;
+  }, [goals, childrenById]);
+
   const blockedParents = useMemo(() => {
     const blocked = new Set<string>();
     if (!edit?.id) return blocked;
@@ -35,6 +58,7 @@ export default function Goals() {
     visit(edit.id);
     return blocked;
   }, [edit, childrenById]);
+
   const fields: Field[] = [
     { key: 'title', label: 'title', type: 'text', required: true, full: true },
     { key: 'parentGoalId', label: 'parentGoal', type: 'select', options: [
@@ -52,34 +76,39 @@ export default function Goals() {
     { key: 'currentValue', label: 'current', type: 'number' },
     { key: 'description', label: 'description', type: 'textarea' },
   ];
-  const progressFor = (goal: Rec, seen = new Set<string>()): number | null => {
-    if (seen.has(goal.id)) return null;
-    const nextSeen = new Set(seen).add(goal.id);
-    const children = childrenById[goal.id] || [];
-    if (!children.length) return goalInfo(goal).progress;
-    const values = children.map((child) => progressFor(child, nextSeen)).filter((value): value is number => value != null);
-    return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : goalInfo(goal).progress;
-  };
+
   const flattened = useMemo(() => {
     const ids = new Set(goals.map((goal) => goal.id));
     const roots = goals.filter((goal) => !goal.parentGoalId || !ids.has(goal.parentGoalId));
     const rows: Rec[] = [];
     const visited = new Set<string>();
+
+    const hideSubtree = (goal: Rec, ancestors: Set<string>) => {
+      if (ancestors.has(goal.id) || visited.has(goal.id)) return;
+      visited.add(goal.id);
+      const next = new Set(ancestors).add(goal.id);
+      (childrenById[goal.id] || []).forEach((child) => hideSubtree(child, next));
+    };
+
     const visit = (goal: Rec, depth: number, ancestors: Set<string>) => {
       if (ancestors.has(goal.id) || visited.has(goal.id)) return;
       visited.add(goal.id);
       const children = childrenById[goal.id] || [];
-      rows.push({ ...goal, _depth: depth, _hasChildren: children.length > 0, _childCount: children.length, _progress: progressFor(goal) });
-      if (children.length && expanded[goal.id] !== false) {
-        const next = new Set(ancestors).add(goal.id);
+      rows.push({ ...goal, _depth: depth, _hasChildren: children.length > 0, _childCount: children.length, _progress: progressById.get(goal.id) ?? null });
+      const next = new Set(ancestors).add(goal.id);
+      if (children.length && expanded[goal.id] === false) {
+        children.forEach((child) => hideSubtree(child, next));
+      } else {
         children.forEach((child) => visit(child, depth + 1, next));
       }
     };
+
     roots.forEach((goal) => visit(goal, 0, new Set()));
-    // Recover orphaned/cyclic records instead of silently dropping them.
+    // Only truly unreachable records (for example a parent cycle) are promoted to roots.
     goals.forEach((goal) => { if (!visited.has(goal.id)) visit(goal, 0, new Set()); });
     return rows;
-  }, [goals, childrenById, expanded]);
+  }, [goals, childrenById, expanded, progressById]);
+
   const openForm = (record: Rec | null) => { setEdit(record); setOpen(true); };
   const saveGoal = (record: Rec) => ({ ...record, parentGoalId: record.parentGoalId === 'none' ? null : record.parentGoalId || null });
   const cols: Col[] = [
@@ -88,14 +117,15 @@ export default function Goals() {
         {row._hasChildren ? <button type="button" className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label={expanded[row.id] === false ? (L === 'fa' ? 'بازکردن زیرهدف‌ها' : 'Expand subgoals') : (L === 'fa' ? 'بستن زیرهدف‌ها' : 'Collapse subgoals')} aria-expanded={expanded[row.id] !== false} onClick={() => setExpanded((current) => ({ ...current, [row.id]: current[row.id] === false }))}>{expanded[row.id] === false ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button> : <span className="w-7 shrink-0" />}
         <div className="min-w-0"><div className="font-semibold">{row.title}</div><div className="text-xs text-muted-foreground">{opt(L, row.horizon)} · {row.category || '—'}{row._hasChildren ? ' · ' + fmtNum(L, row._childCount) + ' ' + t('subGoals') : ''}</div></div>
       </div>) },
-    { key: 'progress', label: t('progress'), sortValue: (row) => row._progress ?? -1, render: (row) => {
+    { key: 'progress', label: t('progress'), render: (row) => {
       const own = goalInfo(row); const progress = row._progress as number | null;
       return <div className="min-w-[120px] space-y-1">{progress == null ? <span className="text-xs font-semibold text-primary">{row.completed ? t('completed') : (L === 'fa' ? 'در حال یادگیری' : 'In progress')}</span> : <><Bar value={progress} /><div className="text-xs text-muted-foreground tabular-nums">{fmtNum(L, progress * 100)}% {own.expected != null && '· ' + t('estimate') + ' ' + fmtNum(L, own.expected * 100) + '%'}</div></>}</div>;
     } },
-    { key: 'status', label: t('status'), sortValue: (row) => (row._progress as number | null) === 1 ? 'Completed' : goalInfo(row).status, render: (row) => { const status = row._progress === 1 ? 'Completed' : goalInfo(row).status; return <StatusPill status={status} label={t(statusKey[status])} />; } },
+    { key: 'status', label: t('status'), render: (row) => { const status = row._progress === 1 ? 'Completed' : goalInfo(row).status; return <StatusPill status={status} label={t(statusKey[status])} />; } },
     { key: 'dueDate', label: t('dueDate'), render: (row) => { const predicted = goalInfo(row).predicted; return <div><div>{fmtDate(L, settings.calendar, row.dueDate)}</div>{predicted && <div className="text-xs text-muted-foreground">≈ {fmtDate(L, settings.calendar, predicted)} ({t('estimate')})</div>}</div>; } },
     { key: 'priority', label: t('priority'), render: (row) => opt(L, row.priority) },
   ];
+
   return <div className="space-y-3">
     <PageHeader title={t('goals')} action={<Button onClick={() => openForm(null)}><Plus className="me-1 h-4 w-4" />{t('add')}</Button>} />
     <div className="rounded-xl border bg-card/50 px-4 py-3 text-xs text-muted-foreground">{t('goalHierarchyHelp')}</div>
