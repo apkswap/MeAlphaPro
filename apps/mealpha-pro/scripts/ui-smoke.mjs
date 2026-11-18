@@ -144,7 +144,8 @@ for (const viewport of viewports) {
     await goalDialog.locator('input').first().fill(parentName);
     await goalDialog.getByRole('button', { name: 'ذخیره' }).click();
     await page.getByText(parentName, { exact: true }).waitFor({ timeout: 5000 });
-    const addChild = page.getByRole('button', { name: `افزودن زیرهدف برای ${parentName}` });
+    const parentRow = page.locator('tr').filter({ hasText: parentName });
+    const addChild = parentRow.locator('[data-testid="add-subgoal"]');
     if (await addChild.count()) {
       await addChild.click();
       const childDialog = page.getByRole('dialog');
