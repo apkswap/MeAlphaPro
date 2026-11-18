@@ -119,6 +119,43 @@ for (const viewport of viewports) {
   if ((await page.locator('html').getAttribute('data-color-theme')) !== 'pink') {
     failures.push(`${viewport.name}: selected accent palette did not survive reload`);
   }
+  const profileName = `Smoke-${viewport.name}`;
+  const profileNameInput = page.getByPlaceholder('نام شما');
+  if (await profileNameInput.count()) {
+    await profileNameInput.fill(profileName);
+    const saveProfileButton = page.getByRole('button', { name: 'ذخیره پروفایل' });
+    if (await saveProfileButton.count()) {
+      await saveProfileButton.click();
+      await page.getByText('پروفایل ذخیره و بررسی شد.').waitFor({ timeout: 5000 }).catch(() => undefined);
+      await page.reload({ waitUntil: 'networkidle' });
+      if ((await page.getByPlaceholder('نام شما').inputValue()) !== profileName) failures.push(`${viewport.name}: profile name did not persist after reload`);
+    } else failures.push(`${viewport.name}: dedicated profile save button is missing`);
+  } else failures.push(`${viewport.name}: profile name field is missing`);
+  if (!(await page.getByText('راهنمای کامل راه‌اندازی Dropbox').count())) failures.push(`${viewport.name}: Dropbox setup guide is missing`);
+  const brandImage = page.locator('img[src="/mealpha-purple-gold.jpg"]').first();
+  if (!(await brandImage.count()) || !(await brandImage.evaluate(img => img.complete && img.naturalWidth > 0))) failures.push(`${viewport.name}: purple-gold brand image failed to load`);
+  await page.goto('http://127.0.0.1:8080/goals', { waitUntil: 'networkidle' });
+  const addMainGoal = page.getByRole('button', { name: 'افزودن هدف اصلی' });
+  if (await addMainGoal.count()) {
+    await addMainGoal.click();
+    const goalDialog = page.getByRole('dialog');
+    const parentName = `Smoke Parent ${viewport.name}`;
+    const childName = `Smoke Child ${viewport.name}`;
+    await goalDialog.locator('input').first().fill(parentName);
+    await goalDialog.getByRole('button', { name: 'ذخیره' }).click();
+    await page.getByText(parentName, { exact: true }).waitFor({ timeout: 5000 });
+    const addChild = page.getByRole('button', { name: `افزودن زیرهدف برای ${parentName}` });
+    if (await addChild.count()) {
+      await addChild.click();
+      const childDialog = page.getByRole('dialog');
+      await childDialog.locator('input').first().fill(childName);
+      await childDialog.getByRole('button', { name: 'ذخیره' }).click();
+      await page.getByText(childName, { exact: true }).waitFor({ timeout: 5000 });
+      await page.reload({ waitUntil: 'networkidle' });
+      const childRow = page.locator('tr').filter({ hasText: childName });
+      if (!(await childRow.count()) || !(await childRow.getByText('زیرهدف', { exact: true }).count())) failures.push(`${viewport.name}: parent-child relationship was not persisted or displayed`);
+    } else failures.push(`${viewport.name}: add-subgoal control is missing from goal rows`);
+  } else failures.push(`${viewport.name}: add-main-goal control is missing`);
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
   const notificationsButton = page.getByRole('button', { name: /اعلان‌ها|Notifications/ });
   if (await notificationsButton.count()) {
