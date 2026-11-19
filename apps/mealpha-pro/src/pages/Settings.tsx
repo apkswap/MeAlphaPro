@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Download, Upload, CheckCircle2, Camera, Cloud } from 'lucide-react';
+import { Loader2, Download, Upload, CheckCircle2, Camera, Cloud, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
@@ -13,6 +13,7 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+import { parseRates, CurrencyRate } from '../lib/analytics';
 
 const AVATARS = ['α', '🌟', '🚀', '🦊', '🐼', '🐺', '🦁', '🦉', '🎯', '💎', '🌙', '🔥'];
 const COLORS = ['#168be5', '#00b8d4', '#1261a0', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
@@ -22,7 +23,9 @@ const THEMES = [{ id: 'violet', fa: 'بنفش', en: 'Violet', color: '#8b5cf6' }
 export default function SettingsPage() {
   const { t, settings, setLocalSettings } = useStore();
   const [s, setS] = useState<Settings>(settings);
+  const [currencyPairs, setCurrencyPairs] = useState<CurrencyRate[]>(() => parseRates(settings.exchangeRates, settings.currency));
   useEffect(() => setS(settings), [settings]);
+  useEffect(() => setCurrencyPairs(parseRates(settings.exchangeRates, settings.currency)), [settings.exchangeRates, settings.currency]);
   const [busy, setBusy] = useState(false);
   const [dropboxBusy, setDropboxBusy] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -30,10 +33,14 @@ export default function SettingsPage() {
 
   const submit = async () => {
     if (!s.currency.trim()) return toast.error(t('currency'));
+    const invalidPair = currencyPairs.find((pair) => !pair.from.trim() || !pair.to.trim() || pair.from.trim().toUpperCase() === pair.to.trim().toUpperCase() || !Number.isFinite(pair.rate) || pair.rate <= 0);
+    if (invalidPair) return toast.error(fa ? 'ارزهای مبدا و مقصد باید متفاوت باشند و نرخ بیشتر از صفر باشد.' : 'Choose two different currencies and a rate greater than zero.');
+    const exchangeRates = currencyPairs.map((pair) => `${pair.from.trim().toUpperCase()}/${pair.to.trim().toUpperCase()}=${pair.rate}`).join('\\n');
     setBusy(true);
     try {
-      const saved = await setLocalSettings({ ...s, currency: s.currency.trim().toUpperCase() });
-      if (saved) toast.success(t('saved'));
+      const next = { ...s, currency: s.currency.trim().toUpperCase(), exchangeRates };
+      const saved = await setLocalSettings(next);
+      if (saved) { setS(next); toast.success(t('saved')); }
     } catch { toast.error(t('error')); }
     finally { setBusy(false); }
   };
@@ -394,7 +401,18 @@ export default function SettingsPage() {
           <div className="space-y-1.5"><Label>{t('calendar')}</Label><Select value={s.calendar} onValueChange={(v) => set('calendar', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="jalali">{t('jalali')}</SelectItem><SelectItem value="gregorian">{t('gregorian')}</SelectItem></SelectContent></Select></div>
           <div className="space-y-1.5"><Label>{t('reportCurrency')}</Label><Input value={s.currency} onChange={(e) => set('currency', e.target.value)} placeholder="IRT, IRR, USD, EUR…" /></div>
           <div className="space-y-1.5"><Label>{t('monthlyBudget')}</Label><Input type="number" value={s.monthlyBudget ?? ''} onChange={(e) => set('monthlyBudget', e.target.value === '' ? null : Number(e.target.value))} /></div>
-          <div className="space-y-1.5 sm:col-span-2"><Label>{fa ? 'نرخ تبدیل بین دو ارز' : 'Currency pair exchange rates'}</Label><Textarea dir="ltr" rows={5} value={s.exchangeRates} onChange={(e) => set('exchangeRates', e.target.value)} placeholder={'USD/IRR=110000\\nEUR/IRR=125000\\nUSD/EUR=0.88'} className="font-mono" /><p className="text-xs text-muted-foreground">{fa ? 'هر خط یعنی یک واحد از ارز اول معادل مقدار واردشده از ارز دوم است؛ نمونه: USD/IRR=110000 یعنی ۱ دلار = ۱۱۰٬۰۰۰ ریال. نرخ معکوس و مسیرهای غیرمستقیم نیز خودکار محاسبه می‌شوند.' : 'Each line defines one unit of the first currency in the second currency; e.g. USD/IRR=110000 means 1 USD = 110,000 IRR. Inverse and cross-rates are calculated automatically.'}</p></div>
+          <div className="space-y-3 sm:col-span-2">
+            <div className="flex items-center justify-between gap-3"><Label>{fa ? 'تعریف نرخ تبدیل ارز' : 'Currency exchange rates'}</Label><Button type="button" size="sm" variant="outline" onClick={() => setCurrencyPairs((rows) => [...rows, { from: s.currency || 'USD', to: 'IRR', rate: 1 }])}><Plus className="me-1 h-4 w-4" />{fa ? 'افزودن نرخ' : 'Add rate'}</Button></div>
+            {currencyPairs.length === 0 && <p className="rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground">{fa ? 'هنوز نرخی ثبت نشده است. برای شروع «افزودن نرخ» را بزنید.' : 'No exchange rates yet. Select Add rate to create one.'}</p>}
+            {currencyPairs.map((pair, index) => <div key={index} className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2 rounded-xl border bg-card/50 p-3">
+              <div className="min-w-0 space-y-1"><Label className="text-[10px]">{fa ? 'ارز مبدا' : 'From'}</Label><Input dir="ltr" maxLength={8} value={pair.from} onChange={(e) => setCurrencyPairs((rows) => rows.map((row, i) => i === index ? { ...row, from: e.target.value.toUpperCase() } : row))} placeholder="USD" /></div>
+              <span className="pb-2 text-muted-foreground">=</span>
+              <div className="min-w-0 space-y-1"><Label className="text-[10px]">{fa ? 'ارز مقصد' : 'To'}</Label><Input dir="ltr" maxLength={8} value={pair.to} onChange={(e) => setCurrencyPairs((rows) => rows.map((row, i) => i === index ? { ...row, to: e.target.value.toUpperCase() } : row))} placeholder="IRR" /></div>
+              <div className="min-w-0 space-y-1"><Label className="text-[10px]">{fa ? 'مقدار معادل' : 'Equivalent'}</Label><Input dir="ltr" type="number" min="0" step="any" value={pair.rate} onChange={(e) => setCurrencyPairs((rows) => rows.map((row, i) => i === index ? { ...row, rate: Number(e.target.value) } : row))} placeholder="110000" /></div>
+              <Button type="button" size="icon" variant="ghost" aria-label={fa ? 'حذف نرخ' : 'Remove rate'} onClick={() => setCurrencyPairs((rows) => rows.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+            </div>)}
+            <p className="text-xs text-muted-foreground">{fa ? 'مثال: ارز مبدا USD، ارز مقصد IRR و مقدار معادل 110000 یعنی ۱ دلار برابر ۱۱۰٬۰۰۰ ریال است. نرخ معکوس و تبدیل‌های زنجیره‌ای خودکار محاسبه می‌شوند.' : 'Example: From USD, To IRR, Equivalent 110000 means 1 USD = 110,000 IRR. Inverse and cross-rates are calculated automatically.'}</p>
+          </div>
         </div>
         <Button className="mt-6" onClick={submit} disabled={busy}>{busy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{t('save')}</Button>
       </Panel>
