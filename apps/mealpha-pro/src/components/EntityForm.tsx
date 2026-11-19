@@ -97,5 +97,5 @@ function FieldInput({ f, value, onChange, lang, calendar }: {
         </SelectContent>
       </Select>
     );
-  return <Input type={f.type === 'number' ? 'number' : 'text'} step="any" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />;
+  return <Input type="text" inputMode={f.type === 'number' ? 'decimal' : undefined} autoComplete="off" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />;
 }
