@@ -33,8 +33,10 @@ export default function SettingsPage() {
 
   const submit = async () => {
     if (!s.currency.trim()) return toast.error(t('currency'));
-    const invalidPair = currencyPairs.find((pair) => !pair.from.trim() || !pair.to.trim() || pair.from.trim().toUpperCase() === pair.to.trim().toUpperCase() || !Number.isFinite(pair.rate) || pair.rate <= 0);
-    if (invalidPair) return toast.error(fa ? 'ارزهای مبدا و مقصد باید متفاوت باشند و نرخ بیشتر از صفر باشد.' : 'Choose two different currencies and a rate greater than zero.');
+    const invalidPair = currencyPairs.find((pair) => !/^[A-Z]{3,8}$/.test(pair.from.trim().toUpperCase()) || !/^[A-Z]{3,8}$/.test(pair.to.trim().toUpperCase()) || pair.from.trim().toUpperCase() === pair.to.trim().toUpperCase() || !Number.isFinite(pair.rate) || pair.rate <= 0);
+    if (invalidPair) return toast.error(fa ? 'کد دو ارز باید معتبر و متفاوت باشد و نرخ بیشتر از صفر باشد.' : 'Enter valid, different currency codes and a rate greater than zero.');
+    const pairKeys = currencyPairs.map((pair) => [pair.from.trim().toUpperCase(), pair.to.trim().toUpperCase()].sort().join(':'));
+    if (new Set(pairKeys).size !== pairKeys.length) return toast.error(fa ? 'برای هر جفت ارز فقط یک نرخ ثبت کنید.' : 'Only one rate may be entered for each currency pair.');
     const exchangeRates = currencyPairs.map((pair) => `${pair.from.trim().toUpperCase()}/${pair.to.trim().toUpperCase()}=${pair.rate}`).join('\\n');
     setBusy(true);
     try {
@@ -214,11 +216,11 @@ export default function SettingsPage() {
         dropboxAccountName: account?.name?.display_name || ''
       };
       const saved = await setLocalSettings(nextSettings);
-      if (!saved) {
-        sessionStorage.removeItem('mealpha.dropbox.appKey');
-        sessionStorage.removeItem('mealpha.dropbox.verifier');
-        sessionStorage.removeItem('mealpha.dropbox.state');
-        return;
+      if (!saved) throw new Error(fa ? 'ذخیره اطلاعات اتصال Dropbox ناموفق بود.' : 'Could not persist Dropbox connection.');
+      const persisted = await loadAll();
+      const stored = persisted.settings as Settings | null;
+      if (stored?.dropboxRefreshToken !== nextSettings.dropboxRefreshToken || stored?.dropboxAppKey !== appKey) {
+        throw new Error(fa ? 'ذخیره اتصال Dropbox تأیید نشد.' : 'Dropbox connection persistence could not be verified.');
       }
       setS(nextSettings);
       sessionStorage.removeItem('mealpha.dropbox.appKey');
@@ -251,8 +253,12 @@ export default function SettingsPage() {
         const token = await response.json();
         if (!response.ok) throw new Error(token.error_description || token.error || 'Dropbox token refresh failed');
         accessToken = token.access_token;
-        const refreshed = { ...settings, ...s, dropboxAccessToken: accessToken, dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000 };
-        setS(refreshed); setLocalSettings(refreshed);
+        const refreshed = { ...settings, ...s, dropboxAppKey: appKey, dropboxAccessToken: accessToken, dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000 };
+        const refreshedSaved = await setLocalSettings(refreshed);
+        if (!refreshedSaved) throw new Error(fa ? 'ذخیره توکن تازه‌شده Dropbox ناموفق بود.' : 'Could not save the refreshed Dropbox token.');
+        const persisted = await loadAll();
+        if ((persisted.settings as Settings | null)?.dropboxAccessToken !== accessToken) throw new Error(fa ? 'ذخیره توکن Dropbox تأیید نشد.' : 'Dropbox token persistence could not be verified.');
+        setS(refreshed);
       }
       const path = '/mealpha-pro-sync.json';
       const legacyPath = '/Apps/MeAlphaPro/mealpha-pro-sync.json';
