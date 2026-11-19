@@ -90,7 +90,7 @@ jobs:
           $installer = Get-ChildItem "apps/mealpha-pro/release" -Filter "*.exe" -File | Select-Object -First 1
           if (-not $installer) { throw "No Windows installer was produced." }
           Copy-Item $installer.FullName "release-assets/MeAlpha-Pro-Windows-x64.exe"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: MeAlpha-Pro-Windows-x64
           path: release-assets/MeAlpha-Pro-Windows-x64.exe
@@ -128,7 +128,7 @@ jobs:
           test -n "$DEB" || { echo "No Linux DEB package was produced."; exit 1; }
           cp "$APPIMAGE" release-assets/MeAlpha-Pro-Linux-x64.AppImage
           cp "$DEB" release-assets/MeAlpha-Pro-Linux-x64.deb
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: MeAlpha-Pro-Linux-x64
           path: |
@@ -233,7 +233,7 @@ jobs:
         run: |
           mkdir -p release-assets
           cp apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk release-assets/MeAlpha-Pro-Android.apk
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: MeAlpha-Pro-Android-APK
           path: release-assets/MeAlpha-Pro-Android.apk
