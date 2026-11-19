@@ -258,6 +258,21 @@ for (const viewport of viewports) {
     failures.push(`${viewport.name}: profile control missing`);
   }
   if (isMobile) {
+    await page.goto('http://127.0.0.1:8080/goals', { waitUntil: 'networkidle' });
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const menuButton = page.getByRole('button', { name: /بازکردن منو|Open menu/ });
+    if (await menuButton.count()) {
+      await menuButton.click();
+      const menu = page.getByRole('dialog', { name: /منوی اصلی|Main menu/ });
+      if (!(await menu.count())) failures.push(`${viewport.name}: hamburger menu did not open`);
+      else {
+        const bounds = await menu.evaluate(el => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: r.height, viewport: innerHeight, position: getComputedStyle(el).position }; });
+        if (bounds.position !== 'fixed' || bounds.top < 60 || bounds.bottom > bounds.viewport + 1 || bounds.height < 40) {
+          failures.push(`${viewport.name}: scrolled hamburger menu is outside the visible viewport ${JSON.stringify(bounds)}`);
+        }
+        await menuButton.click();
+      }
+    } else failures.push(`${viewport.name}: hamburger menu button missing`);
     await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
     const bottomNav = page.locator('nav[aria-label="ناوبری اصلی"]');
     if (!(await bottomNav.count())) failures.push(`${viewport.name}: mobile bottom navigation missing`);
