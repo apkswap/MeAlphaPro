@@ -219,7 +219,7 @@ export default function Layout() {
             <button type="button" className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-primary/10 text-sm font-bold text-primary ring-1 ring-primary/15 hover:ring-primary/50" aria-label={fa ? 'پروفایل کاربری' : 'User profile'} aria-expanded={activePopover === 'profile'} onClick={() => setActivePopover(v => v === 'profile' ? null : 'profile')} style={{ backgroundColor: settings.avatarColor || undefined }}>
               {settings.avatarDataUrl ? <img src={settings.avatarDataUrl} alt="" className="h-full w-full object-cover" /> : <span className="text-white">{settings.avatarEmoji || profileLabel.slice(0,1).toUpperCase() || 'α'}</span>}
             </button>
-            {activePopover === 'profile' && <div role="dialog" aria-label={fa ? 'پروفایل کاربری' : 'User profile'} className="absolute end-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border bg-card shadow-2xl">
+            {activePopover === 'profile' && <div role="dialog" aria-label={fa ? 'منوی پروفایل' : 'Profile menu'} className="absolute end-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border bg-card shadow-2xl">
               <div className="relative h-24 bg-gradient-to-br from-primary/30 via-card to-accent/20">
                 {settings.coverDataUrl && <img src={settings.coverDataUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />}
                 <div className="absolute inset-0 bg-gradient-to-t from-card/90 to-transparent" />
@@ -232,7 +232,7 @@ export default function Layout() {
                   <div className="min-w-0 pb-1"><div className="truncate text-sm font-bold">{profileLabel}</div><div className="truncate text-xs text-muted-foreground">{settings.username ? '@' + settings.username : 'MeAlpha Pro'}</div></div>
                 </div>
                 {settings.bio && <p className="mb-3 text-xs leading-5 text-muted-foreground">{settings.bio}</p>}
-                <NavLink to="/settings" onClick={() => setActivePopover(null)} className="block rounded-xl bg-primary/10 px-3 py-2 text-center text-xs font-semibold text-primary hover:bg-primary/15">{fa ? 'ویرایش پروفایل' : 'Edit profile'}</NavLink>
+                <NavLink to="/settings" onClick={() => setActivePopover(null)} className="block rounded-xl bg-primary/10 px-3 py-2 text-center text-xs font-semibold text-primary hover:bg-primary/15">{fa ? 'مشاهده و ویرایش پروفایل' : 'View and edit profile'}</NavLink>
               </div>
             </div>}
             {activePopover === 'notifications' && <div role="dialog" aria-label={fa ? 'مرکز اعلان‌ها' : 'Notification center'} className="absolute end-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border bg-card p-3 shadow-2xl">
