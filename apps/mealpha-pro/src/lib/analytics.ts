@@ -15,15 +15,15 @@ const cents = (n: number) => Math.round(n * 100);
 export type CurrencyRate = { from: string; to: string; rate: number };
 export function parseRates(s: string, baseCurrency = ''): CurrencyRate[] {
   const rows: CurrencyRate[] = [];
-  s.split(/[\\n;,]+/).forEach((line) => {
+  s.split(/[\n;,]+/).forEach((line) => {
     const text = line.trim();
     if (!text) return;
-    const match = text.match(/^([A-Za-z]{3,8})\\s*(?:\\/|->|:)\\s*([A-Za-z]{3,8})\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)$/);
+    const match = text.match(/^([A-Za-z]{3,8})\s*(?:\/|->|:)\s*([A-Za-z]{3,8})\s*=\s*([0-9]+(?:\.[0-9]+)?)$/);
     if (match && Number(match[3]) > 0) {
       rows.push({ from: match[1].toUpperCase(), to: match[2].toUpperCase(), rate: Number(match[3]) });
       return;
     }
-    const legacy = text.match(/^([A-Za-z]{3,8})\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)$/);
+    const legacy = text.match(/^([A-Za-z]{3,8})\s*=\s*([0-9]+(?:\.[0-9]+)?)$/);
     if (legacy && Number(legacy[2]) > 0 && baseCurrency && legacy[1].toUpperCase() !== baseCurrency.toUpperCase()) {
       rows.push({ from: legacy[1].toUpperCase(), to: baseCurrency.toUpperCase(), rate: Number(legacy[2]) });
     }
