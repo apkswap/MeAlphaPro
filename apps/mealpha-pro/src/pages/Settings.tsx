@@ -13,7 +13,7 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
-import { parseRates, CurrencyRate } from '../lib/analytics';
+import { parseRates, type CurrencyRate } from '../lib/analytics';
 
 const AVATARS = ['α', '🌟', '🚀', '🦊', '🐼', '🐺', '🦁', '🦉', '🎯', '💎', '🌙', '🔥'];
 const COLORS = ['#168be5', '#00b8d4', '#1261a0', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
