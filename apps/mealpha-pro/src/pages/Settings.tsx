@@ -47,7 +47,7 @@ export default function SettingsPage() {
     if (invalidPair) return toast.error(fa ? 'کد دو ارز باید معتبر و متفاوت باشد و نرخ بیشتر از صفر باشد.' : 'Enter valid, different currency codes and a rate greater than zero.');
     const pairKeys = currencyPairs.map((pair) => [pair.from.trim().toUpperCase(), pair.to.trim().toUpperCase()].sort().join(':'));
     if (new Set(pairKeys).size !== pairKeys.length) return toast.error(fa ? 'برای هر جفت ارز فقط یک نرخ ثبت کنید.' : 'Only one rate may be entered for each currency pair.');
-    const exchangeRates = currencyPairs.map((pair) => `${pair.from.trim().toUpperCase()}/${pair.to.trim().toUpperCase()}=${pair.rate}`).join('\\n');
+    const exchangeRates = currencyPairs.map((pair) => `${pair.from.trim().toUpperCase()}/${pair.to.trim().toUpperCase()}=${pair.rate}`).join('\n');
     setBusy(true);
     try {
       const next = { ...s, currency: s.currency.trim().toUpperCase(), exchangeRates };
