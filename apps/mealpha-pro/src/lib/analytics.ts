@@ -12,25 +12,57 @@ const daysBetween = (a: string, b: string) => Math.round((new Date(b).getTime() 
 
 // ---- Money (integer cents to avoid float drift) ----
 const cents = (n: number) => Math.round(n * 100);
-export function parseRates(s: string) {
-  const m: Record<string, number> = {};
-  s.split('\n').forEach((l) => {
-    const [k, v] = l.split('=').map((x) => x?.trim());
-    if (k && v && !isNaN(Number(v))) m[k.toUpperCase()] = Number(v);
+export type CurrencyRate = { from: string; to: string; rate: number };
+export function parseRates(s: string, baseCurrency = ''): CurrencyRate[] {
+  const rows: CurrencyRate[] = [];
+  s.split(/[\\n;,]+/).forEach((line) => {
+    const text = line.trim();
+    if (!text) return;
+    const match = text.match(/^([A-Za-z]{3,8})\\s*(?:\\/|->|:)\\s*([A-Za-z]{3,8})\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)$/);
+    if (match && Number(match[3]) > 0) {
+      rows.push({ from: match[1].toUpperCase(), to: match[2].toUpperCase(), rate: Number(match[3]) });
+      return;
+    }
+    const legacy = text.match(/^([A-Za-z]{3,8})\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)$/);
+    if (legacy && Number(legacy[2]) > 0 && baseCurrency && legacy[1].toUpperCase() !== baseCurrency.toUpperCase()) {
+      rows.push({ from: legacy[1].toUpperCase(), to: baseCurrency.toUpperCase(), rate: Number(legacy[2]) });
+    }
   });
-  return m;
+  return rows;
 }
 export function makeConverter(st: Settings) {
-  const rates = parseRates(st.exchangeRates);
-  const base = st.currency.toUpperCase();
+  const base = (st.currency || '').trim().toUpperCase();
+  const graph = new Map<string, Array<{ currency: string; rate: number }>>();
+  const edge = (from: string, to: string, rate: number) => {
+    const list = graph.get(from) || [];
+    list.push({ currency: to, rate });
+    graph.set(from, list);
+  };
+  parseRates(st.exchangeRates, base).forEach(({ from, to, rate }) => { edge(from, to, rate); edge(to, from, 1 / rate); });
+  const factorToBase = (currency: string): number | null => {
+    if (currency === base) return 1;
+    const queue: Array<{ currency: string; factor: number }> = [{ currency, factor: 1 }];
+    const visited = new Set([currency]);
+    while (queue.length) {
+      const current = queue.shift()!;
+      for (const next of graph.get(current.currency) || []) {
+        if (visited.has(next.currency)) continue;
+        const factor = current.factor * next.rate;
+        if (next.currency === base) return factor;
+        visited.add(next.currency);
+        queue.push({ currency: next.currency, factor });
+      }
+    }
+    return null;
+  };
   const missing = new Set<string>();
   const conv = (amount: number, cur?: string) => {
-    const c = (cur || base).toUpperCase();
-    if (c === base) return cents(amount);
-    if (rates[c] == null) { missing.add(c); return 0; }
-    return cents(amount * rates[c]);
+    const c = (cur || base).trim().toUpperCase();
+    const factor = factorToBase(c);
+    if (factor == null) { missing.add(c); return 0; }
+    return cents(amount * factor);
   };
-  return { conv, missing };
+  return { conv, missing, factorToBase };
 }
 
 export function monthFinance(tx: Rec[], st: Settings, offset = 0) {
