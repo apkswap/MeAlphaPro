@@ -58,6 +58,25 @@ export default function SettingsPage() {
     }
   };
 
+
+  const saveDropboxSettings = async () => {
+    setDropboxBusy(true);
+    try {
+      const next = { ...settings, ...s, dropboxAppKey: (s.dropboxAppKey || '').trim() };
+      const ok = await setLocalSettings(next);
+      if (!ok) throw new Error(fa ? 'ذخیره تنظیمات Dropbox ناموفق بود.' : 'Dropbox settings save failed.');
+      const persisted = await loadAll();
+      if ((persisted.settings as Settings | null)?.dropboxAppKey !== next.dropboxAppKey) {
+        throw new Error(fa ? 'ذخیره App Key تأیید نشد.' : 'Dropbox App Key persistence could not be verified.');
+      }
+      setS(next);
+      toast.success(fa ? 'تنظیمات Dropbox ذخیره و بررسی شد.' : 'Dropbox settings saved and verified.');
+    } catch (error) {
+      console.error('Dropbox settings save failed:', error);
+      toast.error(error instanceof Error ? error.message : t('error'));
+    } finally { setDropboxBusy(false); }
+  };
+
   const uploadImage = (file: File | undefined, field: 'avatarDataUrl' | 'coverDataUrl') => {
     if (!file) return;
     if (!file.type.startsWith('image/')) return toast.error(settings.language === 'fa' ? 'فقط فایل تصویری انتخاب کنید.' : 'Choose an image file.');
@@ -403,7 +422,7 @@ export default function SettingsPage() {
           </details>
           <div className="grid sm:grid-cols-[1fr_auto] gap-2 items-end">
             <div className="space-y-1.5"><Label>Dropbox App Key</Label><Input dir="ltr" value={s.dropboxAppKey || ''} onChange={e => set('dropboxAppKey', e.target.value.trim())} placeholder="Enter your Dropbox app key" /></div>
-            <Button type="button" variant="outline" onClick={connectDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{s.dropboxRefreshToken ? (fa ? 'اتصال مجدد' : 'Reconnect') : (fa ? 'اتصال Dropbox' : 'Connect Dropbox')}</Button>
+            <Button type="button" variant="outline" onClick={saveDropboxSettings} disabled={dropboxBusy}>{fa ? 'ذخیره App Key' : 'Save App Key'}</Button>\n            <Button type="button" variant="outline" onClick={connectDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{s.dropboxRefreshToken ? (fa ? 'اتصال مجدد' : 'Reconnect') : (fa ? 'اتصال Dropbox' : 'Connect Dropbox')}</Button>
           </div>
           {s.dropboxRefreshToken && <div className="flex items-center justify-between gap-3 text-xs text-emerald-500"><span>{fa ? 'متصل' : 'Connected'}{s.dropboxAccountName ? ' · ' + s.dropboxAccountName : ''}</span><Button type="button" size="sm" onClick={syncDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{fa ? 'همگام‌سازی اکنون' : 'Sync now'}</Button></div>}
         </div>
