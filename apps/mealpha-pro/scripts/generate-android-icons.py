@@ -24,10 +24,10 @@ def render(size: int, padding: float = 0.18) -> Image.Image:
 for density, size in {"mdpi":48, "hdpi":72, "xhdpi":96, "xxhdpi":144, "xxxhdpi":192}.items():
     folder = RES / f"mipmap-{density}"
     folder.mkdir(parents=True, exist_ok=True)
-    render(size, 0.0).save(folder / "ic_launcher.png", optimize=True)
+    render(size, 0.10).save(folder / "ic_launcher.png", optimize=True)
 
 # Adaptive icon foreground uses the same source artwork and background color.
-foreground = render(432, 0.0)
+foreground = render(432, 0.18)
 folder = RES / "mipmap-xxxhdpi"
 foreground.save(folder / "ic_launcher_foreground.png", optimize=True)
 drawable = RES / "drawable"
