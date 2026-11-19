@@ -11,6 +11,7 @@ on:
       - fix/blue-dual-theme-build-validation
       - feature/cinematic-3d-dashboard
       - feature/premium-command-center-ui
+      - fix/dropbox-settings-save-logo-sizing
     paths:
       - "apps/**"
       - "packages/**"
