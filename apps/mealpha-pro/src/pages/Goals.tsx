@@ -137,7 +137,13 @@ export default function Goals() {
     }
     setOpen(true);
   };
-  const saveGoal = (record: Rec) => ({ ...record, parentGoalId: record.parentGoalId === 'none' ? null : record.parentGoalId || null });
+  const saveGoal = (record: Rec) => {
+    const parentGoalId = record.parentGoalId === 'none' ? null : record.parentGoalId || null;
+    if (!parentGoalId || record.sortOrder != null) return { ...record, parentGoalId };
+    const siblings = childrenById[parentGoalId] || [];
+    const sortOrder = siblings.reduce((max, goal) => Math.max(max, Number(goal.sortOrder) || 0), -1) + 1;
+    return { ...record, parentGoalId, sortOrder };
+  };
   const cols: Col[] = [
     { key: 'title', label: t('title'), render: (row) => (
       <div className="flex min-w-[190px] items-center gap-2" style={{ paddingInlineStart: (Math.min(Number(row._depth) || 0, 8) * 18) + 'px' }}>
