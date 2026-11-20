@@ -7,16 +7,16 @@ import { Label } from '@project/components/ui/label';
 import { Switch } from '@project/components/ui/switch';
 import { DatePicker } from '@project/components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@project/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useStore, Entity, Rec } from '../lib/store';
 import { Key, opt } from '../lib/i18n';
 import { isoOf } from '../lib/analytics';
 
 export type Field = {
-  key: string; label: Key; type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox';
+  key: string; label: Key; type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox' | 'checklist';
   options?: (string | { value: string; label: string })[]; required?: boolean; full?: boolean; help?: string;
-  onChange?: (value: unknown, current: Rec) => Partial<Rec>;
+  onChange?: (value: unknown, current: Rec) => Partial<Rec>; visibleWhen?: (current: Rec) => boolean;
 };
 
 type Props = { open: boolean; onOpenChange: (o: boolean) => void; entity: Entity; fields: Field[]; initial?: Rec | null; defaults?: Rec; title: string; transform?: (r: Rec, prev?: Rec | null) => Rec };
@@ -35,9 +35,11 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
     return { ...p, [k]: val, ...(field?.onChange?.(val, p) ?? {}) };
   });
 
+  const visibleFields = fields.filter((field) => !field.visibleWhen || field.visibleWhen(v));
+
   const submit = async () => {
     const e: Record<string, string> = {};
-    fields.forEach((f) => {
+    visibleFields.forEach((f) => {
       const val = v[f.key];
       if (f.required && (val == null || val === '')) e[f.key] = '*';
       if (f.type === 'number' && val !== '' && val != null && isNaN(Number(val))) e[f.key] = '#';
@@ -47,7 +49,7 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
     const rec: Rec = { ...(initial ?? {}) };
     fields.forEach((f) => {
       const val = v[f.key];
-      rec[f.key] = f.type === 'number' ? (val === '' || val == null ? null : Number(val)) : f.type === 'checkbox' ? !!val : val ?? null;
+      rec[f.key] = f.type === 'number' ? (val === '' || val == null ? null : Number(val)) : f.type === 'checkbox' ? !!val : f.type === 'checklist' ? (Array.isArray(val) ? val : []) : val ?? null;
     });
     setBusy(true);
     const ok = await save(entity, transform ? transform(rec, initial) : rec, initial?.id);
@@ -60,7 +62,7 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
       <DialogContent className="max-w-xl" dir={settings.language === 'fa' ? 'rtl' : 'ltr'}>
         <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[65vh] overflow-y-auto p-1">
-          {fields.map((f) => (
+          {visibleFields.map((f) => (
             <div key={f.key} className={f.full || f.type === 'textarea' ? 'sm:col-span-2 space-y-1.5' : 'space-y-1.5'}>
               <Label className="text-xs text-muted-foreground">{t(f.label)}{f.required && ' *'}</Label>
               <FieldInput f={f} value={v[f.key]} onChange={(x) => set(f.key, x)}
@@ -82,6 +84,23 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
 function FieldInput({ f, value, onChange, lang, calendar }: {
   f: Field; value: any; onChange: (v: any) => void; lang: 'fa' | 'en'; calendar: string;
 }) {
+  if (f.type === 'checklist') {
+    const items = Array.isArray(value) ? value : [];
+    const update = (index: number, patch: Record<string, unknown>) =>
+      onChange(items.map((item: any, itemIndex: number) => itemIndex === index ? { ...item, ...patch } : item));
+    return <div className="space-y-2">
+      {items.map((item: any, index: number) => (
+        <div key={item.id || index} className="flex items-center gap-2 rounded-xl border bg-background/60 p-2">
+          <input type="checkbox" checked={!!item.done} onChange={(event) => update(index, { done: event.target.checked })} className="h-4 w-4 shrink-0 accent-primary" aria-label={lang === 'fa' ? 'انجام شد' : 'Completed'} />
+          <Input value={item.text ?? ''} onChange={(event) => update(index, { text: event.target.value })} placeholder={lang === 'fa' ? 'موردی که باید انجام شود' : 'Checklist item'} className="min-w-0 flex-1" />
+          <Button type="button" variant="ghost" size="icon" onClick={() => onChange(items.filter((_: any, itemIndex: number) => itemIndex !== index))} aria-label={lang === 'fa' ? 'حذف مورد' : 'Remove item'}><Trash2 className="h-4 w-4" /></Button>
+        </div>
+      ))}
+      <Button type="button" variant="outline" size="sm" onClick={() => onChange([...items, { id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'item-' + Date.now() + '-' + items.length, text: '', done: false }])}>
+        <Plus className="me-1 h-4 w-4" />{lang === 'fa' ? 'افزودن مورد به چک‌لیست' : 'Add checklist item'}
+      </Button>
+    </div>;
+  }
   if (f.type === 'textarea') return <Textarea value={value ?? ''} onChange={(e) => onChange(e.target.value)} rows={3} />;
   if (f.type === 'checkbox') return <div className="pt-1"><Switch checked={!!value} onCheckedChange={onChange} /></div>;
   if (f.type === 'date')
