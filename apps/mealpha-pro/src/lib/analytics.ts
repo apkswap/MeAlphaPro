@@ -96,7 +96,9 @@ export type GoalStatus = 'Completed' | 'On Track' | 'At Risk' | 'Delayed' | 'Unk
 export function goalInfo(g: Rec) {
   const target = Number(g.targetValue) || 0;
   const qualitative = g.trackingType === 'qualitative' || target <= 0;
-  const progress = g.completed ? 1 : qualitative ? null : Math.min(1, (Number(g.currentValue) || 0) / target);
+  const checklistItems = Array.isArray(g.descriptionItems) ? g.descriptionItems.filter((item: any) => String(item.text || '').trim()) : [];
+  const checklistProgress = checklistItems.length ? checklistItems.filter((item: any) => item.done).length / checklistItems.length : null;
+  const progress = g.completed ? 1 : checklistProgress != null ? checklistProgress : qualitative ? null : Math.min(1, (Number(g.currentValue) || 0) / target);
   const today = todayISO();
   let status: GoalStatus = 'Unknown', expected: number | null = null, predicted: string | null = null;
   if (g.completed || progress === 1) status = 'Completed';
