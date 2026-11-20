@@ -39,8 +39,7 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
       - name: Install vector icon renderer
-        working-directory: apps/mealpha-pro
-        run: npm install --no-save --package-lock=false sharp
+        run: npm install --no-save --package-lock=false --workspaces=false sharp
       - name: Generate multi-resolution Windows application icon
         run: node apps/mealpha-pro/scripts/generate-brand-assets.mjs --windows
       - name: Build Windows installer
