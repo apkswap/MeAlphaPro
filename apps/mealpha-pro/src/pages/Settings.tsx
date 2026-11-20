@@ -360,7 +360,7 @@ export default function SettingsPage() {
 
   const fa = settings.language === 'fa';
   return (
-    <div className="max-w-3xl space-y-5">
+    <div className="mx-auto w-full min-w-0 max-w-5xl space-y-5">
       <PageHeader title={t('settings')} />
       <Panel title={fa ? 'هویت کاربری' : 'User identity'}>
         <div className="relative mb-5 h-36 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/20 via-card to-accent/15">
