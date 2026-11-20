@@ -23,6 +23,12 @@ export function parseRates(s: string, baseCurrency = ''): CurrencyRate[] {
       rows.push({ from: match[1].toUpperCase(), to: match[2].toUpperCase(), rate: Number(match[3]) });
       return;
     }
+    // Explicit pair form: "USD = IRT 26000" means 1 USD = 26000 IRT.
+    const namedPair = text.match(/^([A-Za-z]{3,8})\\s*=\\s*([A-Za-z]{3,8})\\s+([0-9]+(?:\\.[0-9]+)?)$/);
+    if (namedPair && Number(namedPair[3]) > 0) {
+      rows.push({ from: namedPair[1].toUpperCase(), to: namedPair[2].toUpperCase(), rate: Number(namedPair[3]) });
+      return;
+    }
     const legacy = text.match(/^([A-Za-z]{3,8})\s*=\s*([0-9]+(?:\.[0-9]+)?)$/);
     if (legacy && Number(legacy[2]) > 0 && baseCurrency && legacy[1].toUpperCase() !== baseCurrency.toUpperCase()) {
       rows.push({ from: legacy[1].toUpperCase(), to: baseCurrency.toUpperCase(), rate: Number(legacy[2]) });
