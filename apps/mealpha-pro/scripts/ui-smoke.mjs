@@ -179,7 +179,7 @@ for (const viewport of viewports) {
   const listTaskRow = page.locator('tr').filter({ hasText: listTaskTitle }).first();
   await listTaskRow.waitFor({ timeout: 5000 });
   await listTaskRow.getByRole('checkbox').click();
-  await page.waitForFunction(async ({ id }) => {
+  await page.waitForFunction(async ({ id, title }) => {
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('mealpha-pro-local', 3);
       request.onsuccess = () => resolve(request.result);
