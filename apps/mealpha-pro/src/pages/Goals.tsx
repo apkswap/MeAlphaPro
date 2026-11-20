@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { arrayMove } from '@dnd-kit/sortable';
 import { ChevronDown, ChevronRight, ListPlus, Plus } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { useStore, Rec } from '../lib/store';
@@ -11,7 +12,7 @@ import { Bar, PageHeader, StatusPill } from '../components/ui-bits';
 export const statusKey = { 'On Track': 'onTrack', 'At Risk': 'atRisk', Delayed: 'delayed', Completed: 'completed', Unknown: 'noData' } as const;
 
 export default function Goals() {
-  const { data, t, settings } = useStore();
+  const { data, t, settings, saveMany } = useStore();
   const goals = data!.goals;
   const [edit, setEdit] = useState<Rec | null>(null);
   const [open, setOpen] = useState(false);
@@ -24,6 +25,7 @@ export default function Goals() {
     goals.forEach((goal) => {
       if (goal.parentGoalId && ids.has(goal.parentGoalId)) (map[goal.parentGoalId] ||= []).push(goal);
     });
+    Object.values(map).forEach((siblings) => siblings.sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0)));
     return map;
   }, [goals]);
 
@@ -113,6 +115,18 @@ export default function Goals() {
     return rows;
   }, [goals, childrenById, expanded, progressById]);
 
+  const reorderSubgoals = async (activeId: string, overId: string) => {
+    const active = goals.find((goal) => goal.id === activeId);
+    const over = goals.find((goal) => goal.id === overId);
+    if (!active?.parentGoalId || !over || active.parentGoalId !== over.parentGoalId) return;
+    const siblings = [...(childrenById[active.parentGoalId] || [])];
+    const from = siblings.findIndex((goal) => goal.id === activeId);
+    const to = siblings.findIndex((goal) => goal.id === overId);
+    if (from < 0 || to < 0 || from === to) return;
+    const reordered = arrayMove(siblings, from, to).map((goal, sortOrder) => ({ ...goal, sortOrder }));
+    await saveMany('goals', reordered);
+  };
+
   const openForm = (record: Rec | null) => {
     if (record?.parentGoalId && (!Array.isArray(record.descriptionItems) || !record.descriptionItems.length) && typeof record.description === 'string' && record.description.trim()) {
       const legacyItems = record.description.split(/\r?\n/).map((text) => text.trim()).filter(Boolean)
@@ -143,7 +157,7 @@ export default function Goals() {
   return <div className="space-y-3">
     <PageHeader title={t('goals')} action={<Button onClick={() => openForm(null)}><Plus className="me-1 h-4 w-4" />{L === 'fa' ? 'افزودن هدف اصلی' : 'Add main goal'}</Button>} />
     <div className="rounded-xl border bg-card/50 px-4 py-3 text-xs text-muted-foreground">{t('goalHierarchyHelp')}</div>
-    <DataList rows={flattened} cols={cols} entity="goals" onEdit={openForm} searchKeys={['title', 'category', 'description']} hierarchical />
+    <DataList rows={flattened} cols={cols} entity="goals" onEdit={openForm} onReorder={reorderSubgoals} searchKeys={['title', 'category', 'description']} hierarchical />
     <EntityForm open={open} onOpenChange={setOpen} entity="goals" fields={fields} initial={edit} defaults={{ horizon: 'Quarterly', priority: 'Medium', trackingType: 'measurable', parentGoalId: 'none' }} title={t('goals')} transform={saveGoal} />
   </div>;
 }
