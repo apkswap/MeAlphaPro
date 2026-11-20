@@ -121,7 +121,7 @@ for (const viewport of viewports) {
   const taskRow = page.locator('li').filter({ hasText: taskTitle }).first();
   await taskRow.waitFor({ timeout: 5000 });
   await taskRow.getByRole('checkbox').click();
-  await page.waitForFunction(async ({ id }) => {
+  await page.waitForFunction(async ({ id, title }) => {
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('mealpha-pro-local', 3);
       request.onsuccess = () => resolve(request.result);
@@ -192,13 +192,13 @@ for (const viewport of viewports) {
       request.onerror = () => reject(request.error);
     });
     db.close();
-    return record?.status === 'Done' && record?.title === 'Task list persistence ' + id.split('-').pop()
+    return record?.status === 'Done' && record?.title === title
       && record?.priority === 'High' && record?.notes === 'Preserve task-list metadata'
       && record?.estimatedMinutes === 75 && record?.actualMinutes === 30
       && record?.goalId === 'smoke-linked-goal'
       && record?.reminders?.[0]?.id === 'task-list-reminder'
       && record?.reminders?.[0]?.repeat === 'weekly';
-  }, { id: listTaskId }, { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Tasks page completion erased task fields, goal link or reminder settings`));
+  }, { id: listTaskId, title: listTaskTitle }, { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Tasks page completion erased task fields, goal link or reminder settings`));
   await page.evaluate(async id => {
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('mealpha-pro-local', 3);
