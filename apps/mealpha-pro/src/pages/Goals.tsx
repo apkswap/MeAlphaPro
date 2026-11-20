@@ -35,7 +35,10 @@ export default function Goals() {
       const nextVisiting = new Set(visiting).add(goal.id);
       const children = childrenById[goal.id] || [];
       if (!children.length) {
-        const own = goalInfo(goal).progress;
+        const items = Array.isArray(goal.descriptionItems) ? goal.descriptionItems.filter((item: any) => String(item.text || '').trim()) : [];
+        const own = items.length
+          ? items.filter((item: any) => item.done).length / items.length
+          : goalInfo(goal).progress;
         cache.set(goal.id, own);
         return own;
       }
@@ -112,7 +115,7 @@ export default function Goals() {
 
   const openForm = (record: Rec | null) => {
     if (record?.parentGoalId && (!Array.isArray(record.descriptionItems) || !record.descriptionItems.length) && typeof record.description === 'string' && record.description.trim()) {
-      const legacyItems = record.description.split(/\\r?\\n/).map((text) => text.trim()).filter(Boolean)
+      const legacyItems = record.description.split(/\r?\n/).map((text) => text.trim()).filter(Boolean)
         .map((text, index) => ({ id: `legacy-${record.id || 'new'}-${index}`, text, done: false }));
       setEdit({ ...record, descriptionItems: legacyItems });
     } else {
