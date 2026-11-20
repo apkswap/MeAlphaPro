@@ -65,7 +65,7 @@ export function makeConverter(st: Settings) {
   const conv = (amount: number, cur?: string) => {
     const c = (cur || base).trim().toUpperCase();
     const factor = factorToBase(c);
-    if (factor == null) { missing.add(c); return 0; }
+    if (factor == null) { missing.add(c); return Number.NaN; }
     return cents(amount * factor);
   };
   const fromBase = (amount: number, currency: string) => {
@@ -85,8 +85,10 @@ export function monthFinance(tx: Rec[], st: Settings, offset = 0) {
   const { conv, missing } = makeConverter(st);
   let inc = 0, exp = 0, disc = 0, count = 0;
   tx.filter((x) => x.date?.startsWith(prefix)).forEach((x) => {
-    count++;
     const v = conv(Number(x.amount) || 0, x.currency);
+    // Unknown exchange rates must never be counted as zero-valued money.
+    if (!Number.isFinite(v)) return;
+    count++;
     if (x.kind === 'Income') inc += v; else { exp += v; if (x.nature === 'Discretionary') disc += v; }
   });
   const income = inc / 100, expense = exp / 100;
@@ -99,8 +101,8 @@ export function monthFinance(tx: Rec[], st: Settings, offset = 0) {
 export function netWorth(assets: Rec[], liabs: Rec[], st: Settings, transactions: Rec[] = []) {
   const { conv, missing } = makeConverter(st);
   const effectiveAssets: Rec[] = assets.map((asset): Rec => ({ ...asset, currentValue: Number(asset.currentValue || 0) + transactions.filter(tx => tx.assetId === asset.id && tx.currency === asset.currency).reduce((sum, tx) => sum + (tx.kind === 'Income' ? 1 : -1) * Number(tx.amount || 0), 0) }));
-  const a = effectiveAssets.reduce((s, x) => s + conv(Number(x.currentValue) || 0, x.currency), 0);
-  const l = liabs.reduce((s, x) => s + conv(Number(x.outstandingAmount) || 0, x.currency), 0);
+  const a = effectiveAssets.reduce((sum, x) => { const value = conv(Number(x.currentValue) || 0, x.currency); return sum + (Number.isFinite(value) ? value : 0); }, 0);
+  const l = liabs.reduce((sum, x) => { const value = conv(Number(x.outstandingAmount) || 0, x.currency); return sum + (Number.isFinite(value) ? value : 0); }, 0);
   return { assets: a / 100, liabilities: l / 100, net: (a - l) / 100, missing: [...missing] };
 }
 
