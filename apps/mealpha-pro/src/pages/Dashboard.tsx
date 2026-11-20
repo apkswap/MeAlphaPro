@@ -29,6 +29,7 @@ export default function Dashboard() {
   const displayName = settings.displayName || settings.username || (fa ? 'دوست من' : 'there');
   return (
     <div className="space-y-6">
+      {[...new Set([...m.missing, ...nw.missing])].length > 0 && <div role="status" className="rounded-xl border border-[hsl(var(--warning)/.45)] bg-[hsl(var(--warning)/.08)] px-4 py-3 text-xs leading-6 text-[hsl(var(--warning))]">{t('missingRate')}: {[...new Set([...m.missing, ...nw.missing])].join(', ')} · {fa ? 'مبالغ این ارزها در جمع کل وارد نشده‌اند؛ نرخ تبدیل را در تنظیمات ثبت کنید.' : 'These amounts are excluded from totals until an exchange rate is configured.'}</div>}
       <section className="relative overflow-hidden rounded-[28px] border bg-card p-5 shadow-sm sm:p-7">
         <div className="pointer-events-none absolute -end-20 -top-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 start-1/3 h-56 w-56 rounded-full bg-accent/10 blur-3xl" />
