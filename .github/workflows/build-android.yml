@@ -56,8 +56,7 @@ jobs:
         working-directory: apps/mealpha-pro
         run: npx cap sync android
       - name: Install vector icon renderer
-        working-directory: apps/mealpha-pro
-        run: npm install --no-save --package-lock=false sharp
+        run: npm install --no-save --package-lock=false --workspaces=false sharp
       - name: Generate full-resolution Android launcher icons
         working-directory: apps/mealpha-pro
         run: node scripts/generate-brand-assets.mjs --android
