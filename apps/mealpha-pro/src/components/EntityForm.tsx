@@ -47,7 +47,7 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
     setErr(e);
     if (Object.keys(e).length) return;
     const rec: Rec = { ...(initial ?? {}) };
-    fields.forEach((f) => {
+    visibleFields.forEach((f) => {
       const val = v[f.key];
       rec[f.key] = f.type === 'number' ? (val === '' || val == null ? null : Number(val)) : f.type === 'checkbox' ? !!val : f.type === 'checklist' ? (Array.isArray(val) ? val : []) : val ?? null;
     });
