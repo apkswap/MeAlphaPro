@@ -204,10 +204,10 @@ export default function Layout() {
         </div>
       </aside>
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-40 flex h-[68px] min-w-0 items-center justify-between gap-2 border-b bg-background/90 px-3 backdrop-blur-xl sm:px-4 md:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            <button className="grid h-9 w-9 place-items-center rounded-xl border md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={fa ? 'بازکردن منو' : 'Open menu'}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
-            <div className="md:hidden flex shrink-0 items-center gap-2 whitespace-nowrap text-sm font-black"><img src="/mealpha.svg" alt="" className="h-8 w-8 shrink-0 rounded-lg object-cover" />MeAlpha <span className="text-primary">Pro</span></div>
+        <header className="sticky top-0 z-40 flex h-[68px] min-w-0 items-center justify-between gap-1 border-b bg-background/90 px-2 backdrop-blur-xl sm:gap-2 sm:px-4 md:px-8">
+          <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-3">
+            <button className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={fa ? 'بازکردن منو' : 'Open menu'}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
+            <div className="md:hidden flex shrink-0 items-center gap-1 whitespace-nowrap text-[13px] font-black"><img src="/mealpha.svg" alt="" className="h-7 w-7 shrink-0 rounded-lg object-cover" />MeAlpha <span className="text-primary">Pro</span></div>
             <div className="hidden min-w-0 truncate text-xs text-muted-foreground lg:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{t(NAV.find(n => n.to === location.pathname)?.k ?? 'dashboard')}</span></div>
           </div>
           <div className="relative flex items-center gap-2">
