@@ -62,7 +62,14 @@ export function makeConverter(st: Settings) {
     if (factor == null) { missing.add(c); return 0; }
     return cents(amount * factor);
   };
-  return { conv, missing, factorToBase };
+  const fromBase = (amount: number, currency: string) => {
+    const code = (currency || base).trim().toUpperCase();
+    if (code === base) return cents(amount);
+    const factor = factorToBase(code);
+    if (factor == null) { missing.add(code); return null; }
+    return cents(amount / factor);
+  };
+  return { conv, missing, factorToBase, fromBase };
 }
 
 export function monthFinance(tx: Rec[], st: Settings, offset = 0) {
@@ -153,8 +160,12 @@ export function taskStats(tasks: Rec[]) {
   const timed = tasks.filter((t) => t.status === 'Done' && Number(t.estimatedMinutes) > 0 && Number(t.actualMinutes) > 0);
   const est = timed.reduce((s, t) => s + Number(t.estimatedMinutes), 0);
   const act = timed.reduce((s, t) => s + Number(t.actualMinutes), 0);
+  const completed = tasks.filter((task) => task.status === 'Done').length;
   return {
-    completionRate: due30.length ? done30.length / due30.length : null, due30: due30.length,
+    // Overall completion is based on every task, not only tasks with a due date.
+    completionRate: tasks.length ? completed / tasks.length : null,
+    completed, total: tasks.length,
+    due30CompletionRate: due30.length ? done30.length / due30.length : null, due30: due30.length,
     overdue, todays, estimateRatio: timed.length >= 3 ? act / est : null, timedCount: timed.length,
     focusToday: tasks.length,
   };
@@ -228,9 +239,9 @@ export function findings(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLo
       title: fa ? 'کم‌تخمینی زمان کارها' : 'Tasks take longer than estimated',
       evidence: fa ? `زمان واقعی ${Math.round(ts.estimateRatio * 100)}٪ تخمین (${ts.timedCount} کار)` : `Actual time is ${Math.round(ts.estimateRatio * 100)}% of estimates (${ts.timedCount} tasks)`,
       action: fa ? `تخمین‌ها را حدود ${Math.round((ts.estimateRatio - 1) * 100)}٪ افزایش دهید` : `Pad future estimates by ~${Math.round((ts.estimateRatio - 1) * 100)}%` });
-  if (ts.completionRate != null && ts.due30 >= 5 && ts.completionRate >= 0.8)
+  if (ts.due30CompletionRate != null && ts.due30 >= 5 && ts.due30CompletionRate >= 0.8)
     out.push({ id: 'taskstrong', kind: 'strength', severity: 'low', confidence: 'confirmed',
-      title: fa ? 'اجرای منظم کارها' : 'Consistent task execution', evidence: `${pct(ts.completionRate)} (${ts.due30})`,
+      title: fa ? 'اجرای منظم کارها' : 'Consistent task execution', evidence: `${pct(ts.due30CompletionRate)} (${ts.due30})`,
       action: fa ? 'همین روال را ادامه دهید' : 'Keep the current routine' });
   const active = d.habits.filter((h) => !h.archived);
   const declining = active.filter((h) => { const s = habitStats(h, d.habitLogs); return s.hasHistory && s.prevWeek - s.thisWeek >= 0.3; });
