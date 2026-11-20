@@ -11,12 +11,14 @@ import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useStore, Entity, Rec } from '../lib/store';
 import { Key, opt } from '../lib/i18n';
-import { isoOf } from '../lib/analytics';
+import { isoOf, makeConverter } from '../lib/analytics';
+import { fmtMoney } from '../lib/i18n';
 
 export type Field = {
-  key: string; label: Key; type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox' | 'checklist';
+  key: string; label: Key; type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox' | 'checklist' | 'conversion';
   options?: (string | { value: string; label: string })[]; required?: boolean; full?: boolean; help?: string;
   onChange?: (value: unknown, current: Rec) => Partial<Rec>; visibleWhen?: (current: Rec) => boolean;
+  conversionAmountKey?: string; conversionCurrencyKey?: string;
 };
 
 type Props = { open: boolean; onOpenChange: (o: boolean) => void; entity: Entity; fields: Field[]; initial?: Rec | null; defaults?: Rec; title: string; transform?: (r: Rec, prev?: Rec | null) => Rec };
@@ -26,6 +28,7 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
   const [v, setV] = useState<Rec>({});
   const [err, setErr] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const { factorToBase } = makeConverter(settings);
 
   const defaultsKey = JSON.stringify(defaults ?? {});
   useEffect(() => { if (open) { setV({ ...defaults, ...(initial ?? {}) }); setErr({}); } }, [open, initial, defaultsKey]);
@@ -39,7 +42,7 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
 
   const submit = async () => {
     const e: Record<string, string> = {};
-    visibleFields.forEach((f) => {
+    visibleFields.filter((f) => f.type !== 'conversion').forEach((f) => {
       const val = v[f.key];
       if (f.required && (val == null || val === '')) e[f.key] = '*';
       if (f.type === 'number' && val !== '' && val != null && isNaN(Number(val))) e[f.key] = '#';
@@ -65,8 +68,17 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
           {visibleFields.map((f) => (
             <div key={f.key} className={f.full || f.type === 'textarea' ? 'sm:col-span-2 space-y-1.5' : 'space-y-1.5'}>
               <Label className="text-xs text-muted-foreground">{t(f.label)}{f.required && ' *'}</Label>
-              <FieldInput f={f} value={v[f.key]} onChange={(x) => set(f.key, x)}
-                lang={settings.language} calendar={settings.calendar} />
+              {f.type === 'conversion' ? (() => {
+                const amount = Number(v[f.conversionAmountKey || 'amount']);
+                const currency = String(v[f.conversionCurrencyKey || 'currency'] || settings.currency).trim().toUpperCase();
+                const rate = factorToBase(currency);
+                return <div className="rounded-xl border bg-muted/40 px-3 py-2 text-xs leading-6">
+                  {rate == null
+                    ? <span className="text-[hsl(var(--warning))]">{settings.language === 'fa' ? 'نرخ تبدیل ' + currency + ' به ' + settings.currency + ' در تنظیمات ثبت نشده است.' : 'No exchange rate from ' + currency + ' to ' + settings.currency + ' is configured.'}</span>
+                    : <><div className="font-semibold tabular-nums">{Number.isFinite(amount) ? fmtMoney(settings.language, amount * rate, settings.currency) : '—'}</div><div className="text-muted-foreground tabular-nums">1 {currency} = {new Intl.NumberFormat(settings.language === 'fa' ? 'fa-IR' : 'en-US', { maximumFractionDigits: 8 }).format(rate)} {settings.currency}</div></>}
+                </div>;
+              })() : <FieldInput f={f} value={v[f.key]} onChange={(x) => set(f.key, x)}
+                lang={settings.language} calendar={settings.calendar} />}
               {f.help && <p className="text-xs leading-5 text-muted-foreground">{f.help}</p>}
               {err[f.key] && <p className="text-xs text-destructive">{settings.language === 'fa' ? (err[f.key] === '#' ? 'عدد معتبر وارد کنید' : 'الزامی است') : (err[f.key] === '#' ? 'Enter a valid number' : 'Required')}</p>}
             </div>
