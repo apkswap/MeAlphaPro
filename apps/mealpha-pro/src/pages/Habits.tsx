@@ -49,7 +49,7 @@ export default function Habits() {
         {data!.habits.map((h) => {
           const s = habitStats(h, data!.habitLogs);
           return (
-            <div key={h.id} className={cn('rounded-2xl border bg-card/70 p-3 sm:p-4 space-y-2.5', h.archived && 'opacity-50')}>
+            <div key={h.id} className={cn('rounded-xl border bg-card/70 p-2.5 sm:p-3 space-y-2', h.archived && 'opacity-50')}>
               <div className="flex items-start gap-3">
                 <button disabled={busy === h.id} onClick={() => toggle(h)}
                   className={cn('h-9 w-9 rounded-lg border-2 grid place-items-center transition-all shrink-0', s.doneToday ? 'bg-[hsl(var(--success))] border-transparent text-white' : 'border-border hover:border-primary')}>
@@ -71,8 +71,8 @@ export default function Habits() {
                 <span className="text-xs font-semibold">{monthLabel}</span>
                 <button type="button" className="rounded-lg border px-2 py-1 text-xs" onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}>›</button>
               </div>
-              <div className="grid grid-cols-7 gap-0.5 text-center text-[9px] text-muted-foreground">{(L === 'fa' ? ['ش','ی','د','س','چ','پ','ج'] : ['S','M','T','W','T','F','S']).map((x,i) => <span key={i}>{x}</span>)}</div>
-              <div className="grid grid-cols-7 gap-0.5">{days.map((date) => { const key = isoOf(date); const done = s.dates.has(key); const inMonth = date.getMonth() === calendarMonth.getMonth(); const future = key > todayISO(); return <div key={key} title={key} className={cn('aspect-square min-h-0 rounded grid place-items-center text-[9px] sm:text-[10px]', !inMonth && 'opacity-30', done ? 'bg-emerald-500 text-white' : future ? 'bg-muted/50 text-muted-foreground' : 'bg-rose-500/80 text-white')}>{new Intl.DateTimeFormat(L === 'fa' ? 'fa-IR-u-ca-persian' : 'en-US', { day: 'numeric' }).format(date)}</div>; })}</div>
+              <div className="grid grid-cols-7 gap-px text-center text-[8px] text-muted-foreground">{(L === 'fa' ? ['ش','ی','د','س','چ','پ','ج'] : ['S','M','T','W','T','F','S']).map((x,i) => <span key={i}>{x}</span>)}</div>
+              <div className="grid grid-cols-7 gap-px">{days.map((date) => { const key = isoOf(date); const done = s.dates.has(key); const inMonth = date.getMonth() === calendarMonth.getMonth(); const future = key > todayISO(); return <div key={key} title={key} className={cn('aspect-square min-h-0 rounded-sm grid place-items-center text-[8px] leading-none', !inMonth && 'opacity-30', done ? 'bg-emerald-500 text-white' : future ? 'bg-muted/50 text-muted-foreground' : 'bg-rose-500/80 text-white')}>{new Intl.DateTimeFormat(L === 'fa' ? 'fa-IR-u-ca-persian' : 'en-US', { day: 'numeric' }).format(date)}</div>; })}</div>
             </div>
           );
         })}
