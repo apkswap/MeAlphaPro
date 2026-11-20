@@ -9,6 +9,7 @@ import EntityForm, { Field } from '../components/EntityForm';
 import DataList, { Col } from '../components/DataList';
 import { Kpi, PageHeader, Panel } from '../components/ui-bits';
 import { cn } from '@project/components/lib/utils';
+import MoneyEquivalents from '../components/MoneyEquivalents';
 
 const BASE_FIELDS: Field[] = [
   { key: 'description', label: 'description', type: 'text', required: true, full: true },
@@ -41,11 +42,11 @@ export default function Transactions() {
   const L = settings.language;
   const m = monthFinance(data!.transactions, settings);
   const cur = settings.currency;
-  const { factorToBase } = makeConverter(settings);
+  const { conv, factorToBase } = makeConverter(settings);
   const conversionLine = (amount: number, currency: string) => {
     const code = String(currency || cur).trim().toUpperCase();
     const rate = factorToBase(code);
-    return rate == null ? <div className="text-xs text-[hsl(var(--warning))]">{L === 'fa' ? 'نرخ ' + code + ' ثبت نشده' : 'Rate for ' + code + ' is missing'}</div> : <div className="text-xs text-muted-foreground tabular-nums">{fmtMoney(L, amount * rate, cur)} · 1 {code} = {fmtNum(L, rate, 6)} {cur}</div>;
+    return rate == null ? <div className="text-xs text-[hsl(var(--warning))]">{L === 'fa' ? 'نرخ ' + code + ' ثبت نشده' : 'Rate for ' + code + ' is missing'}</div> : <><div className="text-xs text-muted-foreground tabular-nums">{fmtMoney(L, amount * rate, cur)} · 1 {code} = {fmtNum(L, rate, 6)} {cur}</div><MoneyEquivalents amount={conv(amount, code) / 100} settings={settings} /></>;
   };
   const fields = useMemo<Field[]>(() => [
     ...BASE_FIELDS,
