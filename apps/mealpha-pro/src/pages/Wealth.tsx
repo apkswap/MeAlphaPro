@@ -8,6 +8,7 @@ import { netWorth, todayISO, makeConverter } from '../lib/analytics';
 import EntityForm, { Field } from '../components/EntityForm';
 import DataList, { Col } from '../components/DataList';
 import { Kpi, PageHeader } from '../components/ui-bits';
+import MoneyEquivalents from '../components/MoneyEquivalents';
 
 const A_FIELDS: Field[] = [
   { key: 'name', label: 'name', type: 'text', required: true, full: true },
@@ -42,11 +43,11 @@ export default function Wealth() {
   const { data, t, settings } = useStore();
   const [form, setForm] = useState<{ kind: 'assets' | 'liabilities'; rec: Rec | null } | null>(null);
   const L = settings.language, cal = settings.calendar, cur = settings.currency;
-  const { factorToBase } = makeConverter(settings);
+  const { conv, factorToBase } = makeConverter(settings);
   const conversionLine = (amount: number, currency: string) => {
     const code = String(currency || cur).trim().toUpperCase();
     const rate = factorToBase(code);
-    return rate == null ? <div className="text-xs text-[hsl(var(--warning))]">{L === 'fa' ? 'نرخ ' + code + ' ثبت نشده' : 'Rate for ' + code + ' is missing'}</div> : <div className="text-xs text-muted-foreground tabular-nums">{fmtMoney(L, amount * rate, cur)} · 1 {code} = {fmtNum(L, rate, 6)} {cur}</div>;
+    return rate == null ? <div className="text-xs text-[hsl(var(--warning))]">{L === 'fa' ? 'نرخ ' + code + ' ثبت نشده' : 'Rate for ' + code + ' is missing'}</div> : <><div className="text-xs text-muted-foreground tabular-nums">{fmtMoney(L, amount * rate, cur)} · 1 {code} = {fmtNum(L, rate, 6)} {cur}</div><MoneyEquivalents amount={conv(amount, code) / 100} settings={settings} /></>;
   };
   const assetValue = (asset: Rec) => Number(asset.currentValue || 0) + data!.transactions.filter((tx: Rec) => tx.assetId === asset.id && tx.currency === asset.currency).reduce((sum: number, tx: Rec) => sum + (tx.kind === 'Income' ? 1 : -1) * Number(tx.amount || 0), 0);
 
@@ -72,9 +73,9 @@ export default function Wealth() {
     <div>
       <PageHeader title={t('wealth')} />
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <Kpi label={t('assets')} value={fmtMoney(L, nw.assets, cur)} tone="good" />
-        <Kpi label={t('liabilities')} value={fmtMoney(L, nw.liabilities, cur)} tone="bad" />
-        <Kpi label={t('netWorth')} value={fmtMoney(L, nw.net, cur)} tone="accent" />
+        <div><Kpi label={t('assets')} value={fmtMoney(L, nw.assets, cur)} tone="good" /><MoneyEquivalents amount={nw.assets} settings={settings} /></div>
+        <div><Kpi label={t('liabilities')} value={fmtMoney(L, nw.liabilities, cur)} tone="bad" /><MoneyEquivalents amount={nw.liabilities} settings={settings} /></div>
+        <div><Kpi label={t('netWorth')} value={fmtMoney(L, nw.net, cur)} tone="accent" /><MoneyEquivalents amount={nw.net} settings={settings} /></div>
       </div>
       {nw.missing.length > 0 && <p className="text-xs text-[hsl(var(--warning))] mb-3">{t('missingRate')}: {nw.missing.join(', ')}</p>}
       <Tabs defaultValue="assets">
