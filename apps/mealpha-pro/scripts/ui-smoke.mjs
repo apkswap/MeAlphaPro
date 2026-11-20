@@ -290,7 +290,66 @@ for (const viewport of viewports) {
       const hierarchyLabelCount = childRowCount ? await childRow.getByText(/زیرهدف|Subgoal/, { exact: true }).count() : 0;
       console.log(`${viewport.name} goal hierarchy after reload: rows=${childRowCount}; labels=${hierarchyLabelCount}; row=${childRowText}`);
       if (!childRowCount) failures.push(`${viewport.name}: subgoal record is missing after reload`);
-      else if (!hierarchyLabelCount) failures.push(`${viewport.name}: child record exists but is not displayed as a subgoal`);
+      else if (!hierarchyLabelCount) failures.push(viewport.name + ': child record exists but is not displayed as a subgoal');
+      // Regression: qualitative subgoals use checklist items instead of target/current numeric values.
+      await page.evaluate(async title => {
+        const db = await new Promise((resolve, reject) => {
+          const request = indexedDB.open('mealpha-pro-local', 3);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction('goals', 'readwrite');
+          const store = tx.objectStore('goals');
+          const request = store.getAll();
+          request.onsuccess = () => {
+            const record = request.result.find(item => item.title === title);
+            if (record) store.put({ ...record, trackingType: 'qualitative', targetValue: 10, currentValue: 3, description: "Legacy checklist item one\nLegacy checklist item two", descriptionItems: undefined });
+          };
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+      }, childName);
+      await page.reload({ waitUntil: 'networkidle' });
+      const editableChild = page.locator('tr').filter({ hasText: childName }).first();
+      await editableChild.getByRole('button').nth(1).click();
+      const childEditDialog = page.getByRole('dialog');
+      if (await childEditDialog.locator('input[type="number"]').count()) {
+        failures.push(viewport.name + ': qualitative goal still shows target/current numeric fields');
+      }
+      const checklistInputs = childEditDialog.getByPlaceholder('موردی که باید انجام شود');
+      if (await checklistInputs.count() !== 2) {
+        failures.push(viewport.name + ': legacy child description was not migrated into two checklist items');
+      } else {
+        await checklistInputs.nth(0).fill('Legacy checklist item one');
+        await checklistInputs.nth(1).fill('Legacy checklist item two');
+        await childEditDialog.locator('input[type="checkbox"]').first().check();
+        await childEditDialog.getByRole('button', { name: 'ذخیره' }).click();
+        await page.reload({ waitUntil: 'networkidle' });
+        const checklistState = await page.evaluate(async title => {
+          const db = await new Promise((resolve, reject) => {
+            const request = indexedDB.open('mealpha-pro-local', 3);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          const records = await new Promise((resolve, reject) => {
+            const tx = db.transaction('goals', 'readonly');
+            const request = tx.objectStore('goals').getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          db.close();
+          const record = records.find(item => item.title === title);
+          return record ? { items: record.descriptionItems, targetValue: record.targetValue, currentValue: record.currentValue } : null;
+        }, childName);
+        if (!checklistState || checklistState.items?.length !== 2 || !checklistState.items[0].done || checklistState.items[1].done) {
+          failures.push(viewport.name + ': child checklist completion did not persist after reload');
+        }
+        if (checklistState?.targetValue !== 10 || checklistState?.currentValue !== 3) {
+          failures.push(viewport.name + ': hiding qualitative numeric fields unexpectedly changed stored legacy values');
+        }
+      }
     } else failures.push(`${viewport.name}: add-subgoal control is missing from goal rows`);
   } else failures.push(`${viewport.name}: add-main-goal control is missing`);
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
