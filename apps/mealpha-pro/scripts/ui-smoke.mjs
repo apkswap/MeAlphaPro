@@ -255,7 +255,7 @@ for (const viewport of viewports) {
     } else failures.push(`${viewport.name}: dedicated profile save button is missing`);
   } else failures.push(`${viewport.name}: profile name field is missing`);
   if (!(await page.getByText('راهنمای کامل راه‌اندازی Dropbox').count())) failures.push(`${viewport.name}: Dropbox setup guide is missing`);
-  const brandImage = page.locator('img[src="/mealpha-purple-gold.jpg"]').first();
+  const brandImage = page.locator('img[src="/mealpha.svg"]').first();
   if (!(await brandImage.count()) || !(await brandImage.evaluate(img => img.complete && img.naturalWidth > 0))) failures.push(`${viewport.name}: purple-gold brand image failed to load`);
   await page.goto('http://127.0.0.1:8080/goals', { waitUntil: 'networkidle' });
   const addMainGoal = page.getByRole('button', { name: 'افزودن هدف اصلی' });
