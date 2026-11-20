@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Android launcher icon resources from the approved purple-gold app artwork."""
+"""Generate crisp, full-bleed Android launcher icons from the approved app artwork."""
 from pathlib import Path
 from PIL import Image, ImageOps
 
@@ -10,29 +10,29 @@ if not SOURCE.is_file():
     raise SystemExit(f"Missing approved icon source: {SOURCE}")
 
 logo = Image.open(SOURCE).convert("RGBA")
-# The approved source is already a full-bleed rounded-square app icon; do not inset it again.
-def render(size: int, padding: float = 0.18) -> Image.Image:
-    canvas = Image.new("RGBA", (size, size), (12, 19, 42, 255))
-    max_side = int(size * (1 - 2 * padding))
-    mark = ImageOps.contain(logo, (max_side, max_side), Image.Resampling.LANCZOS)
-    x = (size - mark.width) // 2
-    y = (size - mark.height) // 2
-    canvas.alpha_composite(mark, (x, y))
-    return canvas
 
-# Legacy launcher icons for all common Android density buckets.
-for density, size in {"mdpi":48, "hdpi":72, "xhdpi":96, "xxhdpi":144, "xxxhdpi":192}.items():
+
+def render(size: int) -> Image.Image:
+    # The source is already a complete square app icon. Fit it edge-to-edge:
+    # do not add a second background or an artificial inset around the artwork.
+    return ImageOps.fit(
+        logo,
+        (size, size),
+        method=Image.Resampling.LANCZOS,
+        centering=(0.5, 0.5),
+    )
+
+
+# Legacy launcher icons at every common Android density.
+for density, size in {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}.items():
     folder = RES / f"mipmap-{density}"
     folder.mkdir(parents=True, exist_ok=True)
-    render(size, 0.10).save(folder / "ic_launcher.png", optimize=True)
+    render(size).save(folder / "ic_launcher.png", optimize=True)
 
-# Adaptive icon foreground uses the same source artwork and background color.
-foreground = render(432, 0.18)
+# Keep the adaptive foreground edge-to-edge; Android applies the launcher mask.
+foreground = render(432)
 folder = RES / "mipmap-xxxhdpi"
 foreground.save(folder / "ic_launcher_foreground.png", optimize=True)
-drawable = RES / "drawable"
-drawable.mkdir(parents=True, exist_ok=True)
-# Capacitor already generates drawable/ic_launcher_background.xml; keep its resource name unique.
 adaptive = RES / "mipmap-anydpi-v26"
 adaptive.mkdir(parents=True, exist_ok=True)
 (adaptive / "ic_launcher.xml").write_text(
@@ -43,4 +43,4 @@ adaptive.mkdir(parents=True, exist_ok=True)
     '</adaptive-icon>\n',
     encoding="utf-8",
 )
-print("Generated Android launcher icons from public/mealpha-purple-gold.jpg")
+print("Generated full-bleed Android launcher icons from public/mealpha-purple-gold.jpg")
