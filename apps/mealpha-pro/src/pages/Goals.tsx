@@ -72,9 +72,10 @@ export default function Goals() {
     { key: 'completed', label: 'completed', type: 'checkbox' },
     { key: 'startDate', label: 'startDate', type: 'date' },
     { key: 'dueDate', label: 'dueDate', type: 'date' },
-    { key: 'targetValue', label: 'target', type: 'number' },
-    { key: 'currentValue', label: 'current', type: 'number' },
-    { key: 'description', label: 'description', type: 'textarea' },
+    { key: 'targetValue', label: 'target', type: 'number', visibleWhen: (current) => current.trackingType !== 'qualitative' },
+    { key: 'currentValue', label: 'current', type: 'number', visibleWhen: (current) => current.trackingType !== 'qualitative' },
+    { key: 'description', label: 'description', type: 'textarea', visibleWhen: (current) => !current.parentGoalId || current.parentGoalId === 'none' },
+    { key: 'descriptionItems', label: 'description', type: 'checklist', full: true, visibleWhen: (current) => !!current.parentGoalId && current.parentGoalId !== 'none' },
   ];
 
   const flattened = useMemo(() => {
@@ -109,7 +110,16 @@ export default function Goals() {
     return rows;
   }, [goals, childrenById, expanded, progressById]);
 
-  const openForm = (record: Rec | null) => { setEdit(record); setOpen(true); };
+  const openForm = (record: Rec | null) => {
+    if (record?.parentGoalId && (!Array.isArray(record.descriptionItems) || !record.descriptionItems.length) && typeof record.description === 'string' && record.description.trim()) {
+      const legacyItems = record.description.split(/\\r?\\n/).map((text) => text.trim()).filter(Boolean)
+        .map((text, index) => ({ id: `legacy-${record.id || 'new'}-${index}`, text, done: false }));
+      setEdit({ ...record, descriptionItems: legacyItems });
+    } else {
+      setEdit(record);
+    }
+    setOpen(true);
+  };
   const saveGoal = (record: Rec) => ({ ...record, parentGoalId: record.parentGoalId === 'none' ? null : record.parentGoalId || null });
   const cols: Col[] = [
     { key: 'title', label: t('title'), render: (row) => (
