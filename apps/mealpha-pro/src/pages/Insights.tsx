@@ -8,6 +8,7 @@ import { fmtMoney, fmtNum } from '../lib/i18n';
 import { findings, makeConverter, monthFinance, scores, todayISO, Finding } from '../lib/analytics';
 import { Bar, Kpi, Panel, PageHeader } from '../components/ui-bits';
 import { cn } from '@project/components/lib/utils';
+import MoneyEquivalents from '../components/MoneyEquivalents';
 
 const KEY = 'mealpha-dismissed';
 type Period = 3 | 6 | 12;
@@ -84,9 +85,9 @@ export default function Insights() {
     <div className="space-y-6">
       <PageHeader title={t('insights')} subtitle={t('scoreNote')} />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Kpi label={fa ? 'درآمد این ماه' : 'Income this month'} value={fmtMoney(L, currentMonth.income, settings.currency)} tone="good" icon={<TrendingUp className="h-4 w-4" />} />
-        <Kpi label={fa ? 'هزینه این ماه' : 'Expenses this month'} value={fmtMoney(L, currentMonth.expense, settings.currency)} tone="bad" icon={<TrendingDown className="h-4 w-4" />} hint={fa ? `تغییر نسبت به ماه قبل: ${expenseChangeLabel}` : `vs previous month: ${expenseChangeLabel}`} />
-        <Kpi label={fa ? 'جریان نقدی خالص' : 'Net cash flow'} value={fmtMoney(L, currentMonth.net, settings.currency)} tone={currentMonth.net >= 0 ? 'good' : 'bad'} icon={<Wallet className="h-4 w-4" />} />
+        <div><Kpi label={fa ? 'درآمد این ماه' : 'Income this month'} value={fmtMoney(L, currentMonth.income, settings.currency)} tone="good" icon={<TrendingUp className="h-4 w-4" />} /><MoneyEquivalents amount={currentMonth.income} settings={settings} /></div>
+        <div><Kpi label={fa ? 'هزینه این ماه' : 'Expenses this month'} value={fmtMoney(L, currentMonth.expense, settings.currency)} tone="bad" icon={<TrendingDown className="h-4 w-4" />} hint={fa ? `تغییر نسبت به ماه قبل: ${expenseChangeLabel}` : `vs previous month: ${expenseChangeLabel}`} /><MoneyEquivalents amount={currentMonth.expense} settings={settings} /></div>
+        <div><Kpi label={fa ? 'جریان نقدی خالص' : 'Net cash flow'} value={fmtMoney(L, currentMonth.net, settings.currency)} tone={currentMonth.net >= 0 ? 'good' : 'bad'} icon={<Wallet className="h-4 w-4" />} /><MoneyEquivalents amount={currentMonth.net} settings={settings} /></div>
         <Kpi label={t('savingsRate')} value={currentMonth.savingsRate == null ? t('noData') : `${fmtNum(L, currentMonth.savingsRate * 100)}%`} tone="accent" />
       </div>
       {budgetUsage != null && (
@@ -115,8 +116,8 @@ export default function Insights() {
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-4">{fa
-          ? 'فرمول v1: میانگین برابر حوزه‌های دارای داده. مالی = ۵۰ + نرخ پس‌انداز×۱۶۶ (محدود به ۰ تا ۱۰۰)؛ اهداف = درصد اهداف در مسیر؛ کارها = نرخ تکمیل کارهای سررسید ۳۰ روز اخیر؛ عادت‌ها = میانگین نرخ ۳۰ روزه.'
-          : 'Formula v1: equal-weighted mean of areas with data. Finance = 50 + savings rate×166 (clamped 0–100); Goals = % of dated goals on track; Tasks = completion of tasks due in last 30 days; Habits = mean 30-day completion.'}</p>
+          ? 'فرمول v1: میانگین برابر حوزه‌های دارای داده. مالی = ۵۰ + نرخ پس‌انداز×۱۶۶ (محدود به ۰ تا ۱۰۰)؛ اهداف = درصد اهداف در مسیر؛ کارها = تعداد تسک‌های تکمیل‌شده تقسیم بر کل تسک‌ها؛ عادت‌ها = میانگین نرخ ۳۰ روزه.'
+          : 'Formula v1: equal-weighted mean of areas with data. Finance = 50 + savings rate×166 (clamped 0–100); Goals = % of dated goals on track; Tasks = all completed tasks / all tasks; Habits = mean 30-day completion.'}</p>
       </Panel>
       <div className="grid lg:grid-cols-2 gap-6">
         <Panel title={fa ? 'روند درآمد و هزینه' : 'Income & expense trend'} action={<div className="flex items-center gap-1 rounded-xl border bg-background/60 p-1" aria-label={fa ? 'بازه گزارش' : 'Report period'}>
