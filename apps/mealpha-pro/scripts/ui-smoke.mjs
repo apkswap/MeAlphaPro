@@ -313,7 +313,8 @@ for (const viewport of viewports) {
       }, childName);
       await page.reload({ waitUntil: 'networkidle' });
       const editableChild = page.locator('tr').filter({ hasText: childName }).first();
-      const childRowButtons = editableChild.getByRole('button');\n      await childRowButtons.nth(await childRowButtons.count() - 2).click();
+      const childRowButtons = editableChild.getByRole('button');
+      await childRowButtons.nth(await childRowButtons.count() - 2).click();
       const childEditDialog = page.getByRole('dialog');
       if (await childEditDialog.locator('input[type="number"]').count()) {
         failures.push(viewport.name + ': qualitative goal still shows target/current numeric fields');
