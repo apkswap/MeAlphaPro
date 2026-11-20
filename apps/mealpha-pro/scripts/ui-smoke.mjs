@@ -151,6 +151,69 @@ for (const viewport of viewports) {
     });
     db.close();
   }, taskId);
+
+  // Regression: completing a task from the Tasks table must preserve every user-entered field.
+  const listTaskId = `smoke-task-list-${viewport.name}`;
+  const listTaskTitle = `Task list persistence ${viewport.name}`;
+  await page.evaluate(async ({ id, title, dueDate }) => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readwrite');
+      tx.objectStore('tasks').put({
+        id, title, status: 'Todo', priority: 'High', dueDate,
+        notes: 'Preserve task-list metadata', estimatedMinutes: 75, actualMinutes: 30,
+        goalId: 'smoke-linked-goal',
+        reminders: [{ id: 'task-list-reminder', at: '2030-02-01T09:30:00.000Z', enabled: true, repeat: 'weekly' }]
+      });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    db.close();
+  }, { id: listTaskId, title: listTaskTitle, dueDate: today });
+  await page.goto('http://127.0.0.1:8080/tasks', { waitUntil: 'networkidle' });
+  const listTaskRow = page.locator('tr').filter({ hasText: listTaskTitle }).first();
+  await listTaskRow.waitFor({ timeout: 5000 });
+  await listTaskRow.getByRole('checkbox').click();
+  await page.waitForFunction(async ({ id }) => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const record = await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readonly');
+      const request = tx.objectStore('tasks').get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    return record?.status === 'Done' && record?.title === 'Task list persistence ' + id.split('-').pop()
+      && record?.priority === 'High' && record?.notes === 'Preserve task-list metadata'
+      && record?.estimatedMinutes === 75 && record?.actualMinutes === 30
+      && record?.goalId === 'smoke-linked-goal'
+      && record?.reminders?.[0]?.id === 'task-list-reminder'
+      && record?.reminders?.[0]?.repeat === 'weekly';
+  }, { id: listTaskId }, { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Tasks page completion erased task fields, goal link or reminder settings`));
+  await page.evaluate(async id => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readwrite');
+      tx.objectStore('tasks').delete(id);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }, listTaskId);
+
   await page.goto('http://127.0.0.1:8080/settings', { waitUntil: 'networkidle' });
   const palettes = [
     { id: 'violet', label: 'بنفش' },
