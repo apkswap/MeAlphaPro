@@ -24,7 +24,7 @@ export function parseRates(s: string, baseCurrency = ''): CurrencyRate[] {
       return;
     }
     // Explicit pair form: "USD = IRT 26000" means 1 USD = 26000 IRT.
-    const namedPair = text.match(/^([A-Za-z]{3,8})\\s*=\\s*([A-Za-z]{3,8})\\s+([0-9]+(?:\\.[0-9]+)?)$/);
+    const namedPair = text.match(/^([A-Za-z]{3,8})\s*=\s*([A-Za-z]{3,8})\s+([0-9]+(?:\.[0-9]+)?)$/);
     if (namedPair && Number(namedPair[3]) > 0) {
       rows.push({ from: namedPair[1].toUpperCase(), to: namedPair[2].toUpperCase(), rate: Number(namedPair[3]) });
       return;
