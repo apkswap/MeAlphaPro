@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@project/components/ui/dialog';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
@@ -31,7 +31,7 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
   const { factorToBase } = makeConverter(settings);
 
   const defaultsKey = JSON.stringify(defaults ?? {});
-  useEffect(() => { if (open) { setV({ ...defaults, ...(initial ?? {}) }); setErr({}); } }, [open, initial, defaultsKey]);
+  useLayoutEffect(() => { if (open) { setV({ ...defaults, ...(initial ?? {}) }); setErr({}); } }, [open, initial, defaultsKey]);
 
   const set = (k: string, val: unknown) => setV((p) => {
     const field = fields.find((item) => item.key === k);
