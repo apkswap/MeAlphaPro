@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@project/components/ui/dialog';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
@@ -31,27 +31,33 @@ export default function EntityForm({ open, onOpenChange, entity, fields, initial
   const { factorToBase } = makeConverter(settings);
 
   const defaultsKey = JSON.stringify(defaults ?? {});
-  useLayoutEffect(() => { if (open) { setV({ ...defaults, ...(initial ?? {}) }); setErr({}); } }, [open, initial, defaultsKey]);
+  useLayoutEffect(() => { if (open) { const next = { ...defaults, ...(initial ?? {}) }; vRef.current = next; setV(next); setErr({}); } }, [open, initial, defaultsKey]);
 
-  const set = (k: string, val: unknown) => setV((p) => {
+  const vRef = useRef<Rec>(v);
+  const set = (k: string, val: unknown) => {
     const field = fields.find((item) => item.key === k);
-    return { ...p, [k]: val, ...(field?.onChange?.(val, p) ?? {}) };
-  });
+    const current = vRef.current;
+    const next = { ...current, [k]: val, ...(field?.onChange?.(val, current) ?? {}) };
+    vRef.current = next;
+    setV(next);
+  };
 
   const visibleFields = fields.filter((field) => !field.visibleWhen || field.visibleWhen(v));
 
   const submit = async () => {
+    const current = vRef.current;
+    const fieldsForSubmit = fields.filter((f) => !f.visibleWhen || f.visibleWhen(current));
     const e: Record<string, string> = {};
-    visibleFields.filter((f) => f.type !== 'conversion').forEach((f) => {
-      const val = v[f.key];
+    fieldsForSubmit.filter((f) => f.type !== 'conversion').forEach((f) => {
+      const val = current[f.key];
       if (f.required && (val == null || val === '')) e[f.key] = '*';
       if (f.type === 'number' && val !== '' && val != null && isNaN(Number(val))) e[f.key] = '#';
     });
     setErr(e);
     if (Object.keys(e).length) return;
     const rec: Rec = { ...(initial ?? {}) };
-    visibleFields.filter((f) => f.type !== 'conversion').forEach((f) => {
-      const val = v[f.key];
+    fieldsForSubmit.filter((f) => f.type !== 'conversion').forEach((f) => {
+      const val = current[f.key];
       rec[f.key] = f.type === 'number' ? (val === '' || val == null ? null : Number(val)) : f.type === 'checkbox' ? !!val : f.type === 'checklist' ? (Array.isArray(val) ? val : []) : val ?? null;
     });
     setBusy(true);
