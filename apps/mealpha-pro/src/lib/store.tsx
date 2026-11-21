@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Lang, Key, tr } from './i18n';
-import { AppSettings, deleteRecord, Entity, loadAll, Rec, saveRecord, saveSettings as persistSettings } from './localDb';
+import { AppSettings, deleteRecord, Entity, loadAll, Rec, saveRecord, saveRecords, saveSettings as persistSettings } from './localDb';
 
 export type { Rec, Entity };
 export type Settings = AppSettings;
@@ -10,6 +10,7 @@ type Ctx = {
   data: Data | null; settings: Settings; t: (k: Key) => string;
   reload: () => Promise<void>;
   save: (entity: Entity, record: Rec, id?: string) => Promise<boolean>;
+  saveMany: (entity: Entity, records: Rec[]) => Promise<boolean>;
   remove: (entity: Entity, id: string) => Promise<void>;
   setLocalSettings: (s: Settings) => Promise<boolean>;
 };
@@ -60,6 +61,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try { await saveRecord(entity, record, id); await reload(); return true; }
     catch (error) { console.error(error); toast.error(t('error')); return false; }
   };
+  const saveMany = async (entity: Entity, records: Rec[]): Promise<boolean> => {
+    try { await saveRecords(entity, records); await reload(); return true; }
+    catch (error) { console.error(error); toast.error(t('error')); return false; }
+  };
   const remove = async (entity: Entity, id: string) => {
     try { await deleteRecord(entity, id); toast.success(t('deleted')); await reload(); }
     catch (error) { console.error(error); toast.error(t('error')); }
@@ -75,5 +80,5 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return false;
     }
   }, [t]);
-  return <C.Provider value={{ data, settings, t, reload, save, remove, setLocalSettings }}>{children}</C.Provider>;
+  return <C.Provider value={{ data, settings, t, reload, save, saveMany, remove, setLocalSettings }}>{children}</C.Provider>;
 }

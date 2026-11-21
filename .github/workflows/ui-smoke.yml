@@ -12,6 +12,7 @@ on:
       - feat/hierarchical-goals-task-reminders
       - fix/goals-hierarchy-integrity
       - fix/restore-purple-branding-profile-goals
+      - fix/dropbox-settings-save-logo-sizing
     paths:
       - "apps/mealpha-pro/src/**"
       - "apps/mealpha-pro/scripts/ui-smoke.mjs"

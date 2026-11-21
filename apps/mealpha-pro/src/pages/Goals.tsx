@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { arrayMove } from '@dnd-kit/sortable';
 import { ChevronDown, ChevronRight, ListPlus, Plus } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { useStore, Rec } from '../lib/store';
@@ -11,7 +12,7 @@ import { Bar, PageHeader, StatusPill } from '../components/ui-bits';
 export const statusKey = { 'On Track': 'onTrack', 'At Risk': 'atRisk', Delayed: 'delayed', Completed: 'completed', Unknown: 'noData' } as const;
 
 export default function Goals() {
-  const { data, t, settings } = useStore();
+  const { data, t, settings, saveMany } = useStore();
   const goals = data!.goals;
   const [edit, setEdit] = useState<Rec | null>(null);
   const [open, setOpen] = useState(false);
@@ -24,6 +25,7 @@ export default function Goals() {
     goals.forEach((goal) => {
       if (goal.parentGoalId && ids.has(goal.parentGoalId)) (map[goal.parentGoalId] ||= []).push(goal);
     });
+    Object.values(map).forEach((siblings) => siblings.sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0)));
     return map;
   }, [goals]);
 
@@ -35,7 +37,10 @@ export default function Goals() {
       const nextVisiting = new Set(visiting).add(goal.id);
       const children = childrenById[goal.id] || [];
       if (!children.length) {
-        const own = goalInfo(goal).progress;
+        const items = Array.isArray(goal.descriptionItems) ? goal.descriptionItems.filter((item: any) => String(item.text || '').trim()) : [];
+        const own = items.length
+          ? items.filter((item: any) => item.done).length / items.length
+          : goalInfo(goal).progress;
         cache.set(goal.id, own);
         return own;
       }
@@ -72,9 +77,10 @@ export default function Goals() {
     { key: 'completed', label: 'completed', type: 'checkbox' },
     { key: 'startDate', label: 'startDate', type: 'date' },
     { key: 'dueDate', label: 'dueDate', type: 'date' },
-    { key: 'targetValue', label: 'target', type: 'number' },
-    { key: 'currentValue', label: 'current', type: 'number' },
-    { key: 'description', label: 'description', type: 'textarea' },
+    { key: 'targetValue', label: 'target', type: 'number', visibleWhen: (current) => current.trackingType !== 'qualitative' },
+    { key: 'currentValue', label: 'current', type: 'number', visibleWhen: (current) => current.trackingType !== 'qualitative' },
+    { key: 'description', label: 'description', type: 'textarea', visibleWhen: (current) => !current.parentGoalId || current.parentGoalId === 'none' },
+    { key: 'descriptionItems', label: 'description', type: 'checklist', full: true, visibleWhen: (current) => !!current.parentGoalId && current.parentGoalId !== 'none' },
   ];
 
   const flattened = useMemo(() => {
@@ -109,8 +115,35 @@ export default function Goals() {
     return rows;
   }, [goals, childrenById, expanded, progressById]);
 
-  const openForm = (record: Rec | null) => { setEdit(record); setOpen(true); };
-  const saveGoal = (record: Rec) => ({ ...record, parentGoalId: record.parentGoalId === 'none' ? null : record.parentGoalId || null });
+  const reorderSubgoals = async (activeId: string, overId: string) => {
+    const active = goals.find((goal) => goal.id === activeId);
+    const over = goals.find((goal) => goal.id === overId);
+    if (!active?.parentGoalId || !over || active.parentGoalId !== over.parentGoalId) return;
+    const siblings = [...(childrenById[active.parentGoalId] || [])];
+    const from = siblings.findIndex((goal) => goal.id === activeId);
+    const to = siblings.findIndex((goal) => goal.id === overId);
+    if (from < 0 || to < 0 || from === to) return;
+    const reordered = arrayMove(siblings, from, to).map((goal, sortOrder) => ({ ...goal, sortOrder }));
+    await saveMany('goals', reordered);
+  };
+
+  const openForm = (record: Rec | null) => {
+    if (record?.parentGoalId && (!Array.isArray(record.descriptionItems) || !record.descriptionItems.length) && typeof record.description === 'string' && record.description.trim()) {
+      const legacyItems = record.description.split(/\r?\n/).map((text) => text.trim()).filter(Boolean)
+        .map((text, index) => ({ id: `legacy-${record.id || 'new'}-${index}`, text, done: false }));
+      setEdit({ ...record, descriptionItems: legacyItems });
+    } else {
+      setEdit(record);
+    }
+    setOpen(true);
+  };
+  const saveGoal = (record: Rec) => {
+    const parentGoalId = record.parentGoalId === 'none' ? null : record.parentGoalId || null;
+    if (!parentGoalId || record.sortOrder != null) return { ...record, parentGoalId };
+    const siblings = childrenById[parentGoalId] || [];
+    const sortOrder = siblings.reduce((max, goal) => Math.max(max, Number(goal.sortOrder) || 0), -1) + 1;
+    return { ...record, parentGoalId, sortOrder };
+  };
   const cols: Col[] = [
     { key: 'title', label: t('title'), render: (row) => (
       <div className="flex min-w-[190px] items-center gap-2" style={{ paddingInlineStart: (Math.min(Number(row._depth) || 0, 8) * 18) + 'px' }}>
@@ -130,7 +163,7 @@ export default function Goals() {
   return <div className="space-y-3">
     <PageHeader title={t('goals')} action={<Button onClick={() => openForm(null)}><Plus className="me-1 h-4 w-4" />{L === 'fa' ? 'افزودن هدف اصلی' : 'Add main goal'}</Button>} />
     <div className="rounded-xl border bg-card/50 px-4 py-3 text-xs text-muted-foreground">{t('goalHierarchyHelp')}</div>
-    <DataList rows={flattened} cols={cols} entity="goals" onEdit={openForm} searchKeys={['title', 'category', 'description']} hierarchical />
+    <DataList rows={flattened} cols={cols} entity="goals" onEdit={openForm} onReorder={reorderSubgoals} searchKeys={['title', 'category', 'description']} hierarchical />
     <EntityForm open={open} onOpenChange={setOpen} entity="goals" fields={fields} initial={edit} defaults={{ horizon: 'Quarterly', priority: 'Medium', trackingType: 'measurable', parentGoalId: 'none' }} title={t('goals')} transform={saveGoal} />
   </div>;
 }

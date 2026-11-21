@@ -80,6 +80,26 @@ export async function saveRecord(entity: Entity, record: Rec, id?: string) {
   return recordId;
 }
 
+export async function saveRecords(entity: Entity, records: Rec[]) {
+  if (!records.length) return;
+  const db = await openDb();
+  const now = Date.now();
+  const tx = db.transaction([entity, 'appMeta'], 'readwrite');
+  const store = tx.objectStore(entity);
+  const meta = tx.objectStore('appMeta');
+  const tombstoneRequest = meta.get('tombstones');
+  tombstoneRequest.onsuccess = () => {
+    const tombstones = { ...((tombstoneRequest.result?.value ?? {}) as Record<string, number>) };
+    records.forEach((record) => {
+      const id = String(record.id || '');
+      if (!id) return;
+      delete tombstones[entity + ':' + id];
+      store.put({ ...record, updatedAt: now });
+    });
+    meta.put({ key: 'tombstones', value: tombstones });
+  };
+  await transactionDone(tx);
+}
 export async function deleteRecord(entity: Entity, id: string) {
   const db = await openDb();
   const tx = db.transaction([entity, 'appMeta'], 'readwrite');

@@ -4,10 +4,11 @@ import { Button } from '@project/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@project/components/ui/tabs';
 import { useStore, Rec } from '../lib/store';
 import { fmtDate, fmtMoney, fmtNum } from '../lib/i18n';
-import { netWorth, todayISO } from '../lib/analytics';
+import { netWorth, todayISO, makeConverter } from '../lib/analytics';
 import EntityForm, { Field } from '../components/EntityForm';
 import DataList, { Col } from '../components/DataList';
 import { Kpi, PageHeader } from '../components/ui-bits';
+import MoneyEquivalents from '../components/MoneyEquivalents';
 
 const A_FIELDS: Field[] = [
   { key: 'name', label: 'name', type: 'text', required: true, full: true },
@@ -15,6 +16,7 @@ const A_FIELDS: Field[] = [
   { key: 'currency', label: 'currency', type: 'text', required: true },
   { key: 'acquisitionCost', label: 'acqCost', type: 'number' },
   { key: 'currentValue', label: 'curValue', type: 'number', required: true },
+  { key: 'conversionPreview', label: 'currency', type: 'conversion', full: true, conversionAmountKey: 'currentValue', conversionCurrencyKey: 'currency' },
   { key: 'valuationDate', label: 'valDate', type: 'date' },
 ];
 const L_FIELDS: Field[] = [
@@ -23,6 +25,7 @@ const L_FIELDS: Field[] = [
   { key: 'currency', label: 'currency', type: 'text', required: true },
   { key: 'originalAmount', label: 'original', type: 'number' },
   { key: 'outstandingAmount', label: 'outstanding', type: 'number', required: true },
+  { key: 'conversionPreview', label: 'currency', type: 'conversion', full: true, conversionAmountKey: 'outstandingAmount', conversionCurrencyKey: 'currency' },
   { key: 'interestRate', label: 'interest', type: 'number' },
   { key: 'dueDate', label: 'dueDate', type: 'date' },
 ];
@@ -40,6 +43,12 @@ export default function Wealth() {
   const { data, t, settings } = useStore();
   const [form, setForm] = useState<{ kind: 'assets' | 'liabilities'; rec: Rec | null } | null>(null);
   const L = settings.language, cal = settings.calendar, cur = settings.currency;
+  const { conv, factorToBase } = makeConverter(settings);
+  const conversionLine = (amount: number, currency: string) => {
+    const code = String(currency || cur).trim().toUpperCase();
+    const rate = factorToBase(code);
+    return rate == null ? <div className="text-xs text-[hsl(var(--warning))]">{L === 'fa' ? 'نرخ ' + code + ' ثبت نشده' : 'Rate for ' + code + ' is missing'}</div> : <><div className="text-xs text-muted-foreground tabular-nums">{fmtMoney(L, amount * rate, cur)} · 1 {code} = {fmtNum(L, rate, 6)} {cur}</div><MoneyEquivalents amount={conv(amount, code) / 100} settings={settings} /></>;
+  };
   const assetValue = (asset: Rec) => Number(asset.currentValue || 0) + data!.transactions.filter((tx: Rec) => tx.assetId === asset.id && tx.currency === asset.currency).reduce((sum: number, tx: Rec) => sum + (tx.kind === 'Income' ? 1 : -1) * Number(tx.amount || 0), 0);
 
   const nw = netWorth(data!.assets, data!.liabilities, settings, data!.transactions);
@@ -49,13 +58,13 @@ export default function Wealth() {
     { key: 'currentValue', label: t('curValue'), sortValue: (r) => assetValue(r), render: (r) => {
       const current = assetValue(r);
       const gain = r.acquisitionCost ? (current - Number(r.acquisitionCost)) / Number(r.acquisitionCost) : null;
-      return <div className="tabular-nums"><div className="font-semibold">{fmtMoney(L, current, r.currency)}</div>{gain != null && <div className={gain >= 0 ? 'text-xs text-[hsl(var(--success))]' : 'text-xs text-destructive'}>{gain >= 0 ? '+' : ''}{fmtNum(L, gain * 100, 1)}%</div>}</div>;
+      return <div className="tabular-nums"><div className="font-semibold">{fmtMoney(L, current, r.currency)}</div>{conversionLine(current, r.currency)}{gain != null && <div className={gain >= 0 ? 'text-xs text-[hsl(var(--success))]' : 'text-xs text-destructive'}>{gain >= 0 ? '+' : ''}{fmtNum(L, gain * 100, 1)}%</div>}</div>;
     } },
     { key: 'valuationDate', label: t('valDate'), render: (r) => fmtDate(L, cal, r.valuationDate) },
   ];
   const lCols: Col[] = [
     { key: 'name', label: t('name'), render: (r) => <div><div className="font-medium">{r.name}</div><div className="text-xs text-muted-foreground">{r.creditor}</div></div> },
-    { key: 'outstandingAmount', label: t('outstanding'), sortValue: (r) => Number(r.outstandingAmount), render: (r) => <span className="font-semibold tabular-nums text-destructive">{fmtMoney(L, Number(r.outstandingAmount), r.currency)}</span> },
+    { key: 'outstandingAmount', label: t('outstanding'), sortValue: (r) => Number(r.outstandingAmount), render: (r) => <div><div className="font-semibold tabular-nums text-destructive">{fmtMoney(L, Number(r.outstandingAmount), r.currency)}</div>{conversionLine(Number(r.outstandingAmount || 0), r.currency)}</div> },
     { key: 'interestRate', label: t('interest'), render: (r) => fmtNum(L, r.interestRate, 2) },
     { key: 'dueDate', label: t('dueDate'), render: (r) => fmtDate(L, cal, r.dueDate) },
   ];
@@ -64,9 +73,9 @@ export default function Wealth() {
     <div>
       <PageHeader title={t('wealth')} />
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <Kpi label={t('assets')} value={fmtMoney(L, nw.assets, cur)} tone="good" />
-        <Kpi label={t('liabilities')} value={fmtMoney(L, nw.liabilities, cur)} tone="bad" />
-        <Kpi label={t('netWorth')} value={fmtMoney(L, nw.net, cur)} tone="accent" />
+        <div><Kpi label={t('assets')} value={fmtMoney(L, nw.assets, cur)} tone="good" /><MoneyEquivalents amount={nw.assets} settings={settings} /></div>
+        <div><Kpi label={t('liabilities')} value={fmtMoney(L, nw.liabilities, cur)} tone="bad" /><MoneyEquivalents amount={nw.liabilities} settings={settings} /></div>
+        <div><Kpi label={t('netWorth')} value={fmtMoney(L, nw.net, cur)} tone="accent" /><MoneyEquivalents amount={nw.net} settings={settings} /></div>
       </div>
       {nw.missing.length > 0 && <p className="text-xs text-[hsl(var(--warning))] mb-3">{t('missingRate')}: {nw.missing.join(', ')}</p>}
       <Tabs defaultValue="assets">

@@ -10,6 +10,7 @@ import { statusKey } from './Goals';
 import { completeTx } from './Tasks';
 import { useHabitToggle } from './Habits';
 import GrowthEngine from '../components/GrowthEngine';
+import MoneyEquivalents from '../components/MoneyEquivalents';
 import { cn } from '@project/components/lib/utils';
 
 export default function Dashboard() {
@@ -28,6 +29,7 @@ export default function Dashboard() {
   const displayName = settings.displayName || settings.username || (fa ? 'دوست من' : 'there');
   return (
     <div className="space-y-6">
+      {[...new Set([...m.missing, ...nw.missing])].length > 0 && <div role="status" className="rounded-xl border border-[hsl(var(--warning)/.45)] bg-[hsl(var(--warning)/.08)] px-4 py-3 text-xs leading-6 text-[hsl(var(--warning))]">{t('missingRate')}: {[...new Set([...m.missing, ...nw.missing])].join(', ')} · {fa ? 'مبالغ این ارزها در جمع کل وارد نشده‌اند؛ نرخ تبدیل را در تنظیمات ثبت کنید.' : 'These amounts are excluded from totals until an exchange rate is configured.'}</div>}
       <section className="relative overflow-hidden rounded-[28px] border bg-card p-5 shadow-sm sm:p-7">
         <div className="pointer-events-none absolute -end-20 -top-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 start-1/3 h-56 w-56 rounded-full bg-accent/10 blur-3xl" />
@@ -43,8 +45,8 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="relative mt-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <div className="rounded-2xl border bg-background/65 p-4"><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{t('netWorth')}</span><Wallet className="h-4 w-4 text-primary" /></div><div className="mt-2 break-words text-xl font-black tabular-nums sm:text-2xl">{fmtMoney(L,nw.net,cur)}</div><div className="mt-1 text-[10px] text-muted-foreground">{fa ? 'دارایی خالص ثبت‌شده' : 'Recorded net worth'}</div></div>
-          <div className="rounded-2xl border bg-background/65 p-4"><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{t('cashFlow')}</span>{m.net >= 0 ? <ArrowUpRight className="h-4 w-4 text-emerald-500" /> : <ArrowDownRight className="h-4 w-4 text-rose-500" />}</div><div className={cn('mt-2 break-words text-xl font-black tabular-nums sm:text-2xl',m.net >= 0 ? 'text-emerald-500' : 'text-rose-500')}>{fmtMoney(L,m.net,cur)}</div><div className="mt-1 text-[10px] text-muted-foreground">{fa ? 'خالص این ماه' : 'Net this month'}</div></div>
+          <div className="rounded-2xl border bg-background/65 p-4"><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{t('netWorth')}</span><Wallet className="h-4 w-4 text-primary" /></div><div className="mt-2 break-words text-xl font-black tabular-nums sm:text-2xl">{fmtMoney(L,nw.net,cur)}</div><MoneyEquivalents amount={nw.net} settings={settings} /><div className="mt-1 text-[10px] text-muted-foreground">{fa ? 'دارایی خالص ثبت‌شده' : 'Recorded net worth'}</div></div>
+          <div className="rounded-2xl border bg-background/65 p-4"><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{t('cashFlow')}</span>{m.net >= 0 ? <ArrowUpRight className="h-4 w-4 text-emerald-500" /> : <ArrowDownRight className="h-4 w-4 text-rose-500" />}</div><div className={cn('mt-2 break-words text-xl font-black tabular-nums sm:text-2xl',m.net >= 0 ? 'text-emerald-500' : 'text-rose-500')}>{fmtMoney(L,m.net,cur)}</div><MoneyEquivalents amount={m.net} settings={settings} /><div className="mt-1 text-[10px] text-muted-foreground">{fa ? 'خالص این ماه' : 'Net this month'}</div></div>
           <div className="rounded-2xl border bg-background/65 p-4"><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{t('overallScore')}</span><Sparkles className="h-4 w-4 text-primary" /></div><div className="mt-2 text-xl font-black tabular-nums sm:text-2xl">{sc.overall == null ? '—' : fmtNum(L,sc.overall)}<span className="ms-1 text-xs font-medium text-muted-foreground">/100</span></div><div className="mt-1 text-[10px] text-muted-foreground">{fa ? 'بر اساس داده‌های ثبت‌شده' : 'Based on recorded data'}</div></div>
           <div className="rounded-2xl border bg-background/65 p-4"><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{t('habitsToday')}</span><Target className="h-4 w-4 text-primary" /></div><div className="mt-2 text-xl font-black tabular-nums sm:text-2xl">{fmtNum(L,doneHabits)}<span className="mx-1 text-muted-foreground">/</span>{fmtNum(L,habits.length)}</div><div className="mt-1 text-[10px] text-muted-foreground">{fa ? 'عادت انجام‌شده امروز' : 'Habits completed today'}</div></div>
         </div>

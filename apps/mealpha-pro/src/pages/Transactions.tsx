@@ -3,18 +3,20 @@ import { Plus, WalletCards, BellRing, CheckCircle2 } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { toast } from 'sonner';
 import { useStore, Rec } from '../lib/store';
-import { fmtDate, fmtMoney, opt } from '../lib/i18n';
-import { monthFinance, todayISO, isoOf } from '../lib/analytics';
+import { fmtDate, fmtMoney, fmtNum, opt } from '../lib/i18n';
+import { monthFinance, todayISO, isoOf, makeConverter } from '../lib/analytics';
 import EntityForm, { Field } from '../components/EntityForm';
 import DataList, { Col } from '../components/DataList';
 import { Kpi, PageHeader, Panel } from '../components/ui-bits';
 import { cn } from '@project/components/lib/utils';
+import MoneyEquivalents from '../components/MoneyEquivalents';
 
 const BASE_FIELDS: Field[] = [
   { key: 'description', label: 'description', type: 'text', required: true, full: true },
   { key: 'kind', label: 'kind', type: 'select', options: ['Income', 'Expense'], required: true },
   { key: 'amount', label: 'amount', type: 'number', required: true },
   { key: 'currency', label: 'currency', type: 'text', required: true },
+  { key: 'conversionPreview', label: 'currency', type: 'conversion', full: true, conversionAmountKey: 'amount', conversionCurrencyKey: 'currency' },
   { key: 'date', label: 'date', type: 'date', required: true },
   { key: 'category', label: 'category', type: 'text' },
   { key: 'nature', label: 'nature', type: 'select', options: ['Essential', 'Discretionary'] },
@@ -40,6 +42,12 @@ export default function Transactions() {
   const L = settings.language;
   const m = monthFinance(data!.transactions, settings);
   const cur = settings.currency;
+  const { conv, factorToBase } = makeConverter(settings);
+  const conversionLine = (amount: number, currency: string) => {
+    const code = String(currency || cur).trim().toUpperCase();
+    const rate = factorToBase(code);
+    return rate == null ? <div className="text-xs text-[hsl(var(--warning))]">{L === 'fa' ? 'نرخ ' + code + ' ثبت نشده' : 'Rate for ' + code + ' is missing'}</div> : <><div className="text-xs text-muted-foreground tabular-nums">{fmtMoney(L, amount * rate, cur)} · 1 {code} = {fmtNum(L, rate, 6)} {cur}</div><MoneyEquivalents amount={conv(amount, code) / 100} settings={settings} /></>;
+  };
   const fields = useMemo<Field[]>(() => [
     ...BASE_FIELDS,
     { key: 'assetId', label: 'asset', type: 'select', options: data!.assets.map((a: Rec) => ({ value: a.id, label: `${a.name} (${a.currency})` })), onChange: (value) => ({ currency: data!.assets.find((a: Rec) => a.id === value)?.currency ?? cur }) },
@@ -104,16 +112,16 @@ export default function Transactions() {
       return <div><div className="font-medium">{r.description}</div><div className="text-xs text-muted-foreground">{r.category || '—'} · {opt(L, r.nature)}{account ? ` · ${account.bankName} / ${account.name}` : ''}{asset ? ` · ${asset.name}` : ''}</div></div>;
     } },
     { key: 'kind', label: t('kind'), render: (r) => opt(L, r.kind) },
-    { key: 'amount', label: t('amount'), sortValue: (r) => Number(r.amount), render: (r) => <span className={cn('font-semibold tabular-nums', r.kind === 'Income' ? 'text-[hsl(var(--success))]' : 'text-destructive')}>{r.kind === 'Income' ? '+' : '−'}{fmtMoney(L, Number(r.amount), r.currency)}</span> },
+    { key: 'amount', label: t('amount'), sortValue: (r) => Number(r.amount), render: (r) => <div><div className={cn('font-semibold tabular-nums', r.kind === 'Income' ? 'text-[hsl(var(--success))]' : 'text-destructive')}>{r.kind === 'Income' ? '+' : '−'}{fmtMoney(L, Number(r.amount), r.currency)}</div>{conversionLine(Number(r.amount || 0), r.currency)}</div> },
   ];
   const accountCols: Col[] = [
     { key: 'bankName', label: t('bankName'), render: (r) => <div><div className="font-medium">{r.bankName}</div><div className="text-xs text-muted-foreground">{r.name} · {r.accountNumber || '—'}</div></div> },
     { key: 'currency', label: t('currency'), render: (r) => r.currency },
-    { key: 'balance', label: t('accountBalance'), render: (r) => <span className="font-semibold tabular-nums">{fmtMoney(L, accountBalance(r), r.currency)}</span> },
+    { key: 'balance', label: t('accountBalance'), render: (r) => <div><div className="font-semibold tabular-nums">{fmtMoney(L, accountBalance(r), r.currency)}</div>{conversionLine(accountBalance(r), r.currency)}</div> },
   ];
   const reminderCols: Col[] = [
     { key: 'description', label: t('description') },
-    { key: 'amount', label: t('amount'), render: (r) => fmtMoney(L, Number(r.amount), r.currency) },
+    { key: 'amount', label: t('amount'), render: (r) => <div><div>{fmtMoney(L, Number(r.amount), r.currency)}</div>{conversionLine(Number(r.amount || 0), r.currency)}</div> },
     { key: 'dueDate', label: t('dueDate'), render: (r) => fmtDate(L, settings.calendar, r.dueDate) },
     { key: 'status', label: t('status'), render: (r) => r.status === 'Paid'
       ? <span className="text-xs text-[hsl(var(--success))]">{t('paid')}</span>

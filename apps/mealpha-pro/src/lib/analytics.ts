@@ -12,25 +12,70 @@ const daysBetween = (a: string, b: string) => Math.round((new Date(b).getTime() 
 
 // ---- Money (integer cents to avoid float drift) ----
 const cents = (n: number) => Math.round(n * 100);
-export function parseRates(s: string) {
-  const m: Record<string, number> = {};
-  s.split('\n').forEach((l) => {
-    const [k, v] = l.split('=').map((x) => x?.trim());
-    if (k && v && !isNaN(Number(v))) m[k.toUpperCase()] = Number(v);
+export type CurrencyRate = { from: string; to: string; rate: number };
+export function parseRates(s: string, baseCurrency = ''): CurrencyRate[] {
+  const rows: CurrencyRate[] = [];
+  s.split(/[\n;,]+/).forEach((line) => {
+    const text = line.trim();
+    if (!text) return;
+    const match = text.match(/^([A-Za-z]{3,8})\s*(?:\/|->|:)\s*([A-Za-z]{3,8})\s*=\s*([0-9]+(?:\.[0-9]+)?)$/);
+    if (match && Number(match[3]) > 0) {
+      rows.push({ from: match[1].toUpperCase(), to: match[2].toUpperCase(), rate: Number(match[3]) });
+      return;
+    }
+    // Explicit pair form: "USD = IRT 26000" means 1 USD = 26000 IRT.
+    const namedPair = text.match(/^([A-Za-z]{3,8})\s*=\s*([A-Za-z]{3,8})\s+([0-9]+(?:\.[0-9]+)?)$/);
+    if (namedPair && Number(namedPair[3]) > 0) {
+      rows.push({ from: namedPair[1].toUpperCase(), to: namedPair[2].toUpperCase(), rate: Number(namedPair[3]) });
+      return;
+    }
+    const legacy = text.match(/^([A-Za-z]{3,8})\s*=\s*([0-9]+(?:\.[0-9]+)?)$/);
+    if (legacy && Number(legacy[2]) > 0 && baseCurrency && legacy[1].toUpperCase() !== baseCurrency.toUpperCase()) {
+      rows.push({ from: legacy[1].toUpperCase(), to: baseCurrency.toUpperCase(), rate: Number(legacy[2]) });
+    }
   });
-  return m;
+  return rows;
 }
 export function makeConverter(st: Settings) {
-  const rates = parseRates(st.exchangeRates);
-  const base = st.currency.toUpperCase();
+  const base = (st.currency || '').trim().toUpperCase();
+  const graph = new Map<string, Array<{ currency: string; rate: number }>>();
+  const edge = (from: string, to: string, rate: number) => {
+    const list = graph.get(from) || [];
+    list.push({ currency: to, rate });
+    graph.set(from, list);
+  };
+  parseRates(st.exchangeRates, base).forEach(({ from, to, rate }) => { edge(from, to, rate); edge(to, from, 1 / rate); });
+  const factorToBase = (currency: string): number | null => {
+    if (currency === base) return 1;
+    const queue: Array<{ currency: string; factor: number }> = [{ currency, factor: 1 }];
+    const visited = new Set([currency]);
+    while (queue.length) {
+      const current = queue.shift()!;
+      for (const next of graph.get(current.currency) || []) {
+        if (visited.has(next.currency)) continue;
+        const factor = current.factor * next.rate;
+        if (next.currency === base) return factor;
+        visited.add(next.currency);
+        queue.push({ currency: next.currency, factor });
+      }
+    }
+    return null;
+  };
   const missing = new Set<string>();
   const conv = (amount: number, cur?: string) => {
-    const c = (cur || base).toUpperCase();
-    if (c === base) return cents(amount);
-    if (rates[c] == null) { missing.add(c); return 0; }
-    return cents(amount * rates[c]);
+    const c = (cur || base).trim().toUpperCase();
+    const factor = factorToBase(c);
+    if (factor == null) { missing.add(c); return Number.NaN; }
+    return cents(amount * factor);
   };
-  return { conv, missing };
+  const fromBase = (amount: number, currency: string) => {
+    const code = (currency || base).trim().toUpperCase();
+    if (code === base) return cents(amount);
+    const factor = factorToBase(code);
+    if (factor == null) { missing.add(code); return null; }
+    return cents(amount / factor);
+  };
+  return { conv, missing, factorToBase, fromBase };
 }
 
 export function monthFinance(tx: Rec[], st: Settings, offset = 0) {
@@ -40,8 +85,10 @@ export function monthFinance(tx: Rec[], st: Settings, offset = 0) {
   const { conv, missing } = makeConverter(st);
   let inc = 0, exp = 0, disc = 0, count = 0;
   tx.filter((x) => x.date?.startsWith(prefix)).forEach((x) => {
-    count++;
     const v = conv(Number(x.amount) || 0, x.currency);
+    // Unknown exchange rates must never be counted as zero-valued money.
+    if (!Number.isFinite(v)) return;
+    count++;
     if (x.kind === 'Income') inc += v; else { exp += v; if (x.nature === 'Discretionary') disc += v; }
   });
   const income = inc / 100, expense = exp / 100;
@@ -54,8 +101,8 @@ export function monthFinance(tx: Rec[], st: Settings, offset = 0) {
 export function netWorth(assets: Rec[], liabs: Rec[], st: Settings, transactions: Rec[] = []) {
   const { conv, missing } = makeConverter(st);
   const effectiveAssets: Rec[] = assets.map((asset): Rec => ({ ...asset, currentValue: Number(asset.currentValue || 0) + transactions.filter(tx => tx.assetId === asset.id && tx.currency === asset.currency).reduce((sum, tx) => sum + (tx.kind === 'Income' ? 1 : -1) * Number(tx.amount || 0), 0) }));
-  const a = effectiveAssets.reduce((s, x) => s + conv(Number(x.currentValue) || 0, x.currency), 0);
-  const l = liabs.reduce((s, x) => s + conv(Number(x.outstandingAmount) || 0, x.currency), 0);
+  const a = effectiveAssets.reduce((sum, x) => { const value = conv(Number(x.currentValue) || 0, x.currency); return sum + (Number.isFinite(value) ? value : 0); }, 0);
+  const l = liabs.reduce((sum, x) => { const value = conv(Number(x.outstandingAmount) || 0, x.currency); return sum + (Number.isFinite(value) ? value : 0); }, 0);
   return { assets: a / 100, liabilities: l / 100, net: (a - l) / 100, missing: [...missing] };
 }
 
@@ -64,7 +111,9 @@ export type GoalStatus = 'Completed' | 'On Track' | 'At Risk' | 'Delayed' | 'Unk
 export function goalInfo(g: Rec) {
   const target = Number(g.targetValue) || 0;
   const qualitative = g.trackingType === 'qualitative' || target <= 0;
-  const progress = g.completed ? 1 : qualitative ? null : Math.min(1, (Number(g.currentValue) || 0) / target);
+  const checklistItems = Array.isArray(g.descriptionItems) ? g.descriptionItems.filter((item: any) => String(item.text || '').trim()) : [];
+  const checklistProgress = checklistItems.length ? checklistItems.filter((item: any) => item.done).length / checklistItems.length : null;
+  const progress = g.completed ? 1 : checklistProgress != null ? checklistProgress : qualitative ? null : Math.min(1, (Number(g.currentValue) || 0) / target);
   const today = todayISO();
   let status: GoalStatus = 'Unknown', expected: number | null = null, predicted: string | null = null;
   if (g.completed || progress === 1) status = 'Completed';
@@ -119,8 +168,12 @@ export function taskStats(tasks: Rec[]) {
   const timed = tasks.filter((t) => t.status === 'Done' && Number(t.estimatedMinutes) > 0 && Number(t.actualMinutes) > 0);
   const est = timed.reduce((s, t) => s + Number(t.estimatedMinutes), 0);
   const act = timed.reduce((s, t) => s + Number(t.actualMinutes), 0);
+  const completed = tasks.filter((task) => task.status === 'Done').length;
   return {
-    completionRate: due30.length ? done30.length / due30.length : null, due30: due30.length,
+    // Overall completion is based on every task, not only tasks with a due date.
+    completionRate: tasks.length ? completed / tasks.length : null,
+    completed, total: tasks.length,
+    due30CompletionRate: due30.length ? done30.length / due30.length : null, due30: due30.length,
     overdue, todays, estimateRatio: timed.length >= 3 ? act / est : null, timedCount: timed.length,
     focusToday: tasks.length,
   };
@@ -194,9 +247,9 @@ export function findings(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLo
       title: fa ? 'کم‌تخمینی زمان کارها' : 'Tasks take longer than estimated',
       evidence: fa ? `زمان واقعی ${Math.round(ts.estimateRatio * 100)}٪ تخمین (${ts.timedCount} کار)` : `Actual time is ${Math.round(ts.estimateRatio * 100)}% of estimates (${ts.timedCount} tasks)`,
       action: fa ? `تخمین‌ها را حدود ${Math.round((ts.estimateRatio - 1) * 100)}٪ افزایش دهید` : `Pad future estimates by ~${Math.round((ts.estimateRatio - 1) * 100)}%` });
-  if (ts.completionRate != null && ts.due30 >= 5 && ts.completionRate >= 0.8)
+  if (ts.due30CompletionRate != null && ts.due30 >= 5 && ts.due30CompletionRate >= 0.8)
     out.push({ id: 'taskstrong', kind: 'strength', severity: 'low', confidence: 'confirmed',
-      title: fa ? 'اجرای منظم کارها' : 'Consistent task execution', evidence: `${pct(ts.completionRate)} (${ts.due30})`,
+      title: fa ? 'اجرای منظم کارها' : 'Consistent task execution', evidence: `${pct(ts.due30CompletionRate)} (${ts.due30})`,
       action: fa ? 'همین روال را ادامه دهید' : 'Keep the current routine' });
   const active = d.habits.filter((h) => !h.archived);
   const declining = active.filter((h) => { const s = habitStats(h, d.habitLogs); return s.hasHistory && s.prevWeek - s.thisWeek >= 0.3; });

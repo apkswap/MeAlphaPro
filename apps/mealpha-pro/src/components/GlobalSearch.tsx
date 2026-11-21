@@ -91,10 +91,10 @@ export default function GlobalSearch() {
   return (
     <>
       <button type="button" onClick={openSearch}
-        className="flex h-9 min-w-0 items-center gap-2 rounded-xl border bg-card/70 px-3 text-start text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary sm:w-56"
+        className="flex h-9 w-9 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-xl border bg-card/70 px-2 text-start text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary sm:w-56 sm:justify-start sm:px-3"
         aria-label={fa ? 'جستجوی سراسری' : 'Global search'}>
         <Search className="h-4 w-4 shrink-0" />
-        <span className="flex-1 truncate text-xs">{fa ? 'جستجو در برنامه...' : 'Search your workspace...'}</span>
+        <span className="hidden min-w-0 flex-1 truncate text-xs sm:block">{fa ? 'جستجو در برنامه...' : 'Search your workspace...'}</span>
         <kbd className="hidden rounded border px-1.5 py-0.5 text-[9px] sm:inline">⌘ K</kbd>
       </button>
       {open && (

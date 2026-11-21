@@ -121,7 +121,7 @@ for (const viewport of viewports) {
   const taskRow = page.locator('li').filter({ hasText: taskTitle }).first();
   await taskRow.waitFor({ timeout: 5000 });
   await taskRow.getByRole('checkbox').click();
-  await page.waitForFunction(async ({ id }) => {
+  await page.waitForFunction(async ({ id, title }) => {
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('mealpha-pro-local', 3);
       request.onsuccess = () => resolve(request.result);
@@ -151,6 +151,69 @@ for (const viewport of viewports) {
     });
     db.close();
   }, taskId);
+
+  // Regression: completing a task from the Tasks table must preserve every user-entered field.
+  const listTaskId = `smoke-task-list-${viewport.name}`;
+  const listTaskTitle = `Task list persistence ${viewport.name}`;
+  await page.evaluate(async ({ id, title, dueDate }) => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readwrite');
+      tx.objectStore('tasks').put({
+        id, title, status: 'Todo', priority: 'High', dueDate,
+        notes: 'Preserve task-list metadata', estimatedMinutes: 75, actualMinutes: 30,
+        goalId: 'smoke-linked-goal',
+        reminders: [{ id: 'task-list-reminder', at: '2030-02-01T09:30:00.000Z', enabled: true, repeat: 'weekly' }]
+      });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    db.close();
+  }, { id: listTaskId, title: listTaskTitle, dueDate: today });
+  await page.goto('http://127.0.0.1:8080/tasks', { waitUntil: 'networkidle' });
+  const listTaskRow = page.locator('tr').filter({ hasText: listTaskTitle }).first();
+  await listTaskRow.waitFor({ timeout: 5000 });
+  await listTaskRow.getByRole('checkbox').click();
+  await page.waitForFunction(async ({ id, title }) => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const record = await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readonly');
+      const request = tx.objectStore('tasks').get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    return record?.status === 'Done' && record?.title === title
+      && record?.priority === 'High' && record?.notes === 'Preserve task-list metadata'
+      && record?.estimatedMinutes === 75 && record?.actualMinutes === 30
+      && record?.goalId === 'smoke-linked-goal'
+      && record?.reminders?.[0]?.id === 'task-list-reminder'
+      && record?.reminders?.[0]?.repeat === 'weekly';
+  }, { id: listTaskId, title: listTaskTitle }, { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Tasks page completion erased task fields, goal link or reminder settings`));
+  await page.evaluate(async id => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readwrite');
+      tx.objectStore('tasks').delete(id);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }, listTaskId);
+
   await page.goto('http://127.0.0.1:8080/settings', { waitUntil: 'networkidle' });
   const palettes = [
     { id: 'violet', label: 'بنفش' },
@@ -192,7 +255,7 @@ for (const viewport of viewports) {
     } else failures.push(`${viewport.name}: dedicated profile save button is missing`);
   } else failures.push(`${viewport.name}: profile name field is missing`);
   if (!(await page.getByText('راهنمای کامل راه‌اندازی Dropbox').count())) failures.push(`${viewport.name}: Dropbox setup guide is missing`);
-  const brandImage = page.locator('img[src="/mealpha-purple-gold.jpg"]').first();
+  const brandImage = page.locator('img[src="/mealpha.svg"]').first();
   if (!(await brandImage.count()) || !(await brandImage.evaluate(img => img.complete && img.naturalWidth > 0))) failures.push(`${viewport.name}: purple-gold brand image failed to load`);
   await page.goto('http://127.0.0.1:8080/goals', { waitUntil: 'networkidle' });
   const addMainGoal = page.getByRole('button', { name: 'افزودن هدف اصلی' });
@@ -227,7 +290,67 @@ for (const viewport of viewports) {
       const hierarchyLabelCount = childRowCount ? await childRow.getByText(/زیرهدف|Subgoal/, { exact: true }).count() : 0;
       console.log(`${viewport.name} goal hierarchy after reload: rows=${childRowCount}; labels=${hierarchyLabelCount}; row=${childRowText}`);
       if (!childRowCount) failures.push(`${viewport.name}: subgoal record is missing after reload`);
-      else if (!hierarchyLabelCount) failures.push(`${viewport.name}: child record exists but is not displayed as a subgoal`);
+      else if (!hierarchyLabelCount) failures.push(viewport.name + ': child record exists but is not displayed as a subgoal');
+      // Regression: qualitative subgoals use checklist items instead of target/current numeric values.
+      await page.evaluate(async title => {
+        const db = await new Promise((resolve, reject) => {
+          const request = indexedDB.open('mealpha-pro-local', 3);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction('goals', 'readwrite');
+          const store = tx.objectStore('goals');
+          const request = store.getAll();
+          request.onsuccess = () => {
+            const record = request.result.find(item => item.title === title);
+            if (record) store.put({ ...record, trackingType: 'qualitative', targetValue: 10, currentValue: 3, description: "Legacy checklist item one\nLegacy checklist item two", descriptionItems: undefined });
+          };
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+      }, childName);
+      await page.reload({ waitUntil: 'networkidle' });
+      const editableChild = page.locator('tr').filter({ hasText: childName }).first();
+      const childRowButtons = editableChild.getByRole('button');
+      await childRowButtons.nth(await childRowButtons.count() - 2).click();
+      const childEditDialog = page.getByRole('dialog');
+      if (await childEditDialog.locator('input[type="number"]').count()) {
+        failures.push(viewport.name + ': qualitative goal still shows target/current numeric fields');
+      }
+      const checklistInputs = childEditDialog.getByPlaceholder('موردی که باید انجام شود');
+      if (await checklistInputs.count() !== 2) {
+        failures.push(viewport.name + ': legacy child description was not migrated into two checklist items');
+      } else {
+        await checklistInputs.nth(0).fill('Legacy checklist item one');
+        await checklistInputs.nth(1).fill('Legacy checklist item two');
+        await childEditDialog.locator('input[type="checkbox"]').first().check();
+        await childEditDialog.getByRole('button', { name: 'ذخیره' }).click();
+        await page.reload({ waitUntil: 'networkidle' });
+        const checklistState = await page.evaluate(async title => {
+          const db = await new Promise((resolve, reject) => {
+            const request = indexedDB.open('mealpha-pro-local', 3);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          const records = await new Promise((resolve, reject) => {
+            const tx = db.transaction('goals', 'readonly');
+            const request = tx.objectStore('goals').getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          db.close();
+          const record = records.find(item => item.title === title);
+          return record ? { items: record.descriptionItems, targetValue: record.targetValue, currentValue: record.currentValue } : null;
+        }, childName);
+        if (!checklistState || checklistState.items?.length !== 2 || !checklistState.items[0].done || checklistState.items[1].done) {
+          failures.push(viewport.name + ': child checklist completion did not persist after reload');
+        }
+        if (checklistState?.targetValue !== 10 || checklistState?.currentValue !== 3) {
+          failures.push(viewport.name + ': hiding qualitative numeric fields unexpectedly changed stored legacy values');
+        }
+      }
     } else failures.push(`${viewport.name}: add-subgoal control is missing from goal rows`);
   } else failures.push(`${viewport.name}: add-main-goal control is missing`);
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
@@ -258,6 +381,21 @@ for (const viewport of viewports) {
     failures.push(`${viewport.name}: profile control missing`);
   }
   if (isMobile) {
+    await page.goto('http://127.0.0.1:8080/goals', { waitUntil: 'networkidle' });
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const menuButton = page.getByRole('button', { name: /بازکردن منو|Open menu/ });
+    if (await menuButton.count()) {
+      await menuButton.click();
+      const menu = page.getByRole('dialog', { name: /منوی اصلی|Main menu/ });
+      if (!(await menu.count())) failures.push(`${viewport.name}: hamburger menu did not open`);
+      else {
+        const bounds = await menu.evaluate(el => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: r.height, viewport: innerHeight, position: getComputedStyle(el).position }; });
+        if (bounds.position !== 'fixed' || bounds.top < 60 || bounds.bottom > bounds.viewport + 1 || bounds.height < 40) {
+          failures.push(`${viewport.name}: scrolled hamburger menu is outside the visible viewport ${JSON.stringify(bounds)}`);
+        }
+        await menuButton.click();
+      }
+    } else failures.push(`${viewport.name}: hamburger menu button missing`);
     await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
     const bottomNav = page.locator('nav[aria-label="ناوبری اصلی"]');
     if (!(await bottomNav.count())) failures.push(`${viewport.name}: mobile bottom navigation missing`);
