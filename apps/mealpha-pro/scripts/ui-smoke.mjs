@@ -333,6 +333,8 @@ for (const viewport of viewports) {
           if (!(await checklistToggle.isChecked())) failures.push(`${viewport.name}: first checklist checkbox did not become checked before save`);
         }
         await childEditDialog.getByRole('button', { name: 'ذخیره' }).click();
+        // Do not reload before the async IndexedDB save finishes; mobile/tablet can be slower.
+        await childEditDialog.waitFor({ state: 'hidden', timeout: 10000 });
         await page.reload({ waitUntil: 'networkidle' });
         const checklistState = await page.evaluate(async title => {
           const db = await new Promise((resolve, reject) => {
