@@ -132,9 +132,9 @@ export default function Transactions() {
     <div className="space-y-5">
       <PageHeader title={t('finance')} action={<Button onClick={() => { setEdit(null); setOpen(true); }}><Plus className="h-4 w-4 me-1" />{t('add')}</Button>} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Kpi label={`${t('income')} · ${t('thisMonth')}`} value={fmtMoney(L, m.income, cur)} tone="good" />
-        <Kpi label={`${t('expense')} · ${t('thisMonth')}`} value={fmtMoney(L, m.expense, cur)} tone="bad" />
-        <Kpi label={t('cashFlow')} value={fmtMoney(L, m.net, cur)} tone={m.net >= 0 ? 'good' : 'bad'} />
+        <div><Kpi label={`${t('income')} · ${t('thisMonth')}`} value={fmtMoney(L, m.income, cur)} tone="good" /><MoneyEquivalents amount={m.income} settings={settings} /></div>
+        <div><Kpi label={`${t('expense')} · ${t('thisMonth')}`} value={fmtMoney(L, m.expense, cur)} tone="bad" /><MoneyEquivalents amount={m.expense} settings={settings} /></div>
+        <div><Kpi label={t('cashFlow')} value={fmtMoney(L, m.net, cur)} tone={m.net >= 0 ? 'good' : 'bad'} /><MoneyEquivalents amount={m.net} settings={settings} /></div>
         <Kpi label={t('savingsRate')} value={m.savingsRate == null ? t('noData') : `${Math.round(m.savingsRate * 100)}%`} tone="accent" />
       </div>
       {m.missing.length > 0 && <p className="text-xs text-[hsl(var(--warning))]">{t('missingRate')}: {m.missing.join(', ')}</p>}

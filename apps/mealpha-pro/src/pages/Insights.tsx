@@ -82,6 +82,12 @@ export default function Insights() {
     : { finance: 'Financial management', goals: 'Goal achievement', tasks: 'Task execution', habits: 'Habit consistency' };
   const weak = all.filter((f) => f.kind === 'weakness'), strong = all.filter((f) => f.kind === 'strength');
   const hasTrend = monthlyTrend.some((m) => m.income !== 0 || m.expense !== 0);
+  const moneyTooltip = ({ active, payload, label }: any) => active && payload?.length ? (
+    <div className="rounded-xl border bg-popover p-3 text-xs">
+      <div className="font-semibold">{label}</div>
+      {payload.map((item: any, index: number) => <div key={`${item.dataKey ?? item.name}-${index}`} className="mt-2"><div>{item.name && item.name !== label ? item.name + ': ' : ''}{fmtMoney(L, Number(item.value), settings.currency)}</div><MoneyEquivalents amount={Number(item.value)} settings={settings} /></div>)}
+    </div>
+  ) : null;
 
   return (
     <div className="space-y-6">
@@ -98,6 +104,7 @@ export default function Insights() {
             <span>{fmtMoney(L, currentMonth.expense, settings.currency)} / {fmtMoney(L, settings.monthlyBudget || 0, settings.currency)}</span>
             <span>{budgetUsage > 1 ? (fa ? 'بیشتر از بودجه' : 'Over budget') : (fa ? 'از بودجه مصرف‌شده' : 'Budget used')}</span>
           </div>
+          <div className="mt-2 grid grid-cols-2 gap-3 text-xs"><div><span>{fa ? 'هزینه' : 'Spent'}</span><MoneyEquivalents amount={currentMonth.expense} settings={settings} /></div><div><span>{fa ? 'بودجه' : 'Budget'}</span><MoneyEquivalents amount={settings.monthlyBudget || 0} settings={settings} /></div></div>
           <div className="mt-3"><Bar value={Math.min(1, budgetUsage)} /></div>
         </Panel>
       )}
@@ -135,7 +142,7 @@ export default function Insights() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} width={58} tickFormatter={(v: number) => fmtNum(L, v)} />
-                <Tooltip formatter={(value: number, name: string) => [fmtMoney(L, value, settings.currency), name]} contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
+                <Tooltip content={moneyTooltip} />
                 <Legend />
                 <Area type="monotone" dataKey="income" name={fa ? 'درآمد' : 'Income'} stroke="hsl(var(--chart-2))" fill="url(#incomeFill)" strokeWidth={2} />
                 <Area type="monotone" dataKey="expense" name={fa ? 'هزینه' : 'Expense'} stroke="hsl(var(--chart-5))" fill="url(#expenseFill)" strokeWidth={2} />
@@ -150,7 +157,7 @@ export default function Insights() {
                 <Pie data={categoryResult.items} dataKey="value" nameKey="name" innerRadius="52%" outerRadius="82%" paddingAngle={3}>
                   {categoryResult.items.map((entry, index) => <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />)}
                 </Pie>
-                <Tooltip formatter={(value: number) => fmtMoney(L, value, settings.currency)} contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
+                <Tooltip content={moneyTooltip} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>

@@ -24,6 +24,12 @@ export default function Dashboard() {
   const doneHabits = habits.filter((h) => habitStats(h, d.habitLogs).doneToday).length;
   const { toggle, busy } = useHabitToggle();
   const chart = [5, 4, 3, 2, 1, 0].map((o) => { const x = monthFinance(d.transactions, settings, o); return { name: x.label.slice(2), [t('income')]: x.income, [t('expense')]: x.expense }; });
+  const moneyTooltip = ({ active, payload, label }: any) => active && payload?.length ? (
+    <div className="rounded-xl border bg-popover p-3 text-xs">
+      <div className="font-semibold">{label}</div>
+      {payload.map((item: any, index: number) => <div key={`${item.dataKey}-${index}`} className="mt-2"><div>{item.name}: {fmtMoney(L, Number(item.value), cur)}</div><MoneyEquivalents amount={Number(item.value)} settings={settings} /></div>)}
+    </div>
+  ) : null;
   const todayList = [...ts.todays, ...ts.overdue.filter((x) => !ts.todays.includes(x))].slice(0, 6);
   const greeting = fa ? 'خوش اومدی،' : 'Welcome back,';
   const displayName = settings.displayName || settings.username || (fa ? 'دوست من' : 'there');
@@ -53,17 +59,17 @@ export default function Dashboard() {
       </section>
       <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
         <Panel title={fa ? 'جریان مالی' : 'Cash flow'} action={<Link to="/transactions" className="text-xs font-semibold text-primary">{fa ? 'همه تراکنش‌ها' : 'All transactions'} ↗</Link>}>
-          <div className="mb-3 flex flex-wrap items-center gap-2"><span className="text-2xl font-black">{fmtMoney(L,m.net,cur)}</span><span className={cn('rounded-full px-2 py-1 text-[10px] font-bold',m.net >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500')}>{m.savingsRate == null ? '—' : fmtNum(L,m.savingsRate*100)+'%'} {fa ? 'نرخ پس‌انداز' : 'savings rate'}</span></div>
-          <div className="h-60" dir="ltr"><ResponsiveContainer><BarChart data={chart} barGap={5}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} /><YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} width={54} axisLine={false} tickLine={false} /><Tooltip contentStyle={{background:'hsl(var(--popover))',border:'1px solid hsl(var(--border))',borderRadius:14,fontSize:12}} /><RBar dataKey={t('income')} fill="hsl(var(--chart-3))" radius={[5,5,0,0]} /><RBar dataKey={t('expense')} fill="hsl(var(--chart-5))" radius={[5,5,0,0]} /></BarChart></ResponsiveContainer></div>
+          <div className="mb-3 flex flex-wrap items-center gap-2"><span className="text-2xl font-black">{fmtMoney(L,m.net,cur)}</span><span className={cn('rounded-full px-2 py-1 text-[10px] font-bold',m.net >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500')}>{m.savingsRate == null ? '—' : fmtNum(L,m.savingsRate*100)+'%'} {fa ? 'نرخ پس‌انداز' : 'savings rate'}</span></div><MoneyEquivalents amount={m.net} settings={settings} />
+          <div className="h-60" dir="ltr"><ResponsiveContainer><BarChart data={chart} barGap={5}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} /><YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} width={54} axisLine={false} tickLine={false} /><Tooltip content={moneyTooltip} /><RBar dataKey={t('income')} fill="hsl(var(--chart-3))" radius={[5,5,0,0]} /><RBar dataKey={t('expense')} fill="hsl(var(--chart-5))" radius={[5,5,0,0]} /></BarChart></ResponsiveContainer></div>
         </Panel>
         <Panel title={fa ? 'نمای کلی عملکرد' : 'Performance overview'}>
           <div className="grid grid-cols-2 gap-3">
             <Kpi label={t('completionRate')} value={ts.completionRate == null ? '—' : fmtNum(L,ts.completionRate*100)+'%'} tone={ts.overdue.length ? 'bad' : 'good'} hint={t('completionRate')} />
             <Kpi label={t('activeGoals')} value={fmtNum(L,goals.length)} hint={fa ? 'هدف فعال' : 'Active goals'} />
             <Kpi label={t('atRisk')} value={fmtNum(L,atRisk.length)} tone={atRisk.length ? 'bad' : 'good'} />
-            <Kpi label={t('income')} value={fmtMoney(L,m.income,cur)} tone="good" />
+            <div><Kpi label={t('income')} value={fmtMoney(L,m.income,cur)} tone="good" /><MoneyEquivalents amount={m.income} settings={settings} /></div>
           </div>
-          {settings.monthlyBudget ? <div className="mt-5 rounded-xl bg-muted/60 p-3"><div className="mb-2 flex justify-between text-xs"><span>{t('budgetUsed')}</span><b>{fmtNum(L,Math.min(100,m.expense/settings.monthlyBudget*100))}%</b></div><Bar value={Math.min(1,m.expense/settings.monthlyBudget)} /><div className="mt-2 text-[10px] text-muted-foreground">{fmtMoney(L,m.expense,cur)} / {fmtMoney(L,settings.monthlyBudget,cur)}</div></div> : null}
+          {settings.monthlyBudget ? <div className="mt-5 rounded-xl bg-muted/60 p-3"><div className="mb-2 flex justify-between text-xs"><span>{t('budgetUsed')}</span><b>{fmtNum(L,Math.min(100,m.expense/settings.monthlyBudget*100))}%</b></div><Bar value={Math.min(1,m.expense/settings.monthlyBudget)} /><div className="mt-2 text-xs text-muted-foreground">{fmtMoney(L,m.expense,cur)} / {fmtMoney(L,settings.monthlyBudget,cur)}<div className="mt-2 grid grid-cols-2 gap-2"><div><span>{fa ? 'هزینه' : 'Spent'}</span><MoneyEquivalents amount={m.expense} settings={settings} /></div><div><span>{fa ? 'بودجه' : 'Budget'}</span><MoneyEquivalents amount={settings.monthlyBudget} settings={settings} /></div></div></div></div> : null}
         </Panel>
       </div>
       <GrowthEngine />
