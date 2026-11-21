@@ -347,14 +347,16 @@ for (const viewport of viewports) {
             request.onerror = () => reject(request.error);
           });
           db.close();
-          const record = records.find(item => item.title === title);
-          return record ? { items: record.descriptionItems, targetValue: record.targetValue, currentValue: record.currentValue } : null;
+          const matches = records.filter(item => item.title === title).map(record => ({ id: record.id, parentGoalId: record.parentGoalId, trackingType: record.trackingType, description: record.description, items: record.descriptionItems, targetValue: record.targetValue, currentValue: record.currentValue, updatedAt: record.updatedAt }));
+          const record = matches[0] ?? null;
+          return { selected: record, matches };
         }, childName);
         console.log(`${viewport.name} checklist persistence probe: ${JSON.stringify(checklistState)}`);
-        if (!checklistState || checklistState.items?.length !== 2 || !checklistState.items[0].done || checklistState.items[1].done) {
+        const persistedGoal = checklistState?.selected;
+        if (!persistedGoal || persistedGoal.items?.length !== 2 || !persistedGoal.items[0].done || persistedGoal.items[1].done) {
           failures.push(viewport.name + ': child checklist completion did not persist after reload');
         }
-        if (checklistState?.targetValue !== 10 || checklistState?.currentValue !== 3) {
+        if (persistedGoal?.targetValue !== 10 || persistedGoal?.currentValue !== 3) {
           failures.push(viewport.name + ': hiding qualitative numeric fields unexpectedly changed stored legacy values');
         }
       }
