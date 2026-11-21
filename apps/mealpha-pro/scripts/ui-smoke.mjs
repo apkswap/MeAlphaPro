@@ -350,6 +350,7 @@ for (const viewport of viewports) {
           const record = records.find(item => item.title === title);
           return record ? { items: record.descriptionItems, targetValue: record.targetValue, currentValue: record.currentValue } : null;
         }, childName);
+        console.log(`${viewport.name} checklist persistence probe: ${JSON.stringify(checklistState)}`);
         if (!checklistState || checklistState.items?.length !== 2 || !checklistState.items[0].done || checklistState.items[1].done) {
           failures.push(viewport.name + ': child checklist completion did not persist after reload');
         }
