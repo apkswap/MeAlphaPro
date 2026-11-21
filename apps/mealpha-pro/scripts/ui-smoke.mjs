@@ -325,7 +325,13 @@ for (const viewport of viewports) {
       } else {
         await checklistInputs.nth(0).fill('Legacy checklist item one');
         await checklistInputs.nth(1).fill('Legacy checklist item two');
-        await childEditDialog.locator('input[type="checkbox"]').first().check();
+        const checklistToggle = checklistInputs.nth(0).locator('xpath=preceding-sibling::input[@type="checkbox"]');
+        if (await checklistToggle.count() !== 1) {
+          failures.push(`${viewport.name}: first checklist item's checkbox could not be located`);
+        } else {
+          await checklistToggle.check();
+          if (!(await checklistToggle.isChecked())) failures.push(`${viewport.name}: first checklist checkbox did not become checked before save`);
+        }
         await childEditDialog.getByRole('button', { name: 'ذخیره' }).click();
         await page.reload({ waitUntil: 'networkidle' });
         const checklistState = await page.evaluate(async title => {
