@@ -126,9 +126,10 @@ jobs:
           $aapt = Join-Path $buildTools.FullName "aapt.exe"
           if (-not (Test-Path $aapt)) { throw "aapt is missing from the installed Android build tools." }
           $badging = & $aapt dump badging $apk
-          if ($badging -notmatch "package: name='com.mealpha.pro' versionCode='200' versionName='2.0.0'") {
-            throw "APK package/version does not match com.mealpha.pro / 200 / 2.0.0."
-          }
+          $packageLine = $badging | Where-Object { $_.StartsWith("package: name='com.mealpha.pro'") } | Select-Object -First 1
+          if (-not $packageLine) { throw "APK package name is not com.mealpha.pro." }
+          if ($packageLine -notmatch "versionCode='200'") { throw "APK versionCode is not 200: $packageLine" }
+          if ($packageLine -notmatch "versionName='2.0.0'") { throw "APK versionName is not 2.0.0: $packageLine" }
           Get-Item $apk | Format-Table Name, Length
       - name: Upload APK
         uses: actions/upload-artifact@v4
