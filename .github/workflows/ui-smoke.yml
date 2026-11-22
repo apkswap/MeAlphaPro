@@ -5,6 +5,7 @@ on:
   pull_request:
     branches:
       - main
+      - feat/premium-financial-dashboard
   push:
     branches:
       - main
