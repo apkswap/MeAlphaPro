@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Languages, Layers3, Sun, Moon, Bell, Cloud, Menu, X, ChevronLeft, CalendarClock } from 'lucide-react';
+import { LayoutDashboard, Target, ListChecks, Repeat, Timer, WalletCards, Sparkles, Settings, Languages, Layers3, Sun, Moon, Bell, Cloud, Menu, X, ChevronLeft, CalendarClock } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { cn } from '@project/components/lib/utils';
 import { useStore } from '../lib/store';
@@ -17,14 +17,13 @@ const NAV: { to: string; k: Key; icon: typeof Target; group: 'main' | 'manage' |
   { to: '/tasks', k: 'tasks', icon: ListChecks, group: 'manage' },
   { to: '/habits', k: 'habits', icon: Repeat, group: 'manage' },
   { to: '/focus', k: 'focus', icon: Timer, group: 'manage' },
-  { to: '/transactions', k: 'finance', icon: Receipt, group: 'manage' },
-  { to: '/wealth', k: 'wealth', icon: Landmark, group: 'manage' },
+  { to: '/finance', k: 'financialManagement', icon: WalletCards, group: 'manage' },
   { to: '/insights', k: 'insights', icon: Sparkles, group: 'manage' },
   { to: '/workspace', k: 'workspace', icon: Layers3, group: 'system' },
   { to: '/settings', k: 'settings', icon: Settings, group: 'system' },
 ];
 
-const MOBILE_NAV = NAV.filter(n => ['/', '/tasks', '/habits', '/transactions', '/settings'].includes(n.to));
+const MOBILE_NAV = NAV.filter(n => ['/', '/tasks', '/habits', '/finance', '/settings'].includes(n.to));
 
 export default function Layout() {
   const { t, settings, setLocalSettings, data, save } = useStore();
@@ -208,7 +207,7 @@ export default function Layout() {
           <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-3">
             <button className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={fa ? 'بازکردن منو' : 'Open menu'}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
             <div className="md:hidden flex shrink-0 items-center gap-1 whitespace-nowrap text-[13px] font-black"><img src="/mealpha.svg" alt="" className="h-7 w-7 shrink-0 rounded-lg object-cover" />MeAlpha <span className="text-primary">Pro</span></div>
-            <div className="hidden min-w-0 truncate text-xs text-muted-foreground lg:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{t(NAV.find(n => n.to === location.pathname)?.k ?? 'dashboard')}</span></div>
+            <div className="hidden min-w-0 truncate text-xs text-muted-foreground lg:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{t(NAV.find(n => n.to === location.pathname)?.k ?? (location.pathname === '/wealth' || location.pathname === '/transactions' ? 'financialManagement' : 'dashboard'))}</span></div>
           </div>
           <div className="relative flex items-center gap-2">
             <GlobalSearch />
