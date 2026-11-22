@@ -207,17 +207,17 @@ export function findings(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLo
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   const out: Finding[] = [];
   const m0 = monthFinance(d.transactions, st, 0), m1 = monthFinance(d.transactions, st, 1);
-  if (st.monthlyBudget && m0.expense > st.monthlyBudget)
+  if (m0.complete && st.monthlyBudget && m0.expense > st.monthlyBudget)
     out.push({ id: `budget-${m0.label}`, kind: 'weakness', severity: 'high', confidence: 'confirmed',
       title: fa ? 'عبور از بودجه ماهانه' : 'Monthly budget exceeded',
       evidence: fa ? `هزینه این ماه ${m0.expense.toLocaleString()} در برابر بودجه ${st.monthlyBudget.toLocaleString()}` : `Spent ${m0.expense.toLocaleString()} vs budget ${st.monthlyBudget.toLocaleString()}`,
       action: fa ? 'هزینه‌های اختیاری این ماه را بازبینی کنید' : 'Review discretionary expenses this month' });
-  if (m0.expense > 0 && m0.discretionary / m0.expense > 0.4)
+  if (m0.complete && m0.expense > 0 && m0.discretionary / m0.expense > 0.4)
     out.push({ id: `disc-${m0.label}`, kind: 'weakness', severity: 'medium', confidence: 'confirmed',
       title: fa ? 'سهم بالای هزینه‌های اختیاری' : 'High discretionary spending',
       evidence: fa ? `${pct(m0.discretionary / m0.expense)} از هزینه‌ها اختیاری است` : `${pct(m0.discretionary / m0.expense)} of expenses are discretionary`,
       action: fa ? 'برای هزینه‌های اختیاری سقف تعیین کنید' : 'Set a cap for discretionary spending' });
-  if (m0.savingsRate != null && m1.savingsRate != null && m0.count >= 3 && m1.count >= 3) {
+  if (m0.complete && m1.complete && m0.savingsRate != null && m1.savingsRate != null && m0.count >= 3 && m1.count >= 3) {
     const diff = m0.savingsRate - m1.savingsRate;
     if (Math.abs(diff) >= 0.1)
       out.push({ id: `save-${m0.label}`, kind: diff > 0 ? 'strength' : 'weakness', severity: diff > 0 ? 'low' : 'medium', confidence: 'confirmed',
