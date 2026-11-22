@@ -73,9 +73,9 @@ export default function Wealth() {
     <div>
       <PageHeader title={t('wealth')} />
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <div><Kpi label={t('assets')} value={fmtMoney(L, nw.assets, cur)} tone="good" /><MoneyEquivalents amount={nw.assets} settings={settings} /></div>
-        <div><Kpi label={t('liabilities')} value={fmtMoney(L, nw.liabilities, cur)} tone="bad" /><MoneyEquivalents amount={nw.liabilities} settings={settings} /></div>
-        <div><Kpi label={t('netWorth')} value={fmtMoney(L, nw.net, cur)} tone="accent" /><MoneyEquivalents amount={nw.net} settings={settings} /></div>
+        <div><Kpi label={t('assets')} value={nw.complete ? fmtMoney(L, nw.assets, cur) : '—'} tone="good" />{nw.complete && <MoneyEquivalents amount={nw.assets} settings={settings} />}</div>
+        <div><Kpi label={t('liabilities')} value={nw.complete ? fmtMoney(L, nw.liabilities, cur) : '—'} tone="bad" />{nw.complete && <MoneyEquivalents amount={nw.liabilities} settings={settings} />}</div>
+        <div><Kpi label={t('netWorth')} value={nw.complete ? fmtMoney(L, nw.net, cur) : '—'} tone="accent" />{nw.complete && <MoneyEquivalents amount={nw.net} settings={settings} />}</div>
       </div>
       {nw.missing.length > 0 && <p className="text-xs text-[hsl(var(--warning))] mb-3">{t('missingRate')}: {nw.missing.join(', ')}</p>}
       <Tabs defaultValue="assets">
