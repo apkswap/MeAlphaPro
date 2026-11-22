@@ -64,11 +64,17 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
           path = Path("android/app/build.gradle")
           text = path.read_text()
-          text, code_count = re.subn(r"(?m)^\s*versionCode\s+\d+\s*$", "        versionCode 200", text, count=1)
-          text, name_count = re.subn(r'(?m)^\s*versionName\s+"[^"]+"\s*      - name: Install vector icon renderer
+          old_code = "versionCode 1"
+          old_name = 'versionName "1.0"'
+          if old_code not in text or old_name not in text:
+              raise SystemExit("Generated Gradle version fields were not found")
+          text = text.replace(old_code, "versionCode 200", 1)
+          text = text.replace(old_name, 'versionName "2.0.0"', 1)
+          path.write_text(text)
+          PY
+      - name: Install vector icon renderer
         run: npm install --no-save --package-lock=false --workspaces=false sharp
       - name: Generate full-resolution Android launcher icons
         working-directory: apps/mealpha-pro
@@ -115,6 +121,7 @@ jobs:
           if (-not (Test-Path $apk)) { throw "APK output is missing." }
           $sdk = $env:ANDROID_SDK_ROOT
           if (-not $sdk) { $sdk = $env:ANDROID_HOME }
+          if (-not $sdk) { throw "Android SDK path is missing." }
           $buildTools = Get-ChildItem (Join-Path $sdk "build-tools") -Directory | Sort-Object Name -Descending | Select-Object -First 1
           $aapt = Join-Path $buildTools.FullName "aapt.exe"
           if (-not (Test-Path $aapt)) { throw "aapt is missing from the installed Android build tools." }
@@ -123,63 +130,6 @@ jobs:
             throw "APK package/version does not match com.mealpha.pro / 200 / 2.0.0."
           }
           Get-Item $apk | Format-Table Name, Length
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: MeAlpha-Pro-Android-APK
-          path: apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 14
-, '        versionName "2.0.0"', text, count=1)
-          if code_count != 1 or name_count != 1:
-              raise SystemExit("Could not safely update Android versionCode/versionName")
-          path.write_text(text)
-          PY
-      - name: Install vector icon renderer
-        run: npm install --no-save --package-lock=false --workspaces=false sharp
-      - name: Generate full-resolution Android launcher icons
-        working-directory: apps/mealpha-pro
-        run: node scripts/generate-brand-assets.mjs --android
-      - name: Configure Android Dropbox deep link
-        working-directory: apps/mealpha-pro
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path("android/app/src/main/AndroidManifest.xml")
-          xml = path.read_text()
-          permission = '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />'
-          if permission not in xml:
-              manifest_start = xml.find("<manifest")
-              manifest_end = xml.find(">", manifest_start)
-              if manifest_start < 0 or manifest_end < 0:
-                  raise SystemExit("Could not locate the Android manifest root element")
-              xml = xml[:manifest_end + 1] + "\n    " + permission + xml[manifest_end + 1:]
-          marker = 'android:scheme="com.mealpha.pro"'
-          if marker not in xml:
-              activity_start = xml.find("<activity")
-              activity_end = xml.find("</activity>", activity_start)
-              if activity_start < 0 or activity_end < 0:
-                  raise SystemExit("Could not locate the Android main activity in AndroidManifest.xml")
-              intent_filter = """
-                      <intent-filter>
-                          <action android:name="android.intent.action.VIEW" />
-                          <category android:name="android.intent.category.DEFAULT" />
-                          <category android:name="android.intent.category.BROWSABLE" />
-                          <data android:scheme="com.mealpha.pro" android:host="oauth" android:pathPrefix="/dropbox/callback" />
-                      </intent-filter>
-              """
-              xml = xml[:activity_end] + intent_filter + xml[activity_end:]
-              path.write_text(xml)
-          PY
-      - name: Build debug APK
-        working-directory: apps/mealpha-pro/android
-        run: .\gradlew.bat assembleDebug
-      - name: Verify APK
-        shell: bash
-        run: |
-          test -f apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk
-          ls -lh apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
