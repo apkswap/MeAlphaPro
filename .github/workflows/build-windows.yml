@@ -18,9 +18,12 @@ on:
     paths:
       - "apps/**"
       - "packages/**"
+      - "docs/favicon.svg"
       - "package.json"
       - "tsconfig.json"
       - ".github/workflows/build-windows.yml"
+      - ".github/workflows/build-android.yml"
+      - ".github/workflows/ui-smoke.yml"
 
 permissions:
   contents: read
