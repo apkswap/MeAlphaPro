@@ -19,7 +19,7 @@ const readFocusSessions = (): FocusSession[] => {
   }
 };
 
-export default function GrowthEngine() {
+export default function GrowthEngine({ showMoney = false }: { showMoney?: boolean }) {
   const { data, settings, save } = useStore();
   const d = data!;
   const fa = settings.language === 'fa';
@@ -117,7 +117,7 @@ export default function GrowthEngine() {
               {recommendations.map((f) => (
                 <div key={f.id} className="rounded-xl border bg-card/60 p-3 space-y-2">
                   <div className="flex items-start gap-2"><span className={`mt-1 h-2 w-2 rounded-full shrink-0 ${f.severity === 'high' ? 'bg-destructive' : f.severity === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'}`} /><div className="text-sm font-semibold flex-1">{f.title}</div></div>
-                  <p className="text-xs text-muted-foreground">{f.evidence}</p>
+                  <p className="text-xs text-muted-foreground">{f.id.startsWith('budget-') && !showMoney ? (fa ? 'جزئیات مالی مخفی است؛ برای مشاهده، مبالغ را در داشبورد نمایش دهید.' : 'Financial details are hidden. Show amounts on the dashboard to view them.') : f.evidence}</p>
                   <p className="text-xs">{f.action}</p>
                   <div className="flex gap-2">
                     <Button size="sm" variant="secondary" onClick={() => void createTask(f)}><CheckCircle2 className="h-3.5 w-3.5 me-1" />{fa ? 'تبدیل به وظیفه' : 'Create task'}</Button>
