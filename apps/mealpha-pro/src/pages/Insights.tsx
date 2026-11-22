@@ -56,7 +56,9 @@ export default function Insights() {
     const totals = new Map<string, number>();
     data!.transactions.filter((tx) => tx.kind === 'Expense' && tx.date && tx.date >= startDate && tx.date <= endDate).forEach((tx) => {
       const key = String(tx.category || (fa ? 'بدون دسته' : 'Uncategorized'));
-      const converted = conv(Number(tx.amount) || 0, tx.currency);
+      const amount = Number(tx.amount);
+      if (!Number.isFinite(amount) || amount < 0) return;
+      const converted = conv(amount, tx.currency);
       if (!Number.isFinite(converted)) return;
       totals.set(key, (totals.get(key) || 0) + converted / 100);
     });
