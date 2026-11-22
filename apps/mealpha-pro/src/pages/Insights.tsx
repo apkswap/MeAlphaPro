@@ -96,7 +96,7 @@ export default function Insights() {
         <div><Kpi label={fa ? 'درآمد این ماه' : 'Income this month'} value={currentMonth.complete ? fmtMoney(L, currentMonth.income, settings.currency) : '—'} tone="good" icon={<TrendingUp className="h-4 w-4" />} />{currentMonth.complete && <MoneyEquivalents amount={currentMonth.income} settings={settings} />}</div>
         <div><Kpi label={fa ? 'هزینه این ماه' : 'Expenses this month'} value={currentMonth.complete ? fmtMoney(L, currentMonth.expense, settings.currency) : '—'} tone="bad" icon={<TrendingDown className="h-4 w-4" />} hint={fa ? `تغییر نسبت به ماه قبل: ${expenseChangeLabel}` : `vs previous month: ${expenseChangeLabel}`} />{currentMonth.complete && <MoneyEquivalents amount={currentMonth.expense} settings={settings} />}</div>
         <div><Kpi label={fa ? 'جریان نقدی خالص' : 'Net cash flow'} value={currentMonth.complete ? fmtMoney(L, currentMonth.net, settings.currency) : '—'} tone={currentMonth.net >= 0 ? 'good' : 'bad'} icon={<Wallet className="h-4 w-4" />} />{currentMonth.complete && <MoneyEquivalents amount={currentMonth.net} settings={settings} />}</div>
-        <Kpi label={t('savingsRate')} value={currentMonth.savingsRate == null ? t('noData') : `${fmtNum(L, currentMonth.savingsRate * 100)}%`} tone="accent" />
+        <Kpi label={t('savingsRate')} value={!currentMonth.complete || currentMonth.savingsRate == null ? t('noData') : `${fmtNum(L, currentMonth.savingsRate * 100)}%`} tone="accent" />
       </div>
       {budgetUsage != null && (
         <Panel title={fa ? 'مصرف بودجه ماهانه' : 'Monthly budget utilization'} action={<span className={cn('text-xs font-bold tabular-nums', budgetUsage > 1 ? 'text-destructive' : 'text-primary')}>{fmtNum(L, budgetUsage * 100)}%</span>}>
