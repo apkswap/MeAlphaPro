@@ -84,8 +84,10 @@ export function monthFinance(tx: Rec[], st: Settings, offset = 0) {
   const prefix = isoOf(d).slice(0, 7);
   const { conv, missing } = makeConverter(st);
   let inc = 0, exp = 0, disc = 0, count = 0;
-  tx.filter((x) => x.date?.startsWith(prefix)).forEach((x) => {
-    const v = conv(Number(x.amount) || 0, x.currency);
+  tx.filter((x) => x.date?.startsWith(prefix) && (x.kind === 'Income' || x.kind === 'Expense')).forEach((x) => {
+    const amount = Number(x.amount);
+    if (!Number.isFinite(amount) || amount < 0) return;
+    const v = conv(amount, x.currency);
     // Unknown exchange rates must never be counted as zero-valued money.
     if (!Number.isFinite(v)) return;
     count++;
@@ -94,7 +96,7 @@ export function monthFinance(tx: Rec[], st: Settings, offset = 0) {
   const income = inc / 100, expense = exp / 100;
   return {
     label: prefix, count, income, expense, discretionary: disc / 100, net: (inc - exp) / 100,
-    savingsRate: inc > 0 ? (inc - exp) / inc : null, missing: [...missing],
+    savingsRate: inc > 0 ? (inc - exp) / inc : null, missing: [...missing], complete: missing.size === 0,
   };
 }
 
@@ -103,7 +105,7 @@ export function netWorth(assets: Rec[], liabs: Rec[], st: Settings, transactions
   const effectiveAssets: Rec[] = assets.map((asset): Rec => ({ ...asset, currentValue: Number(asset.currentValue || 0) + transactions.filter(tx => tx.assetId === asset.id && tx.currency === asset.currency).reduce((sum, tx) => sum + (tx.kind === 'Income' ? 1 : -1) * Number(tx.amount || 0), 0) }));
   const a = effectiveAssets.reduce((sum, x) => { const value = conv(Number(x.currentValue) || 0, x.currency); return sum + (Number.isFinite(value) ? value : 0); }, 0);
   const l = liabs.reduce((sum, x) => { const value = conv(Number(x.outstandingAmount) || 0, x.currency); return sum + (Number.isFinite(value) ? value : 0); }, 0);
-  return { assets: a / 100, liabilities: l / 100, net: (a - l) / 100, missing: [...missing] };
+  return { assets: a / 100, liabilities: l / 100, net: (a - l) / 100, missing: [...missing], complete: missing.size === 0 };
 }
 
 // ---- Goals ----
@@ -175,14 +177,14 @@ export function taskStats(tasks: Rec[]) {
     completed, total: tasks.length,
     due30CompletionRate: due30.length ? done30.length / due30.length : null, due30: due30.length,
     overdue, todays, estimateRatio: timed.length >= 3 ? act / est : null, timedCount: timed.length,
-    focusToday: tasks.length,
+    focusToday: todays.filter((task) => task.status !== 'Done').length,
   };
 }
 
 // ---- Scores (missing data → null, never zero) ----
 export function scores(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLogs: Rec[]; transactions: Rec[] }, st: Settings) {
   const fin = monthFinance(d.transactions, st, 0);
-  const finance = fin.savingsRate == null ? null : Math.max(0, Math.min(100, 50 + fin.savingsRate * 166));
+  const finance = fin.savingsRate == null || !fin.complete ? null : Math.max(0, Math.min(100, 50 + fin.savingsRate * 166));
   const g = d.goals.map(goalInfo).filter((x) => x.status !== 'Unknown' && x.status !== 'Completed');
   const goals = g.length ? (g.filter((x) => x.status === 'On Track').length / g.length) * 100 : null;
   const ts = taskStats(d.tasks);
