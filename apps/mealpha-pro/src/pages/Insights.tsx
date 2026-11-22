@@ -61,14 +61,14 @@ export default function Insights() {
       totals.set(key, (totals.get(key) || 0) + converted / 100);
     });
     return {
-      items: [...totals.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 7),
+      items: missing.size ? [] : [...totals.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 7),
       missing: [...missing],
     };
   }, [data!.transactions, settings, fa, monthlyTrend]);
   const chartColors = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
   const missingCurrencies = [...new Set([...monthlyTrend.flatMap((m) => m.missing), ...categoryResult.missing])];
-  const expenseChange = previousMonth.expense > 0 ? ((currentMonth.expense - previousMonth.expense) / previousMonth.expense) * 100 : null;
-  const budgetUsage = settings.monthlyBudget && settings.monthlyBudget > 0 ? currentMonth.expense / settings.monthlyBudget : null;
+  const expenseChange = currentMonth.complete && previousMonth.complete && previousMonth.expense > 0 ? ((currentMonth.expense - previousMonth.expense) / previousMonth.expense) * 100 : null;
+  const budgetUsage = currentMonth.complete && settings.monthlyBudget && settings.monthlyBudget > 0 ? currentMonth.expense / settings.monthlyBudget : null;
   const expenseChangeLabel = expenseChange == null ? t('noData') : `${expenseChange > 0 ? '+' : ''}${fmtNum(L, expenseChange)}%`;
   const all = findings(data!, settings, L).filter((f) => !dismissed.includes(f.id));
   const dismiss = (id: string) => { const n = [...dismissed, id]; setDismissed(n); localStorage.setItem(KEY, JSON.stringify(n)); };
@@ -81,7 +81,7 @@ export default function Insights() {
     ? { finance: 'مدیریت مالی', goals: 'دستیابی به اهداف', tasks: 'اجرای کارها', habits: 'ثبات عادت‌ها' }
     : { finance: 'Financial management', goals: 'Goal achievement', tasks: 'Task execution', habits: 'Habit consistency' };
   const weak = all.filter((f) => f.kind === 'weakness'), strong = all.filter((f) => f.kind === 'strength');
-  const hasTrend = monthlyTrend.some((m) => m.income !== 0 || m.expense !== 0);
+  const hasTrend = monthlyTrend.every((m) => m.missing.length === 0) && monthlyTrend.some((m) => m.income !== 0 || m.expense !== 0);
   const moneyTooltip = ({ active, payload, label }: any) => active && payload?.length ? (
     <div className="rounded-xl border bg-popover p-3 text-xs">
       <div className="font-semibold">{label}</div>
@@ -93,9 +93,9 @@ export default function Insights() {
     <div className="space-y-6">
       <PageHeader title={t('insights')} subtitle={t('scoreNote')} />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <div><Kpi label={fa ? 'درآمد این ماه' : 'Income this month'} value={fmtMoney(L, currentMonth.income, settings.currency)} tone="good" icon={<TrendingUp className="h-4 w-4" />} /><MoneyEquivalents amount={currentMonth.income} settings={settings} /></div>
-        <div><Kpi label={fa ? 'هزینه این ماه' : 'Expenses this month'} value={fmtMoney(L, currentMonth.expense, settings.currency)} tone="bad" icon={<TrendingDown className="h-4 w-4" />} hint={fa ? `تغییر نسبت به ماه قبل: ${expenseChangeLabel}` : `vs previous month: ${expenseChangeLabel}`} /><MoneyEquivalents amount={currentMonth.expense} settings={settings} /></div>
-        <div><Kpi label={fa ? 'جریان نقدی خالص' : 'Net cash flow'} value={fmtMoney(L, currentMonth.net, settings.currency)} tone={currentMonth.net >= 0 ? 'good' : 'bad'} icon={<Wallet className="h-4 w-4" />} /><MoneyEquivalents amount={currentMonth.net} settings={settings} /></div>
+        <div><Kpi label={fa ? 'درآمد این ماه' : 'Income this month'} value={currentMonth.complete ? fmtMoney(L, currentMonth.income, settings.currency) : '—'} tone="good" icon={<TrendingUp className="h-4 w-4" />} />{currentMonth.complete && <MoneyEquivalents amount={currentMonth.income} settings={settings} />}</div>
+        <div><Kpi label={fa ? 'هزینه این ماه' : 'Expenses this month'} value={currentMonth.complete ? fmtMoney(L, currentMonth.expense, settings.currency) : '—'} tone="bad" icon={<TrendingDown className="h-4 w-4" />} hint={fa ? `تغییر نسبت به ماه قبل: ${expenseChangeLabel}` : `vs previous month: ${expenseChangeLabel}`} />{currentMonth.complete && <MoneyEquivalents amount={currentMonth.expense} settings={settings} />}</div>
+        <div><Kpi label={fa ? 'جریان نقدی خالص' : 'Net cash flow'} value={currentMonth.complete ? fmtMoney(L, currentMonth.net, settings.currency) : '—'} tone={currentMonth.net >= 0 ? 'good' : 'bad'} icon={<Wallet className="h-4 w-4" />} />{currentMonth.complete && <MoneyEquivalents amount={currentMonth.net} settings={settings} />}</div>
         <Kpi label={t('savingsRate')} value={currentMonth.savingsRate == null ? t('noData') : `${fmtNum(L, currentMonth.savingsRate * 100)}%`} tone="accent" />
       </div>
       {budgetUsage != null && (
