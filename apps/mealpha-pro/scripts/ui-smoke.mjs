@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 
 const browser = await chromium.launch({ headless: true });
 const failures = [];
-const routes = ['/', '/goals', '/tasks', '/habits', '/focus', '/transactions', '/wealth', '/insights', '/settings', '/workspace'];
+const routes = ['/', '/goals', '/tasks', '/habits', '/focus', '/finance', '/transactions', '/wealth', '/insights', '/settings', '/workspace'];
 const viewports = [
   { name: 'small-mobile', width: 320, height: 740 },
   { name: 'mobile', width: 390, height: 844 },
