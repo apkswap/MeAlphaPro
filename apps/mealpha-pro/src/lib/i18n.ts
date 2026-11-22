@@ -9,6 +9,7 @@ const dict = {
   habits: ['عادت‌ها', 'Habits'],
   focus: ['تمرکز', 'Focus'],
   finance: ['تراکنش‌ها', 'Transactions'],
+  financialManagement: ['مدیریت مالی', 'Financial Management'],
   wealth: ['دارایی و بدهی', 'Assets & Debts'],
   insights: ['هوش عملکرد', 'Insights'],
   settings: ['تنظیمات', 'Settings'],
