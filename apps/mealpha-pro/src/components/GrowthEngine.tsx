@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, CheckCircle2, ArrowUpRight } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
@@ -26,7 +26,16 @@ export default function GrowthEngine({ showMoney = false }: { showMoney?: boolea
   const [dismissed, setDismissed] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('mealpha-dismissed') || '[]'); } catch { return []; }
   });
-  const focusSessions = useMemo(readFocusSessions, []);
+  const [focusSessions, setFocusSessions] = useState<FocusSession[]>(readFocusSessions);
+  useEffect(() => {
+    const refresh = () => setFocusSessions(readFocusSessions());
+    window.addEventListener('storage', refresh);
+    window.addEventListener('mealpha:focus-sessions-updated', refresh);
+    return () => {
+      window.removeEventListener('storage', refresh);
+      window.removeEventListener('mealpha:focus-sessions-updated', refresh);
+    };
+  }, []);
   const weekStart = Date.now() - 7 * 86400000;
   const weekSessions = focusSessions.filter((s) => {
     const date = new Date(s.date || '').getTime();
