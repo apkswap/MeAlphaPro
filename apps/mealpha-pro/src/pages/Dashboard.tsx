@@ -126,7 +126,7 @@ export default function Dashboard() {
       </div>
       <Panel title={fa ? 'شروع سریع' : 'Quick access'}>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[{to:'/goals',icon:Target,label:t('goals')},{to:'/focus',icon:Clock3,label:t('focus')},{to:'/wealth',icon:Wallet,label:t('wealth')},{to:'/insights',icon:Sparkles,label:t('insights')}].map(x=><Link key={x.to} to={x.to} className="flex items-center gap-3 rounded-xl border bg-background/60 p-3 text-xs font-semibold transition hover:border-primary/50 hover:bg-primary/5"><x.icon className="h-4 w-4 text-primary" />{x.label}<ChevronRight className="ms-auto h-3.5 w-3.5 opacity-50 rtl:rotate-180" /></Link>)}
+          {[{to:'/goals',icon:Target,label:t('goals')},{to:'/focus',icon:Clock3,label:t('focus')},{to:'/finance',icon:Wallet,label:t('financialManagement')},{to:'/insights',icon:Sparkles,label:t('insights')}].map(x=><Link key={x.to} to={x.to} className="flex items-center gap-3 rounded-xl border bg-background/60 p-3 text-xs font-semibold transition hover:border-primary/50 hover:bg-primary/5"><x.icon className="h-4 w-4 text-primary" />{x.label}<ChevronRight className="ms-auto h-3.5 w-3.5 opacity-50 rtl:rotate-180" /></Link>)}
         </div>
       </Panel>
     </div>

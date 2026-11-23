@@ -10,6 +10,7 @@ import Habits from './pages/Habits';
 import Focus from './pages/Focus';
 import Transactions from './pages/Transactions';
 import Wealth from './pages/Wealth';
+import FinancialHub from './pages/FinancialHub';
 import Insights from './pages/Insights';
 import SettingsPage from './pages/Settings';
 import Workspace from './pages/Workspace';
@@ -23,7 +24,7 @@ function Shell() {
   return <BrowserRouter basename={window.location.pathname.startsWith("/MeAlphaPro/preview") ? "/MeAlphaPro/preview" : undefined}><Routes><Route element={<Layout />}>
     <Route path="/" element={<Dashboard />} /><Route path="/goals" element={<Goals />} />
     <Route path="/tasks" element={<Tasks />} /><Route path="/habits" element={<Habits />} />
-    <Route path="/focus" element={<Focus />} /><Route path="/transactions" element={<Transactions />} />
+    <Route path="/focus" element={<Focus />} /><Route path="/finance" element={<FinancialHub />} /><Route path="/transactions" element={<Transactions />} />
     <Route path="/wealth" element={<Wealth />} /><Route path="/insights" element={<Insights />} />
     <Route path="/settings" element={<SettingsPage />} /><Route path="/workspace" element={<Workspace />} /><Route path="*" element={<Dashboard />} />
   </Route></Routes></BrowserRouter>;
