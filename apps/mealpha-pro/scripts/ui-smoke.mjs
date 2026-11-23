@@ -430,6 +430,83 @@ for (const viewport of viewports) {
       }
     }
   }
+  // Search dialog: keyboard dismissal, focus restoration, focus trap and outside click.
+  const searchTrigger = page.getByRole('button', { name: /جستجوی سراسری|Global search/ });
+  if (!(await searchTrigger.count())) failures.push(`${viewport.name}: global search trigger missing`);
+  else {
+    await searchTrigger.click();
+    const searchDialog = page.getByRole('dialog', { name: /جستجوی سراسری|Global search/ });
+    await searchDialog.waitFor({ state: 'visible' });
+    const searchInput = searchDialog.getByRole('textbox', { name: /عبارت جستجو|Search query/ });
+    if (!(await searchInput.evaluate(el => document.activeElement === el))) failures.push(`${viewport.name}: search input did not receive focus`);
+    await searchInput.press('Shift+Tab');
+    const closeSearch = searchDialog.getByRole('button', { name: /بستن|Close/ });
+    if (!(await closeSearch.evaluate(el => document.activeElement === el))) failures.push(`${viewport.name}: search focus trap did not wrap backwards`);
+    await page.keyboard.press('Tab');
+    if (!(await searchInput.evaluate(el => document.activeElement === el))) failures.push(`${viewport.name}: search focus trap did not wrap forwards`);
+    await page.keyboard.press('Escape');
+    await searchDialog.waitFor({ state: 'hidden' });
+    if (!(await searchTrigger.evaluate(el => document.activeElement === el))) failures.push(`${viewport.name}: closing search did not restore trigger focus`);
+    await searchTrigger.click();
+    await page.locator('[role="presentation"]').click({ position: { x: 4, y: 4 } });
+    await searchDialog.waitFor({ state: 'hidden' });
+  }
+
+  if (viewport.name === 'desktop') {
+    // Seed deterministic weekly habit history: three completed prior weeks, two logs per week.
+    await page.evaluate(async () => {
+      const db = await new Promise((resolve, reject) => {
+        const request = indexedDB.open('mealpha-pro-local', 3);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const today = new Date();
+      const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      const iso = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const tx = db.transaction(['habits', 'habitLogs'], 'readwrite');
+      tx.objectStore('habits').put({ id: 'smoke-weekly-habit', name: 'Weekly streak smoke', frequency: 'Weekly', targetPerPeriod: 2, archived: false });
+      tx.objectStore('habits').put({ id: 'smoke-archived-habit', name: 'Archived habit smoke', frequency: 'Daily', targetPerPeriod: 1, archived: true });
+      for (let week = 1; week <= 3; week++) {
+        for (const day of [0, 2]) {
+          const date = new Date(monday);
+          date.setDate(date.getDate() - week * 7 + day);
+          tx.objectStore('habitLogs').put({ id: `smoke-weekly-${week}-${day}`, habitId: 'smoke-weekly-habit', date: iso(date) });
+        }
+      }
+      await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error); });
+      db.close();
+    });
+    await page.goto('http://127.0.0.1:8080/habits', { waitUntil: 'networkidle' });
+    const weeklyCard = page.getByTestId('habit-card-smoke-weekly');
+    await weeklyCard.waitFor({ state: 'visible', timeout: 10000 });
+    const currentStreak = await weeklyCard.getByTestId('habit-current-streak').innerText();
+    const bestStreak = await weeklyCard.getByTestId('habit-best-streak').innerText();
+    if (!/[3۳]/.test(currentStreak)) failures.push(`weekly habit streak should count completed weeks, got ${currentStreak}`);
+    if (!/[3۳]/.test(bestStreak)) failures.push(`weekly habit best streak should count completed weeks, got ${bestStreak}`);
+    const archivedCard = page.getByTestId('habit-card-smoke-archived');
+    await archivedCard.waitFor({ state: 'visible', timeout: 10000 });
+    if (!(await archivedCard.getByTestId('habit-toggle').isDisabled())) failures.push('archived habit can still be logged from its primary toggle');
+    const archivedCalendarButtons = archivedCard.locator('button[title]');
+    if (await archivedCalendarButtons.count()) {
+      const enabledArchivedDates = await archivedCalendarButtons.evaluateAll(buttons => buttons.some(button => !button.disabled));
+      if (enabledArchivedDates) failures.push('archived habit calendar still allows editing historical dates');
+    }
+    await page.evaluate(async () => {
+      const db = await new Promise((resolve, reject) => {
+        const request = indexedDB.open('mealpha-pro-local', 3);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const tx = db.transaction(['habits', 'habitLogs'], 'readwrite');
+      tx.objectStore('habits').delete('smoke-weekly-habit');
+      tx.objectStore('habits').delete('smoke-archived-habit');
+      const logs = tx.objectStore('habitLogs');
+      for (let week = 1; week <= 3; week++) for (const day of [0, 2]) logs.delete(`smoke-weekly-${week}-${day}`);
+      await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); });
+      db.close();
+    });
+  }
   await page.close();
 }
 await browser.close();
