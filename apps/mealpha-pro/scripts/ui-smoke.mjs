@@ -465,6 +465,9 @@ for (const viewport of viewports) {
       monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
       const iso = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       const tx = db.transaction(['habits', 'habitLogs'], 'readwrite');
+      tx.objectStore('habits').delete('smoke-weekly-habit');
+      tx.objectStore('habits').delete('smoke-archived-habit');
+      for (let week = 1; week <= 3; week++) for (const day of [0, 2]) tx.objectStore('habitLogs').delete(`smoke-weekly-${week}-${day}`);
       tx.objectStore('habits').put({ id: 'smoke-weekly-habit', name: 'Weekly streak smoke', frequency: 'Weekly', targetPerPeriod: 2, archived: false });
       tx.objectStore('habits').put({ id: 'smoke-archived-habit', name: 'Archived habit smoke', frequency: 'Daily', targetPerPeriod: 1, archived: true });
       for (let week = 1; week <= 3; week++) {
@@ -506,6 +509,24 @@ for (const viewport of viewports) {
       await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); });
       db.close();
     });
+    // Growth Engine must refresh focus metrics when session storage changes in the same tab.
+    await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+    const focusMetric = page.getByTestId('growth-focus-minutes');
+    await focusMetric.waitFor({ state: 'visible', timeout: 10000 });
+    const previousSessions = await page.evaluate(() => localStorage.getItem('mealpha-focus-sessions'));
+    await page.evaluate(() => {
+      localStorage.setItem('mealpha-focus-sessions', JSON.stringify([{ date: new Date().toISOString(), seconds: 600, minutes: 10 }]));
+      window.dispatchEvent(new Event('mealpha:focus-sessions-updated'));
+    });
+    await page.waitForFunction(() => {
+      const value = document.querySelector('[data-testid="growth-focus-minutes"]')?.textContent || '';
+      return /10|۱۰/.test(value);
+    }, null, { timeout: 5000 }).catch(() => failures.push('Growth Engine did not refresh focus minutes after a session update'));
+    await page.evaluate(previous => {
+      if (previous === null) localStorage.removeItem('mealpha-focus-sessions');
+      else localStorage.setItem('mealpha-focus-sessions', previous);
+      window.dispatchEvent(new Event('mealpha:focus-sessions-updated'));
+    }, previousSessions);
   }
   await page.close();
 }
