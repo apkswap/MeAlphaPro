@@ -5,6 +5,7 @@ on:
   pull_request:
     branches:
       - main
+      - fix/dropbox-settings-save-logo-sizing
   push:
     branches:
       - main
