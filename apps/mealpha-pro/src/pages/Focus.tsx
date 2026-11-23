@@ -84,6 +84,7 @@ export default function Focus() {
     const next = [session, ...hist].slice(0, 500);
     setHist(next);
     localStorage.setItem(KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event('mealpha:focus-sessions-updated'));
     if (task) {
       const previous = Number(task.actualMinutes) || 0;
       await save('tasks', { actualMinutes: Math.round((previous + seconds / 60) * 100) / 100 }, task.id);
@@ -173,6 +174,7 @@ export default function Focus() {
     const next = [session, ...hist].slice(0, 500);
     setHist(next);
     localStorage.setItem(KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event('mealpha:focus-sessions-updated'));
     if (task) {
       const previous = Number(task.actualMinutes) || 0;
       await save('tasks', { actualMinutes: Math.round((previous + totalSeconds / 60) * 100) / 100 }, task.id);
