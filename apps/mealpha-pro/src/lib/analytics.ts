@@ -237,7 +237,8 @@ export function scores(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLogs
   const g = d.goals.map(goalInfo).filter((x) => x.status !== 'Unknown' && x.status !== 'Completed');
   const goals = g.length ? (g.filter((x) => x.status === 'On Track').length / g.length) * 100 : null;
   const ts = taskStats(d.tasks);
-  const tasks = ts.completionRate == null ? null : ts.completionRate * 100;
+  // A current performance score must not be dominated by tasks completed years ago.
+  const tasks = ts.due30 >= 3 && ts.due30CompletionRate != null ? ts.due30CompletionRate * 100 : null;
   const hs = d.habits.filter((h) => !h.archived).map((h) => habitStats(h, d.habitLogs)).filter((x) => x.hasHistory);
   const habits = hs.length ? (hs.reduce((s, x) => s + x.rate30, 0) / hs.length) * 100 : null;
   const parts = { finance, goals, tasks, habits };
