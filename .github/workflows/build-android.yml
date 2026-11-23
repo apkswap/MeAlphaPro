@@ -12,6 +12,7 @@ on:
       - feature/cinematic-3d-dashboard
       - feature/premium-command-center-ui
       - fix/dropbox-settings-save-logo-sizing
+      - fix/ux-habits-search-growth-2026-11-23
       - feat/hierarchical-goals-task-reminders
       - fix/goals-hierarchy-integrity
       - fix/restore-purple-branding-profile-goals
