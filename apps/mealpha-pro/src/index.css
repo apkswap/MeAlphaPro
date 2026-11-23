@@ -4,15 +4,15 @@
 
 @layer base {
   :root {
-    --background: 222 38% 7%; --foreground: 215 30% 94%; --muted: 220 25% 14%; --muted-foreground: 215 14% 65%;
-    --popover: 222 32% 10%; --popover-foreground: 215 30% 94%; --border: 218 24% 20%; --input: 218 24% 20%;
-    --card: 222 30% 11%; --card-foreground: 215 30% 94%; --primary: 199 92% 55%; --primary-foreground: 222 40% 8%;
-    --secondary: 220 22% 16%; --secondary-foreground: 215 30% 94%; --accent: 190 85% 48%; --accent-foreground: 222 40% 8%;
+    --background: 258 42% 5%; --foreground: 270 28% 94%; --muted: 265 32% 13%; --muted-foreground: 270 14% 68%;
+    --popover: 263 38% 9%; --popover-foreground: 270 28% 94%; --border: 275 35% 23%; --input: 275 35% 23%;
+    --card: 263 38% 10%; --card-foreground: 270 28% 94%; --primary: 273 86% 57%; --primary-foreground: 0 0% 100%;
+    --secondary: 270 28% 17%; --secondary-foreground: 270 28% 94%; --accent: 42 95% 58%; --accent-foreground: 258 42% 5%;
     --destructive: 0 68% 56%; --destructive-foreground: 0 0% 100%; --success: 152 58% 43%; --warning: 38 85% 58%;
-    --ring: 199 92% 55%; --radius: .9rem; --sidebar-background: 222 38% 8%; --sidebar-foreground: 215 24% 86%;
-    --sidebar-primary: 199 92% 55%; --sidebar-primary-foreground: 222 40% 8%; --sidebar-accent: 220 22% 16%;
-    --sidebar-accent-foreground: 215 30% 94%; --sidebar-border: 218 24% 18%; --sidebar-ring: 199 92% 55%;
-    --chart-1: 199 92% 55%; --chart-2: 190 85% 48%; --chart-3: 166 62% 48%; --chart-4: 38 85% 58%; --chart-5: 220 60% 60%;
+    --ring: 273 86% 57%; --radius: .9rem; --sidebar-background: 258 42% 6%; --sidebar-foreground: 270 24% 86%;
+    --sidebar-primary: 273 86% 57%; --sidebar-primary-foreground: 0 0% 100%; --sidebar-accent: 270 28% 16%;
+    --sidebar-accent-foreground: 270 30% 94%; --sidebar-border: 275 35% 19%; --sidebar-ring: 273 86% 57%;
+    --chart-1: 273 86% 57%; --chart-2: 290 78% 65%; --chart-3: 145 82% 48%; --chart-4: 42 95% 58%; --chart-5: 258 70% 52%;
   }
   :root[data-color-theme='orange'] { --primary: 25 92% 55%; --primary-foreground: 222 40% 8%; --accent: 35 95% 62%; --ring: 25 92% 55%; --sidebar-primary: 25 92% 55%; --sidebar-ring: 25 92% 55%; --chart-1: 25 92% 55%; --chart-2: 38 95% 60%; --chart-3: 15 75% 54%; --chart-4: 48 90% 58%; --chart-5: 215 45% 56%; }
   :root[data-color-theme='green'] { --primary: 152 58% 43%; --primary-foreground: 0 0% 100%; --accent: 158 48% 55%; --ring: 152 58% 43%; --sidebar-primary: 152 58% 43%; --sidebar-ring: 152 58% 43%; --chart-1: 152 58% 43%; --chart-2: 158 48% 55%; --chart-3: 166 42% 48%; --chart-4: 38 85% 58%; --chart-5: 190 30% 48%; }

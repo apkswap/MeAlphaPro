@@ -57,7 +57,12 @@ export default function Dashboard() {
   const greeting = fa ? 'خوش اومدی،' : 'Welcome back,';
   const displayName = settings.displayName || settings.username || (fa ? 'دوست من' : 'there');
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">\n      <section className="relative isolate mb-1 overflow-hidden rounded-[24px] border border-violet-500/30 px-6 py-8 sm:px-8" style={{background:'linear-gradient(105deg,#170827 0%,#32105c 35%,#7926a8 62%,#12091e 100%)'}}>
+        <div className="absolute inset-0 -z-10 opacity-80" style={{background:'radial-gradient(ellipse at 65% 120%,#f9b74a 0%,#b04bdf 16%,transparent 43%),linear-gradient(180deg,transparent 35%,#10051d 100%)'}} />
+        <div className="absolute bottom-0 end-0 -z-10 h-full w-2/3 opacity-50" style={{clipPath:'polygon(0 100%,18% 70%,30% 82%,48% 43%,65% 73%,80% 22%,100% 55%,100% 100%)',background:'linear-gradient(180deg,#32105c,#090512)'}} />
+        <div className="relative max-w-xl"><div className="mb-2 text-xs font-bold tracking-wide text-amber-300">{fa ? 'مدیریت هوشمند مالی' : 'SMART FINANCIAL COMMAND'}</div><h2 className="text-xl font-black leading-relaxed sm:text-2xl">{fa ? 'گامی به سوی آینده بهتر...' : 'Make every day a step toward a better future.'}</h2></div>
+      </section>
+
       {[...new Set([...m.missing, ...nw.missing])].length > 0 && <div role="status" className="rounded-xl border border-[hsl(var(--warning)/.45)] bg-[hsl(var(--warning)/.08)] px-4 py-3 text-xs leading-6 text-[hsl(var(--warning))]">{t('missingRate')}: {[...new Set([...m.missing, ...nw.missing])].join(', ')} · {fa ? 'مبالغ این ارزها در جمع کل وارد نشده‌اند؛ نرخ تبدیل را در تنظیمات ثبت کنید.' : 'These amounts are excluded from totals until an exchange rate is configured.'}</div>}
       <section className="relative overflow-hidden rounded-[28px] border bg-card p-5 shadow-sm sm:p-7">
         <div className="pointer-events-none absolute -end-20 -top-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
