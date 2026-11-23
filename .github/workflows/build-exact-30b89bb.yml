@@ -1,0 +1,288 @@
+name: Build exact MeAlpha Pro commit 30b89bb
+
+on:
+  push:
+    branches:
+      - release/run-30b89bb
+    paths:
+      - "apps/mealpha-pro/**"
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mealpha-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 30b89bb926dbd221ce1572e1c6202804963fbf29
+          persist-credentials: false
+      - name: Read application version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./apps/mealpha-pro/package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  windows:
+    runs-on: windows-latest
+    needs: version
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 30b89bb926dbd221ce1572e1c6202804963fbf29
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Prepare Windows icon
+        shell: pwsh
+        run: ./apps/mealpha-pro/scripts/prepare-windows-icon.ps1
+      - name: Build Windows installer
+        run: npm run desktop:build --workspace apps/mealpha-pro
+      - name: Check Windows signing configuration
+        id: windows-signing
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if ($env:WINDOWS_CERTIFICATE_BASE64 -and $env:WINDOWS_CERTIFICATE_PASSWORD) {
+            "enabled=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "enabled=false" >> $env:GITHUB_OUTPUT
+          }
+      - name: Sign Windows installer when a publisher certificate is configured
+        if: ${{ steps.windows-signing.outputs.enabled == 'true' }}
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $certPath = Join-Path $env:RUNNER_TEMP "mealpha-publisher.pfx"
+          [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\\Windows Kits\\10\\bin\\*\\x64\\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw "Windows SDK SignTool was not found." }
+          $installer = Get-ChildItem "apps/mealpha-pro/release" -Filter "*.exe" -File | Select-Object -First 1
+          if (-not $installer) { throw "Windows installer not found for signing." }
+          & $signtool.FullName sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f $certPath /p $env:WINDOWS_CERTIFICATE_PASSWORD $installer.FullName
+          if ($LASTEXITCODE -ne 0) { throw "Authenticode signing failed." }
+          & $signtool.FullName verify /pa /v $installer.FullName
+          if ($LASTEXITCODE -ne 0) { throw "Authenticode signature verification failed." }
+          Remove-Item $certPath -Force
+
+      - name: Prepare stable release filename
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          $installer = Get-ChildItem "apps/mealpha-pro/release" -Filter "*.exe" -File | Select-Object -First 1
+          if (-not $installer) { throw "No Windows installer was produced." }
+          Copy-Item $installer.FullName "release-assets/MeAlpha-Pro-Windows-x64.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MeAlpha-Pro-Windows-x64
+          path: release-assets/MeAlpha-Pro-Windows-x64.exe
+          if-no-files-found: error
+          retention-days: 7
+
+  linux:
+    runs-on: ubuntu-latest
+    needs: version
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 30b89bb926dbd221ce1572e1c6202804963fbf29
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm fakeroot dpkg
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build web application
+        run: npm run build --workspace apps/mealpha-pro
+      - name: Build Linux packages
+        working-directory: apps/mealpha-pro
+        run: npx electron-builder --linux AppImage deb --x64
+      - name: Prepare stable release filenames
+        run: |
+          mkdir -p release-assets
+          APPIMAGE=$(find apps/mealpha-pro/release -maxdepth 1 -type f -name "*.AppImage" -print -quit)
+          DEB=$(find apps/mealpha-pro/release -maxdepth 1 -type f -name "*.deb" -print -quit)
+          test -n "$APPIMAGE" || { echo "No Linux AppImage was produced."; exit 1; }
+          test -n "$DEB" || { echo "No Linux DEB package was produced."; exit 1; }
+          cp "$APPIMAGE" release-assets/MeAlpha-Pro-Linux-x64.AppImage
+          cp "$DEB" release-assets/MeAlpha-Pro-Linux-x64.deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MeAlpha-Pro-Linux-x64
+          path: |
+            release-assets/MeAlpha-Pro-Linux-x64.AppImage
+            release-assets/MeAlpha-Pro-Linux-x64.deb
+          if-no-files-found: error
+          retention-days: 7
+
+  android:
+    runs-on: ubuntu-latest
+    needs: version
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 30b89bb926dbd221ce1572e1c6202804963fbf29
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Verify Android SDK
+        run: |
+          test -d "$ANDROID_HOME/platform-tools"
+          echo "Android SDK available at $ANDROID_HOME"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build web application
+        run: npm run build --workspace apps/mealpha-pro
+      - name: Create Android project
+        working-directory: apps/mealpha-pro
+        run: npx cap add android
+      - name: Sync Capacitor
+        working-directory: apps/mealpha-pro
+        run: npx cap sync android
+      - name: Configure Android Dropbox deep link
+        working-directory: apps/mealpha-pro
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("android/app/src/main/AndroidManifest.xml")
+          xml = path.read_text()
+          marker = 'android:scheme="com.mealpha.pro"'
+          if marker not in xml:
+              activity_start = xml.find("<activity")
+              activity_end = xml.find("</activity>", activity_start)
+              if activity_start < 0 or activity_end < 0:
+                  raise SystemExit("Could not locate the Android main activity in AndroidManifest.xml")
+              intent_filter = """
+                      <intent-filter>
+                          <action android:name="android.intent.action.VIEW" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                          <category android:name="android.intent.category.BROWSABLE" />
+                          <data android:scheme="com.mealpha.pro" android:host="oauth" android:pathPrefix="/dropbox/callback" />
+                      </intent-filter>
+              """
+              xml = xml[:activity_end] + intent_filter + xml[activity_end:]
+              path.write_text(xml)
+          PY
+      - name: Generate consistent Android launcher icons
+        run: |
+          python3 -m pip install --user --break-system-packages Pillow
+          python3 apps/mealpha-pro/scripts/generate-android-icons.py
+      - name: Build installable Android APK
+        working-directory: apps/mealpha-pro/android
+        run: chmod +x ./gradlew && ./gradlew assembleDebug
+      - name: Check Android signing configuration
+        id: android-signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Sign Android APK with the official release key when configured
+        if: ${{ steps.android-signing.outputs.enabled == 'true' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          KEYSTORE_PATH="$RUNNER_TEMP/mealpha-release.jks"
+          APK_IN="apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk"
+          APK_OUT="apps/mealpha-pro/android/app/build/outputs/apk/debug/app-release-signed.apk"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          test -x "$APKSIGNER" || { echo "Android apksigner was not found."; exit 1; }
+          "$APKSIGNER" sign --ks "$KEYSTORE_PATH" --ks-key-alias "$ANDROID_KEY_ALIAS" --ks-pass "env:ANDROID_KEYSTORE_PASSWORD" --key-pass "env:ANDROID_KEY_PASSWORD" --out "$APK_OUT" "$APK_IN"
+          "$APKSIGNER" verify --verbose --print-certs "$APK_OUT"
+          mv "$APK_OUT" "$APK_IN"
+          rm -f "$KEYSTORE_PATH"
+
+      - name: Prepare stable release filename
+        run: |
+          mkdir -p release-assets
+          cp apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk release-assets/MeAlpha-Pro-Android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MeAlpha-Pro-Android-APK
+          path: release-assets/MeAlpha-Pro-Android.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: [version, windows, android, linux]
+    steps:
+      - name: Download release binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: MeAlpha-Pro-*
+          path: release-assets
+          merge-multiple: true
+      - name: Generate SHA-256 checksums
+        run: |
+          cd release-assets
+          sha256sum MeAlpha-Pro-Windows-x64.exe MeAlpha-Pro-Android.apk MeAlpha-Pro-Linux-x64.AppImage MeAlpha-Pro-Linux-x64.deb > SHA256SUMS.txt
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: preview-30b89bb
+          name: MeAlpha Pro Preview 30b89bb
+          target_commitish: 30b89bb926dbd221ce1572e1c6202804963fbf29
+          generate_release_notes: true
+          make_latest: false
+          fail_on_unmatched_files: true
+          body: |
+            ## MeAlpha Pro build from commit `30b89bb926dbd221ce1572e1c6202804963fbf29`
+
+            Download the Windows installer, Android APK, or Linux packages below.
+
+            - **Windows:** `MeAlpha-Pro-Windows-x64.exe` (Authenticode-signed when a trusted publisher certificate is configured)
+            - **Android:** `MeAlpha-Pro-Android.apk` (signed with the official release key when Android signing secrets are configured; otherwise debug-signed for evaluation)
+            - **Linux:** `MeAlpha-Pro-Linux-x64.AppImage` and `MeAlpha-Pro-Linux-x64.deb`
+            - **Integrity:** verify downloads with `SHA256SUMS.txt`
+
+            See the repository README for setup notes and current feature scope.
+          files: |
+            release-assets/MeAlpha-Pro-Windows-x64.exe
+            release-assets/MeAlpha-Pro-Android.apk
+            release-assets/MeAlpha-Pro-Linux-x64.AppImage
+            release-assets/MeAlpha-Pro-Linux-x64.deb
+            release-assets/SHA256SUMS.txt
