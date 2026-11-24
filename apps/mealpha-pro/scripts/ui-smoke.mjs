@@ -10,6 +10,44 @@ const viewports = [
   { name: 'desktop', width: 1440, height: 960 }
 ];
 
+const conversionPage = await browser.newPage();
+await conversionPage.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+const currencyChecks = await conversionPage.evaluate(async () => {
+  const { parseRates, makeConverter, monthFinance, netWorth, todayISO } = await import('/src/lib/analytics.ts');
+  const settings = {
+    currency: 'IRT',
+    exchangeRates: 'USD = IRT 26000\nEUR/USD=1.1\nGBP/EUR=1.2'
+  };
+  const parsed = parseRates(settings.exchangeRates, settings.currency);
+  const converter = makeConverter(settings);
+  const direct = converter.conv(1, 'USD') / 100;
+  const reverse = converter.fromBase(26000, 'USD') / 100;
+  const chained = converter.conv(1, 'GBP') / 100;
+  const missingValue = converter.conv(1, 'CAD');
+  const incompleteMonth = monthFinance([
+    { id: 'missing-rate-income', date: todayISO(), kind: 'Income', amount: 100, currency: 'CAD' }
+  ], settings);
+  const incompleteWealth = netWorth([
+    { id: 'missing-rate-asset', currentValue: 100, currency: 'CAD' }
+  ], [], settings, []);
+  return {
+    parsedPair: parsed.some(pair => pair.from === 'USD' && pair.to === 'IRT' && pair.rate === 26000),
+    direct,
+    reverse,
+    chained,
+    missingIsNaN: Number.isNaN(missingValue),
+    missingTracked: converter.missing.has('CAD'),
+    monthIncomplete: incompleteMonth.complete === false && incompleteMonth.missing.includes('CAD'),
+    wealthIncomplete: incompleteWealth.complete === false && incompleteWealth.missing.includes('CAD')
+  };
+});
+if (!currencyChecks.parsedPair || currencyChecks.direct !== 26000 || currencyChecks.reverse !== 1 ||
+    currencyChecks.chained !== 34320 || !currencyChecks.missingIsNaN || !currencyChecks.missingTracked ||
+    !currencyChecks.monthIncomplete || !currencyChecks.wealthIncomplete) {
+  failures.push('Currency conversion regression: ' + JSON.stringify(currencyChecks));
+}
+await conversionPage.close();
+
 for (const viewport of viewports) {
   const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: 1 });
   page.on('pageerror', error => failures.push(`${viewport.name}: ${error.message}`));
@@ -43,6 +81,22 @@ for (const viewport of viewports) {
     }
     if (route === '/focus' && !(await page.getByRole('button', { name: /افزودن جلسه|Add session/ }).count())) {
       failures.push(`${viewport.name} focus: manual session control missing`);
+    }
+    if (route === '/habits') {
+      const calendar = await page.evaluate(() => {
+        const grids = [...document.querySelectorAll('[class~="grid-cols-7"]')];
+        const grid = grids.find(element => element.querySelectorAll('button[aria-label]').length >= 28);
+        if (!grid) return null;
+        const buttons = [...grid.querySelectorAll('button[aria-label]')];
+        return {
+          columns: getComputedStyle(grid).gridTemplateColumns.split(' ').length,
+          dayCount: buttons.length,
+          minDayWidth: Math.min(...buttons.map(button => button.getBoundingClientRect().width))
+        };
+      });
+      if (!calendar || calendar.columns !== 7 || calendar.dayCount < 28 || calendar.minDayWidth < 24) {
+        failures.push(`${viewport.name} habits: monthly calendar is not compact/readable ${JSON.stringify(calendar)}`);
+      }
     }
     if (route === '/insights') {
       for (const [label, pattern] of [['3-month', /3 (mo|ماه)/], ['6-month', /6 (mo|ماه)/], ['12-month', /12 (mo|ماه)/]]) {
