@@ -200,6 +200,7 @@ export function scores(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLogs
 export type Finding = {
   id: string; kind: 'weakness' | 'strength'; severity: 'high' | 'medium' | 'low';
   title: string; evidence: string; action: string; confidence: 'confirmed' | 'hypothesis';
+  money?: { spent: number; budget: number; currency: string };
 };
 
 export function findings(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLogs: Rec[]; transactions: Rec[] }, st: Settings, lang: Lang): Finding[] {
@@ -210,7 +211,8 @@ export function findings(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLo
   if (m0.complete && st.monthlyBudget && m0.expense > st.monthlyBudget)
     out.push({ id: `budget-${m0.label}`, kind: 'weakness', severity: 'high', confidence: 'confirmed',
       title: fa ? 'عبور از بودجه ماهانه' : 'Monthly budget exceeded',
-      evidence: fa ? `هزینه این ماه ${m0.expense.toLocaleString()} در برابر بودجه ${st.monthlyBudget.toLocaleString()}` : `Spent ${m0.expense.toLocaleString()} vs budget ${st.monthlyBudget.toLocaleString()}`,
+      evidence: fa ? `هزینه این ماه ${m0.expense.toLocaleString()} ${st.currency} در برابر بودجه ${st.monthlyBudget.toLocaleString()} ${st.currency}` : `Spent ${m0.expense.toLocaleString()} ${st.currency} vs budget ${st.monthlyBudget.toLocaleString()} ${st.currency}`,
+      money: { spent: m0.expense, budget: st.monthlyBudget, currency: st.currency },
       action: fa ? 'هزینه‌های اختیاری این ماه را بازبینی کنید' : 'Review discretionary expenses this month' });
   if (m0.complete && m0.expense > 0 && m0.discretionary / m0.expense > 0.4)
     out.push({ id: `disc-${m0.label}`, kind: 'weakness', severity: 'medium', confidence: 'confirmed',
