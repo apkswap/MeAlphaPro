@@ -131,7 +131,7 @@ export default function Insights() {
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-4">{fa
-          ? 'فرمول v1: میانگین برابر حوزه‌های دارای داده. مالی = ۵۰ + نرخ پس‌انداز×۱۶۶ (محدود به ۰ تا ۱۰۰)؛ اهداف = درصد اهداف در مسیر؛ کارها = تعداد تسک‌های تکمیل‌شده تقسیم بر کل تسک‌ها؛ عادت‌ها = میانگین نرخ ۳۰ روزه.'
+          ? 'امتیاز کلی فقط با داده کافی در هر ۴ حوزه نمایش داده می‌شود؛ تا آن زمان پوشش داده و امتیازهای جزئی جداگانه قابل مشاهده‌اند. مالی = ۵۰ + نرخ پس‌انداز×۱۶۶ (محدود به ۰ تا ۱۰۰)؛ اهداف = درصد اهداف در مسیر؛ کارها = تعداد تسک‌های تکمیل‌شده تقسیم بر کل تسک‌ها؛ عادت‌ها = میانگین نرخ ۳۰ روزه.'
           : 'Formula v1: equal-weighted mean of areas with data. Finance = 50 + savings rate×166 (clamped 0–100); Goals = % of dated goals on track; Tasks = all completed tasks / all tasks; Habits = mean 30-day completion.'}</p>
       </Panel>
       <div className="grid lg:grid-cols-2 gap-6">
