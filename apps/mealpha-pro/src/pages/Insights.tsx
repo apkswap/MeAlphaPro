@@ -26,6 +26,10 @@ export function FindingCard({ f, onDismiss, onAccept }: { f: Finding; onDismiss?
         <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{f.confidence === 'confirmed' ? (fa ? 'تأییدشده' : 'Confirmed') : (fa ? 'فرضیه' : 'Hypothesis')}</span>
       </div>
       <p className="text-xs text-muted-foreground"><b>{t('evidence')}:</b> {f.evidence}</p>
+      {f.money && <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/40 p-3">
+        <div className="min-w-0"><div className="mb-1 text-[10px] text-muted-foreground">{fa ? 'هزینه' : 'Spent'}</div><div className="text-xs font-semibold tabular-nums">{fmtMoney(settings.language, f.money.spent, f.money.currency)}</div><MoneyEquivalents amount={f.money.spent} settings={settings} /></div>
+        <div className="min-w-0"><div className="mb-1 text-[10px] text-muted-foreground">{fa ? 'بودجه' : 'Budget'}</div><div className="text-xs font-semibold tabular-nums">{fmtMoney(settings.language, f.money.budget, f.money.currency)}</div><MoneyEquivalents amount={f.money.budget} settings={settings} /></div>
+      </div>}
       <p className="text-xs"><b>{t('action')}:</b> {f.action}</p>
       {(onDismiss || onAccept) && (
         <div className="flex gap-2 pt-1">
