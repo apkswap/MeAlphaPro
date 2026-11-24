@@ -45,10 +45,10 @@ export default function GrowthEngine({ showMoney = false, compact = false }: { s
   const consistencyParts = [weeklyHabitRate, focusConsistency].filter((v): v is number => v != null);
   const consistencyScore = consistencyParts.length ? consistencyParts.reduce((a, b) => a + b, 0) / consistencyParts.length : null;
   const base = scores(d, settings);
-  const lifeParts = { ...base.parts, consistency: consistencyScore };
+  // Keep the dashboard Life Score identical to the four-domain score shown in Insights.
+  const lifeParts = base.parts;
   const available = Object.values(lifeParts).filter((v): v is number => v != null);
-  // A Life Score is final only when all five domains have enough data.
-  const lifeScore = available.length === 5 ? Math.round(available.reduce((a, b) => a + b, 0) / 5) : null;
+  const lifeScore = base.overall == null ? null : Math.round(base.overall);
   const recommendations = findings(d, settings, settings.language).filter((f) => f.kind === 'weakness' && !dismissed.includes(f.id)).slice(0, 3);
   const labels = fa
     ? { finance: 'مالی', goals: 'اهداف', tasks: 'وظایف', habits: 'عادت‌ها', consistency: 'استمرار' }
@@ -80,7 +80,7 @@ export default function GrowthEngine({ showMoney = false, compact = false }: { s
             </div>
             <div>
               <div className="text-sm font-semibold">{fa ? 'امتیاز رشد' : 'Life score'}</div>
-              <div className="text-xs text-muted-foreground">{fa ? `پوشش داده: ${available.length} از ۵ حوزه` : `Data coverage: ${available.length}/5 areas`}</div>
+              <div className="text-xs text-muted-foreground">{fa ? `پوشش داده: ${available.length} از ۴ حوزه` : `Data coverage: ${available.length}/4 areas`}</div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -131,7 +131,7 @@ export default function GrowthEngine({ showMoney = false, compact = false }: { s
             </div>
             <div className="min-w-0">
               <div className="font-semibold">{fa ? 'امتیاز رشد کلی' : 'Overall growth score'}</div>
-              <p className="text-xs text-muted-foreground mt-1">{fa ? `پوشش داده: ${available.length} از ۵ حوزه` : `Data coverage: ${available.length} of 5 areas`}</p>
+              <p className="text-xs text-muted-foreground mt-1">{fa ? `پوشش داده: ${available.length} از ۴ حوزه` : `Data coverage: ${available.length} of 5 areas`}</p>
               <Link to="/insights" className="inline-flex items-center gap-1 text-xs text-primary mt-2">{fa ? 'تحلیل کامل' : 'Full analysis'} <ArrowUpRight className="h-3 w-3" /></Link>
             </div>
           </div>
