@@ -385,9 +385,12 @@ for (const viewport of viewports) {
     if (await profileLink.count()) {
       await profileLink.click();
       await page.waitForURL('**/settings');
-      const coralAccent = page.getByRole('button', { name: /مرجانی|Coral/i });
-      const violetAccent = page.getByRole('button', { name: /بنفش|Violet/i });
-      const saveProfile = page.getByRole('button', { name: /ذخیره پروفایل|Save profile/i });
+      const coralAccent = page.getByTestId('accent-theme-coral');
+      const violetAccent = page.getByTestId('accent-theme-violet');
+      const saveProfile = page.getByTestId('save-profile-settings');
+      await coralAccent.waitFor({ state: 'visible', timeout: 10000 });
+      await violetAccent.waitFor({ state: 'visible', timeout: 10000 });
+      await saveProfile.waitFor({ state: 'visible', timeout: 10000 });
       if (await coralAccent.count() && await violetAccent.count() && await saveProfile.count()) {
         await coralAccent.click();
         await saveProfile.click();

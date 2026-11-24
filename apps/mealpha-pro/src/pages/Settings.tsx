@@ -387,7 +387,7 @@ export default function SettingsPage() {
           </div>
         </div>
         <div className="mt-5 flex justify-end border-t pt-4">
-          <Button type="button" onClick={saveProfile} disabled={busy}>
+          <Button type="button" data-testid="save-profile-settings" onClick={saveProfile} disabled={busy}>
             {busy && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
             {fa ? 'ذخیره پروفایل' : 'Save profile'}
           </Button>
@@ -407,7 +407,7 @@ export default function SettingsPage() {
       </Panel>
       <Panel title={fa ? 'ظاهر و شخصی‌سازی' : 'Appearance & personalization'}>
         <div className="space-y-4">
-          <div><div className="flex items-center justify-between gap-2"><Label>{fa ? 'رنگ اصلی برنامه' : 'Accent color'}</Label><span className="text-[10px] text-muted-foreground">{fa ? 'در هر دو حالت روز و شب حفظ می‌شود' : 'Persists in both light and dark mode'}</span></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">{THEMES.map((theme) => <button key={theme.id} type="button" aria-pressed={s.colorTheme === theme.id} onClick={() => set('colorTheme', theme.id as Settings['colorTheme'])} className={`flex items-center gap-3 rounded-xl border p-3 text-start transition-all ${s.colorTheme === theme.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border hover:border-primary/50'}`}><span className="h-7 w-7 shrink-0 rounded-full shadow-sm" style={{ background: theme.color }} /><span className="text-sm font-medium">{fa ? theme.fa : theme.en}</span>{s.colorTheme === theme.id && <CheckCircle2 className="ms-auto h-4 w-4 text-primary" />}</button>)}</div></div>
+          <div><div className="flex items-center justify-between gap-2"><Label>{fa ? 'رنگ اصلی برنامه' : 'Accent color'}</Label><span className="text-[10px] text-muted-foreground">{fa ? 'در هر دو حالت روز و شب حفظ می‌شود' : 'Persists in both light and dark mode'}</span></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">{THEMES.map((theme) => <button key={theme.id} type="button" aria-pressed={s.colorTheme === theme.id} data-testid={`accent-theme-${theme.id}`} onClick={() => set('colorTheme', theme.id as Settings['colorTheme'])} className={`flex items-center gap-3 rounded-xl border p-3 text-start transition-all ${s.colorTheme === theme.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border hover:border-primary/50'}`}><span className="h-7 w-7 shrink-0 rounded-full shadow-sm" style={{ background: theme.color }} /><span className="text-sm font-medium">{fa ? theme.fa : theme.en}</span>{s.colorTheme === theme.id && <CheckCircle2 className="ms-auto h-4 w-4 text-primary" />}</button>)}</div></div>
           <div className="space-y-1.5"><Label>{fa ? 'حالت نمایش' : 'Appearance mode'}</Label><Select value={s.theme || 'dark'} onValueChange={(v) => set('theme', v as Settings['theme'])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="dark">{fa ? 'تیره' : 'Dark'}</SelectItem><SelectItem value="light">{fa ? 'روشن' : 'Light'}</SelectItem></SelectContent></Select></div>
         </div>
       </Panel>
