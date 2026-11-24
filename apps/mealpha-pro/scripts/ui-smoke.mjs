@@ -13,7 +13,7 @@ const viewports = [
 const conversionPage = await browser.newPage();
 await conversionPage.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
 const currencyChecks = await conversionPage.evaluate(async () => {
-  const { parseRates, makeConverter, monthFinance, netWorth, todayISO } = await import('/src/lib/analytics.ts');
+  const { parseRates, makeConverter, monthFinance, netWorth, todayISO, findings } = await import('/src/lib/analytics.ts');
   const settings = {
     currency: 'IRT',
     exchangeRates: 'USD = IRT 26000\nEUR/USD=1.1\nGBP/EUR=1.2'
@@ -30,6 +30,13 @@ const currencyChecks = await conversionPage.evaluate(async () => {
   const incompleteWealth = netWorth([
     { id: 'missing-rate-asset', currentValue: 100, currency: 'CAD' }
   ], [], settings, []);
+  const budgetFinding = findings({
+    goals: [],
+    tasks: [],
+    habits: [],
+    habitLogs: [],
+    transactions: [{ id: 'budget-smoke-expense', date: todayISO(), kind: 'Expense', amount: 500, currency: 'IRT' }]
+  }, { ...settings, monthlyBudget: 400 }, 'en').find(item => item.id.startsWith('budget-'));
   return {
     parsedPair: parsed.some(pair => pair.from === 'USD' && pair.to === 'IRT' && pair.rate === 26000),
     direct,
@@ -38,12 +45,13 @@ const currencyChecks = await conversionPage.evaluate(async () => {
     missingIsNaN: Number.isNaN(missingValue),
     missingTracked: converter.missing.has('CAD'),
     monthIncomplete: incompleteMonth.complete === false && incompleteMonth.missing.includes('CAD'),
-    wealthIncomplete: incompleteWealth.complete === false && incompleteWealth.missing.includes('CAD')
+    wealthIncomplete: incompleteWealth.complete === false && incompleteWealth.missing.includes('CAD'),
+    budgetFindingCurrency: budgetFinding?.money?.spent === 500 && budgetFinding.money.budget === 400 && budgetFinding.money.currency === 'IRT'
   };
 });
 if (!currencyChecks.parsedPair || currencyChecks.direct !== 26000 || currencyChecks.reverse !== 1 ||
     currencyChecks.chained !== 34320 || !currencyChecks.missingIsNaN || !currencyChecks.missingTracked ||
-    !currencyChecks.monthIncomplete || !currencyChecks.wealthIncomplete) {
+    !currencyChecks.monthIncomplete || !currencyChecks.wealthIncomplete || !currencyChecks.budgetFindingCurrency) {
   failures.push('Currency conversion regression: ' + JSON.stringify(currencyChecks));
 }
 await conversionPage.close();
