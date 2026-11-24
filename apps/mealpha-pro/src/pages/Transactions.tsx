@@ -134,7 +134,7 @@ export default function Transactions() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div><Kpi label={`${t('income')} · ${t('thisMonth')}`} value={m.complete ? fmtMoney(L, m.income, cur) : '—'} tone="good" />{m.complete && <MoneyEquivalents amount={m.income} settings={settings} />}</div>
         <div><Kpi label={`${t('expense')} · ${t('thisMonth')}`} value={m.complete ? fmtMoney(L, m.expense, cur) : '—'} tone="bad" />{m.complete && <MoneyEquivalents amount={m.expense} settings={settings} />}</div>
-        <div><Kpi label={t('cashFlow')} value={m.complete ? fmtMoney(L, m.net, cur) : '—'} tone={m.net >= 0 ? 'good' : 'bad'} />{m.complete && <MoneyEquivalents amount={m.net} settings={settings} />}</div>
+        <div><Kpi label={t('cashFlow')} value={m.complete ? fmtMoney(L, m.net, cur) : '—'} tone={!m.complete ? 'accent' : m.net >= 0 ? 'good' : 'bad'} />{m.complete && <MoneyEquivalents amount={m.net} settings={settings} />}</div>
         <Kpi label={t('savingsRate')} value={!m.complete || m.savingsRate == null ? t('noData') : `${Math.round(m.savingsRate * 100)}%`} tone="accent" />
       </div>
       {m.missing.length > 0 && <p className="text-xs text-[hsl(var(--warning))]">{t('missingRate')}: {m.missing.join(', ')}</p>}
