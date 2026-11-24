@@ -124,3 +124,35 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
   border-color: hsl(var(--primary));
   box-shadow: 0 0 0 3px hsl(var(--primary) / .13);
 }
+
+
+/* Reference palette: midnight navy with coral and turquoise highlights.
+   Explicit user-selected color themes keep precedence over these defaults. */
+:root.dark:not([data-color-theme]) {
+  --primary: 7 88% 63%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 187 78% 48%;
+  --accent-foreground: 224 38% 8%;
+  --ring: 7 88% 63%;
+  --sidebar-primary: 7 88% 63%;
+  --sidebar-ring: 7 88% 63%;
+  --chart-1: 7 88% 63%;
+  --chart-2: 187 78% 48%;
+  --chart-3: 38 88% 62%;
+  --chart-4: 263 72% 68%;
+  --chart-5: 205 78% 62%;
+}
+.dark :is(.app-sidebar, .app-topbar) {
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / .025), 0 18px 48px hsl(226 45% 2% / .12);
+}
+.dark .app-sidebar a[aria-current='page'] {
+  background: linear-gradient(110deg, hsl(var(--primary) / .2), hsl(var(--accent) / .11));
+  color: hsl(var(--foreground));
+  box-shadow: inset 0 0 0 1px hsl(var(--primary) / .24), 0 8px 24px hsl(226 45% 2% / .18);
+}
+.dark .app-sidebar a[aria-current='page'] svg {
+  color: hsl(var(--primary));
+}
+.dark main {
+  isolation: isolate;
+}
