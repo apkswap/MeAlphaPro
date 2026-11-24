@@ -54,6 +54,22 @@ export default function GrowthEngine({ showMoney = false, compact = false }: { s
     ? { finance: 'مالی', goals: 'اهداف', tasks: 'وظایف', habits: 'عادت‌ها', consistency: 'استمرار' }
     : { finance: 'Finance', goals: 'Goals', tasks: 'Tasks', habits: 'Habits', consistency: 'Consistency' };
 
+  const createTask = async (f: (typeof recommendations)[number]) => {
+    const ok = await save('tasks', {
+      title: f.action,
+      notes: `${f.title}\n${f.evidence}`,
+      status: 'Todo',
+      priority: f.severity === 'high' ? 'High' : 'Medium',
+      dueDate: new Date().toISOString().slice(0, 10)
+    });
+    if (ok) { toast.success(fa ? 'پیشنهاد به وظیفه تبدیل شد.' : 'Recommendation added as a task.'); dismiss(f.id); }
+  };
+  const dismiss = (id: string) => {
+    const next = [...dismissed, id];
+    setDismissed(next);
+    localStorage.setItem('mealpha-dismissed', JSON.stringify(next));
+  };
+
   if (compact) {
     return (
       <Panel title={fa ? 'هوش عملکردی آلفا' : 'Alpha Performance Intelligence'} action={<Link to="/insights" className="text-xs font-semibold text-primary">{fa ? 'تحلیل کامل' : 'Full analysis'} →</Link>}>
@@ -96,22 +112,6 @@ export default function GrowthEngine({ showMoney = false, compact = false }: { s
     );
   }
 
-
-  const createTask = async (f: (typeof recommendations)[number]) => {
-    const ok = await save('tasks', {
-      title: f.action,
-      notes: `${f.title}\n${f.evidence}`,
-      status: 'Todo',
-      priority: f.severity === 'high' ? 'High' : 'Medium',
-      dueDate: new Date().toISOString().slice(0, 10)
-    });
-    if (ok) { toast.success(fa ? 'پیشنهاد به وظیفه تبدیل شد.' : 'Recommendation added as a task.'); dismiss(f.id); }
-  };
-  const dismiss = (id: string) => {
-    const next = [...dismissed, id];
-    setDismissed(next);
-    localStorage.setItem('mealpha-dismissed', JSON.stringify(next));
-  };
 
   return (
     <section className="space-y-4">
