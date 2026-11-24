@@ -183,8 +183,8 @@ export default function Layout() {
   const profileLabel = settings.displayName || settings.username || (fa ? 'پروفایل من' : 'My profile');
   return (
     <div className="min-h-screen bg-background text-foreground md:flex">
-      <aside className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-[248px] md:shrink-0 md:flex-col md:border-e md:border-sidebar-border md:bg-sidebar-background/90 md:px-4 md:py-5 md:backdrop-blur-xl">
-        <NavLink to="/" className="mb-8 flex items-center gap-3 px-2">
+      <aside className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-[264px] md:shrink-0 md:flex-col md:border-e md:border-sidebar-border md:bg-sidebar-background/90 md:px-4 md:py-6 md:backdrop-blur-xl">
+        <NavLink to="/" className="mb-9 flex items-center gap-3 rounded-2xl px-2 py-2 transition-colors hover:bg-white/[.03]">
           <img src="/mealpha.svg" alt="MeAlpha" className="h-11 w-11 shrink-0 rounded-2xl object-cover shadow-lg shadow-primary/25" />
           <div><div className="text-[15px] font-black tracking-tight">MeAlpha <span className="text-primary">Pro</span></div><div className="mt-0.5 text-[9px] font-semibold tracking-[.18em] text-muted-foreground">PERSONAL COMMAND CENTER</div></div>
         </NavLink>
@@ -204,7 +204,7 @@ export default function Layout() {
         </div>
       </aside>
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-40 flex h-[68px] min-w-0 items-center justify-between gap-1 border-b bg-background/90 px-2 backdrop-blur-xl sm:gap-2 sm:px-4 md:px-8">
+        <header className="sticky top-0 z-40 flex h-[76px] min-w-0 items-center justify-between gap-1 border-b bg-background/90 px-3 backdrop-blur-xl sm:gap-3 sm:px-5 md:px-9">
           <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-3">
             <button className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={fa ? 'بازکردن منو' : 'Open menu'}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
             <div className="md:hidden flex shrink-0 items-center gap-1 whitespace-nowrap text-[13px] font-black"><img src="/mealpha.svg" alt="" className="h-7 w-7 shrink-0 rounded-lg object-cover" />MeAlpha <span className="text-primary">Pro</span></div>
