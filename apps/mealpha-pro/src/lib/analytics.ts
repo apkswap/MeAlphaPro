@@ -191,7 +191,13 @@ export function scores(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLogs
     ? (measurableGoals.reduce((sum, goal) => sum + Math.max(0, Math.min(1, goal.progress || 0)), 0) / measurableGoals.length) * 100
     : null;
   const ts = taskStats(d.tasks);
-  const tasks = ts.completionRate == null ? null : ts.completionRate * 100;
+  // Prefer the last-30-day execution rate when there is a meaningful sample; otherwise
+  // require at least three historical tasks before exposing a provisional all-time score.
+  const tasks = ts.due30 >= 3 && ts.due30CompletionRate != null
+    ? ts.due30CompletionRate * 100
+    : ts.total >= 3 && ts.completionRate != null
+      ? ts.completionRate * 100
+      : null;
   const hs = d.habits.filter((h) => !h.archived).map((h) => habitStats(h, d.habitLogs)).filter((x) => x.hasHistory);
   const habits = hs.length ? (hs.reduce((s, x) => s + x.rate30, 0) / hs.length) * 100 : null;
   const parts = { finance, goals, tasks, habits };
