@@ -88,17 +88,14 @@ export default function Dashboard() {
           <div className="mb-3 flex flex-wrap items-center gap-2"><span className="text-2xl font-black">{m.complete ? moneyText(m.net) : '—'}</span><span className={cn('rounded-full px-2 py-1 text-[10px] font-bold',!m.complete ? 'bg-muted text-muted-foreground' : m.net >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500')}>{!m.complete || m.savingsRate == null ? '—' : fmtNum(L,m.savingsRate*100)+'%'} {fa ? 'نرخ پس‌انداز' : 'savings rate'}</span></div>{showMoney && m.complete && <MoneyEquivalents amount={m.net} settings={settings} />}
           {showMoney && chart.every((item) => item.complete) ? <div className="h-60" dir="ltr"><ResponsiveContainer><BarChart data={chart} barGap={5}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} /><YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} width={54} axisLine={false} tickLine={false} /><Tooltip content={moneyTooltip} /><RBar dataKey={t('income')} fill="hsl(var(--chart-3))" radius={[5,5,0,0]} /><RBar dataKey={t('expense')} fill="hsl(var(--chart-5))" radius={[5,5,0,0]} /></BarChart></ResponsiveContainer></div> : <div className="grid h-60 place-items-center text-sm text-muted-foreground">{!showMoney ? (fa ? 'برای مشاهده نمودار، نمایش مبالغ را فعال کنید.' : 'Show amounts to view the financial chart.') : (fa ? 'به دلیل نبود نرخ تبدیل، نمودار کامل نیست.' : 'The chart is incomplete because exchange rates are missing.')}</div>}
         </Panel>
-        <Panel title={fa ? 'نمای کلی عملکرد' : 'Performance overview'}>
-          <div className="grid grid-cols-2 gap-3">
-            <Kpi label={t('completionRate')} value={ts.completionRate == null ? '—' : fmtNum(L,ts.completionRate*100)+'%'} tone={ts.overdue.length ? 'bad' : 'good'} hint={t('completionRate')} />
-            <Kpi label={t('activeGoals')} value={fmtNum(L,goals.length)} hint={fa ? 'هدف فعال' : 'Active goals'} />
-            <Kpi label={t('atRisk')} value={fmtNum(L,atRisk.length)} tone={atRisk.length ? 'bad' : 'good'} />
-            <div><Kpi label={t('income')} value={m.complete ? moneyText(m.income) : '—'} tone="good" />{showMoney && m.complete && <MoneyEquivalents amount={m.income} settings={settings} />}</div>
-          </div>
-          {settings.monthlyBudget && m.complete ? <div className="mt-5 rounded-xl bg-muted/60 p-3"><div className="mb-2 flex justify-between text-xs"><span>{t('budgetUsed')}</span><b>{fmtNum(L,Math.min(100,m.expense/settings.monthlyBudget*100))}%</b></div><Bar value={Math.min(1,m.expense/settings.monthlyBudget)} /><div className="mt-2 text-xs text-muted-foreground">{m.complete ? moneyText(m.expense) : '—'} / {moneyText(settings.monthlyBudget)}<div className="mt-2 grid grid-cols-2 gap-2"><div><span>{fa ? 'هزینه' : 'Spent'}</span>{showMoney && m.complete && <MoneyEquivalents amount={m.expense} settings={settings} />}</div><div><span>{fa ? 'بودجه' : 'Budget'}</span>{showMoney && <MoneyEquivalents amount={settings.monthlyBudget} settings={settings} />}</div></div></div></div> : null}
-        </Panel>
       </div>
-      <GrowthEngine showMoney={showMoney} />
+      <GrowthEngine showMoney={showMoney} compact />
+      <details className="group rounded-2xl border bg-card/50 p-4">
+        <summary className="cursor-pointer list-none flex items-center justify-between gap-3 text-sm font-semibold">
+          <span>{fa ? 'یادداشت و چک‌لیست روزانه' : 'Daily notes & checklist'}</span>
+          <span className="text-xs text-muted-foreground transition group-open:rotate-180">⌄</span>
+        </summary>
+        <div className="mt-4">
       <Panel title={fa ? 'کارهای روزانه و روزنوشت' : 'Daily checklist & journal'} action={<div className="flex items-center gap-2"><Input aria-label={fa ? 'انتخاب روز' : 'Select day'} type="date" className="h-8 w-auto" value={selectedDay} onChange={(event) => setSelectedDay(event.target.value)} /></div>}>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-3">
@@ -113,6 +110,14 @@ export default function Dashboard() {
           </div>
         </div>
       </Panel>
+        </div>
+      </details>
+      <details className="group rounded-2xl border bg-card/50 p-4">
+        <summary className="cursor-pointer list-none flex items-center justify-between gap-3 text-sm font-semibold">
+          <span>{fa ? 'کارها، عادت‌ها و اهداف' : 'Tasks, habits & goals'}</span>
+          <span className="text-xs text-muted-foreground transition group-open:rotate-180">⌄</span>
+        </summary>
+        <div className="mt-4">
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel title={t('todayTasks')} action={<Link to="/tasks" className="text-xs font-semibold text-primary">{fa ? 'مشاهده همه' : 'View all'} ↗</Link>}>
           {todayList.length === 0 ? <div className="grid min-h-28 place-items-center text-sm text-muted-foreground">{t('empty')}</div> : <ul className="space-y-3">{todayList.map(x => <li key={x.id} className="flex items-center gap-3 text-sm"><Checkbox checked={x.status === 'Done'} onCheckedChange={() => save('tasks',completeTx({ ...x, status: x.status === 'Done' ? 'Todo' : 'Done' },x),x.id)} /><span className={cn('min-w-0 flex-1 truncate',x.status === 'Done' && 'line-through text-muted-foreground')}>{x.title}</span>{ts.overdue.includes(x) && <span className="text-[10px] text-destructive">{t('overdue')}</span>}</li>)}</ul>}
@@ -124,11 +129,9 @@ export default function Dashboard() {
           {goals.length === 0 ? <div className="grid min-h-28 place-items-center text-sm text-muted-foreground">{t('empty')}</div> : <ul className="space-y-4">{goals.slice(0,5).map(({g,i})=><li key={g.id} className="space-y-2"><div className="flex items-center justify-between gap-2 text-xs"><span className="truncate font-semibold">{g.title}</span><StatusPill status={i.status} label={t(statusKey[i.status])} /></div><Bar value={i.progress} /></li>)}</ul>}
         </Panel>
       </div>
-      <Panel title={fa ? 'شروع سریع' : 'Quick access'}>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[{to:'/goals',icon:Target,label:t('goals')},{to:'/focus',icon:Clock3,label:t('focus')},{to:'/wealth',icon:Wallet,label:t('wealth')},{to:'/insights',icon:Sparkles,label:t('insights')}].map(x=><Link key={x.to} to={x.to} className="flex items-center gap-3 rounded-xl border bg-background/60 p-3 text-xs font-semibold transition hover:border-primary/50 hover:bg-primary/5"><x.icon className="h-4 w-4 text-primary" />{x.label}<ChevronRight className="ms-auto h-3.5 w-3.5 opacity-50 rtl:rotate-180" /></Link>)}
+
         </div>
-      </Panel>
+      </details>
     </div>
   );
 }
