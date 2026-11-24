@@ -44,10 +44,23 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
+      - name: Configure Android SDK
+        shell: pwsh
+        run: |
+          $sdk = $env:ANDROID_SDK_ROOT
+          if (-not $sdk) { $sdk = $env:ANDROID_HOME }
+          if (-not $sdk -or -not (Test-Path $sdk)) { throw "GitHub runner Android SDK was not found." }
+          $manager = Get-ChildItem (Join-Path $sdk "cmdline-tools") -Recurse -Filter "sdkmanager.bat" -File |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $manager) { throw "Android sdkmanager.bat was not found." }
+          $env:ANDROID_SDK_ROOT = $sdk
+          $env:ANDROID_HOME = $sdk
+          "ANDROID_SDK_ROOT=$sdk" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "ANDROID_HOME=$sdk" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          & $manager.FullName --sdk_root=$sdk --licenses | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "Android SDK license acceptance failed." }
+          & $manager.FullName --sdk_root=$sdk "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          if ($LASTEXITCODE -ne 0) { throw "Android SDK platform installation failed." }
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
       - name: Build web application
