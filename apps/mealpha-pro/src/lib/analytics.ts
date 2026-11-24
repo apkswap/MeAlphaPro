@@ -229,6 +229,29 @@ export function findings(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLo
       title: fa ? 'سهم بالای هزینه‌های اختیاری' : 'High discretionary spending',
       evidence: fa ? `${pct(m0.discretionary / m0.expense)} از هزینه‌ها اختیاری است` : `${pct(m0.discretionary / m0.expense)} of expenses are discretionary`,
       action: fa ? 'برای هزینه‌های اختیاری سقف تعیین کنید' : 'Set a cap for discretionary spending' });
+  if (m0.complete && m1.complete && m1.expense > 0 && m0.count >= 3 && m1.count >= 3) {
+    const expenseGrowth = (m0.expense - m1.expense) / m1.expense;
+    if (expenseGrowth >= 0.2)
+      out.push({ id: `expense-growth-${m0.label}`, kind: 'weakness', severity: expenseGrowth >= 0.4 ? 'high' : 'medium', confidence: 'confirmed',
+        title: fa ? 'افزایش محسوس هزینه‌ها' : 'Expenses increased materially',
+        evidence: fa ? `هزینه‌ها نسبت به ماه قبل ${pct(expenseGrowth)} بیشتر شده‌اند` : `Expenses are up ${pct(expenseGrowth)} compared with last month`,
+        action: fa ? 'دسته‌های هزینه‌ای با بیشترین رشد را بررسی کنید' : 'Review the categories contributing most to the increase' });
+    else if (expenseGrowth <= -0.2)
+      out.push({ id: `expense-down-${m0.label}`, kind: 'strength', severity: 'low', confidence: 'confirmed',
+        title: fa ? 'کاهش هزینه‌های ماهانه' : 'Monthly expenses decreased',
+        evidence: fa ? `هزینه‌ها نسبت به ماه قبل ${pct(Math.abs(expenseGrowth))} کمتر شده‌اند` : `Expenses are down ${pct(Math.abs(expenseGrowth))} compared with last month`,
+        action: fa ? 'الگوی هزینه‌های کنترل‌شده را حفظ کنید' : 'Keep the spending changes that are working' });
+  }
+  if (m0.complete && m0.savingsRate != null && m0.income > 0 && m0.count >= 3 && m0.savingsRate < 0.1)
+    out.push({ id: `low-savings-${m0.label}`, kind: 'weakness', severity: m0.savingsRate < 0 ? 'high' : 'medium', confidence: 'confirmed',
+      title: fa ? 'حاشیه پس‌انداز پایین' : 'Low savings margin',
+      evidence: fa ? `نرخ پس‌انداز این ماه ${pct(m0.savingsRate)} است` : `This month's savings rate is ${pct(m0.savingsRate)}`,
+      action: fa ? 'هزینه‌های ثابت و اختیاری را برای ایجاد حاشیه امن بازبینی کنید' : 'Review fixed and discretionary costs to create a safer margin' });
+  if (m0.complete && st.monthlyBudget > 0 && m0.expense >= st.monthlyBudget * 0.8 && m0.expense <= st.monthlyBudget)
+    out.push({ id: `budget-near-${m0.label}`, kind: 'weakness', severity: 'medium', confidence: 'confirmed',
+      title: fa ? 'نزدیک شدن به سقف بودجه' : 'Approaching the monthly budget limit',
+      evidence: fa ? `${pct(m0.expense / st.monthlyBudget)} از بودجه ماهانه مصرف شده است` : `${pct(m0.expense / st.monthlyBudget)} of the monthly budget has been used`,
+      action: fa ? 'پیش از ثبت هزینه‌های جدید، مانده بودجه را بررسی کنید' : 'Check the remaining budget before adding new discretionary costs' });
   if (m0.complete && m1.complete && m0.savingsRate != null && m1.savingsRate != null && m0.count >= 3 && m1.count >= 3) {
     const diff = m0.savingsRate - m1.savingsRate;
     if (Math.abs(diff) >= 0.1)
