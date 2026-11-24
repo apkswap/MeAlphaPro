@@ -46,7 +46,8 @@ export default function GrowthEngine({ showMoney = false }: { showMoney?: boolea
   const base = scores(d, settings);
   const lifeParts = { ...base.parts, consistency: consistencyScore };
   const available = Object.values(lifeParts).filter((v): v is number => v != null);
-  const lifeScore = available.length ? Math.round(available.reduce((a, b) => a + b, 0) / available.length) : null;
+  // A Life Score is final only when all five domains have enough data.
+  const lifeScore = available.length === 5 ? Math.round(available.reduce((a, b) => a + b, 0) / 5) : null;
   const recommendations = findings(d, settings, settings.language).filter((f) => f.kind === 'weakness' && !dismissed.includes(f.id)).slice(0, 3);
   const labels = fa
     ? { finance: 'مالی', goals: 'اهداف', tasks: 'وظایف', habits: 'عادت‌ها', consistency: 'استمرار' }
@@ -98,7 +99,7 @@ export default function GrowthEngine({ showMoney = false }: { showMoney?: boolea
               </div>
             ))}
           </div>
-          <p className="text-[11px] text-muted-foreground mt-3">{fa ? 'امتیاز فقط از حوزه‌های دارای داده محاسبه می‌شود؛ نبود اطلاعات به‌معنای عملکرد صفر نیست.' : 'Only areas with available data are scored; missing data is not treated as zero.'}</p>
+          <p className="text-[11px] text-muted-foreground mt-3">{fa ? 'امتیاز کلی پس از ثبت داده کافی در هر ۵ حوزه نمایش داده می‌شود؛ فعلاً فقط حوزه‌های دارای داده در پوشش محاسبه شده‌اند.' : 'The overall score appears only after all five areas have enough data; coverage shows how many areas are currently available.'}</p>
         </Panel>
 
         <div className="space-y-4">
