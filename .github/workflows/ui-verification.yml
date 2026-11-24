@@ -1,0 +1,39 @@
+name: MeAlpha Pro UI verification
+
+on:
+  push:
+    branches:
+      - fix/dropbox-settings-save-logo-sizing
+    paths:
+      - "apps/mealpha-pro/src/**"
+      - "apps/mealpha-pro/package.json"
+      - "apps/mealpha-pro/tailwind.config.*"
+      - "package-lock.json"
+      - ".github/workflows/ui-verification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mealpha-ui-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: TypeScript validation
+        run: npm run typecheck --workspace apps/mealpha-pro
+      - name: Production web build
+        run: npm run build --workspace apps/mealpha-pro
