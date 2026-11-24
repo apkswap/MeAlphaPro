@@ -138,23 +138,72 @@ export function goalInfo(g: Rec) {
 
 // ---- Habits ----
 export function habitStats(h: Rec, logs: Rec[]) {
-  const dates = new Set(logs.filter((l) => l.habitId === h.id).map((l) => l.date));
-  const day = (i: number) => isoOf(new Date(Date.now() - i * DAY));
-  let cur = 0;
-  let i = dates.has(day(0)) ? 0 : 1;
-  while (dates.has(day(i))) { cur++; i++; }
-  const sorted = [...dates].sort();
-  let best = 0, run = 0, prev = '';
-  sorted.forEach((d) => { run = prev && daysBetween(prev, d) === 1 ? run + 1 : 1; best = Math.max(best, run); prev = d; });
-  const last = (n: number, from = 0) => Array.from({ length: n }, (_, k) => day(k + from)).filter((d) => dates.has(d)).length;
+  const today = todayISO();
+  const dates = new Set(logs
+    .filter((l) => l.habitId === h.id && typeof l.date === 'string' && l.date <= today)
+    .map((l) => l.date));
+  const day = (i: number) => {
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() - i);
+    return isoOf(date);
+  };
+  const addDays = (value: string, amount: number) => {
+    const date = new Date(`${value}T12:00:00`);
+    date.setDate(date.getDate() + amount);
+    return isoOf(date);
+  };
+  const weekStart = (value: string) => {
+    const date = new Date(`${value}T12:00:00`);
+    date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+    return isoOf(date);
+  };
   const weekly = h.frequency === 'Weekly';
-  const target = Math.max(1, Number(h.targetPerPeriod) || 1);
+  const target = Math.max(1, Math.floor(Number(h.targetPerPeriod) || 1));
+  const sorted = [...dates].sort();
+  let cur = 0, best = 0;
+  if (weekly) {
+    const counts = new Map<string, number>();
+    dates.forEach((date) => {
+      const key = weekStart(date);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    const successfulWeeks = [...counts.keys()].filter((week) => (counts.get(week) || 0) >= target).sort();
+    let run = 0, previous = '';
+    successfulWeeks.forEach((week) => {
+      run = previous && daysBetween(previous, week) === 7 ? run + 1 : 1;
+      best = Math.max(best, run);
+      previous = week;
+    });
+    const currentWeek = weekStart(today);
+    let cursor = (counts.get(currentWeek) || 0) >= target ? currentWeek : addDays(currentWeek, -7);
+    while ((counts.get(cursor) || 0) >= target) {
+      cur++;
+      cursor = addDays(cursor, -7);
+    }
+  } else {
+    let index = dates.has(day(0)) ? 0 : 1;
+    while (dates.has(day(index))) { cur++; index++; }
+    let run = 0, previous = '';
+    sorted.forEach((date) => {
+      run = previous && daysBetween(previous, date) === 1 ? run + 1 : 1;
+      best = Math.max(best, run);
+      previous = date;
+    });
+  }
+  const last = (n: number, from = 0) => Array.from({ length: n }, (_, k) => day(k + from)).filter((date) => dates.has(date)).length;
+  const currentWeekStart = weekStart(today);
+  const previousWeekStart = addDays(currentWeekStart, -7);
+  const elapsedDays = Math.max(1, daysBetween(currentWeekStart, today) + 1);
+  const thisWeekDone = [...dates].filter((date) => date >= currentWeekStart).length;
+  const previousWeekDone = [...dates].filter((date) => date >= previousWeekStart && date < currentWeekStart).length;
   const expected30 = weekly ? (30 / 7) * target : 30;
   const expectedWeek = weekly ? target : 7;
   return {
-    doneToday: dates.has(day(0)), current: cur, best, dates,
+    doneToday: dates.has(today), current: cur, best, dates,
     rate30: Math.min(1, last(30) / expected30),
-    thisWeek: Math.min(1, last(7) / expectedWeek), prevWeek: Math.min(1, last(7, 7) / expectedWeek),
+    thisWeek: Math.min(1, thisWeekDone / (weekly ? expectedWeek : elapsedDays)),
+    prevWeek: Math.min(1, previousWeekDone / expectedWeek),
     hasHistory: dates.size > 0,
   };
 }
@@ -188,7 +237,8 @@ export function scores(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLogs
   const g = d.goals.map(goalInfo).filter((x) => x.status !== 'Unknown' && x.status !== 'Completed');
   const goals = g.length ? (g.filter((x) => x.status === 'On Track').length / g.length) * 100 : null;
   const ts = taskStats(d.tasks);
-  const tasks = ts.completionRate == null ? null : ts.completionRate * 100;
+  // A current performance score must not be dominated by tasks completed years ago.
+  const tasks = ts.due30 >= 3 && ts.due30CompletionRate != null ? ts.due30CompletionRate * 100 : null;
   const hs = d.habits.filter((h) => !h.archived).map((h) => habitStats(h, d.habitLogs)).filter((x) => x.hasHistory);
   const habits = hs.length ? (hs.reduce((s, x) => s + x.rate30, 0) / hs.length) * 100 : null;
   const parts = { finance, goals, tasks, habits };

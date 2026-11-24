@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, CheckCircle2, ArrowUpRight } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
@@ -26,7 +26,16 @@ export default function GrowthEngine({ showMoney = false }: { showMoney?: boolea
   const [dismissed, setDismissed] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('mealpha-dismissed') || '[]'); } catch { return []; }
   });
-  const focusSessions = useMemo(readFocusSessions, []);
+  const [focusSessions, setFocusSessions] = useState<FocusSession[]>(readFocusSessions);
+  useEffect(() => {
+    const refresh = () => setFocusSessions(readFocusSessions());
+    window.addEventListener('storage', refresh);
+    window.addEventListener('mealpha:focus-sessions-updated', refresh);
+    return () => {
+      window.removeEventListener('storage', refresh);
+      window.removeEventListener('mealpha:focus-sessions-updated', refresh);
+    };
+  }, []);
   const weekStart = Date.now() - 7 * 86400000;
   const weekSessions = focusSessions.filter((s) => {
     const date = new Date(s.date || '').getTime();
@@ -40,7 +49,8 @@ export default function GrowthEngine({ showMoney = false }: { showMoney?: boolea
   const weeklyHabitRate = habitsWithHistory.length ? habitStatsList.filter((s) => s.hasHistory).reduce((sum, s) => sum + s.thisWeek * 100, 0) / habitsWithHistory.length : null;
   const task = taskStats(d.tasks);
   const focusConsistency = weekSessions.length ? Math.min(100, focusMinutes / 300 * 100) : null;
-  const consistencyParts = [habitConsistency, task.completionRate == null ? null : task.completionRate * 100, focusConsistency].filter((v): v is number => v != null);
+  const recentTaskConsistency = task.due30 >= 3 && task.due30CompletionRate != null ? task.due30CompletionRate * 100 : null;
+  const consistencyParts = [habitConsistency, recentTaskConsistency, focusConsistency].filter((v): v is number => v != null);
   const consistencyScore = consistencyParts.length ? consistencyParts.reduce((a, b) => a + b, 0) / consistencyParts.length : null;
   const base = scores(d, settings);
   const lifeParts = { ...base.parts, consistency: consistencyScore };
@@ -104,7 +114,7 @@ export default function GrowthEngine({ showMoney = false }: { showMoney?: boolea
           <Panel title={fa ? "Consistency Engine · موتور استمرار" : "Consistency Engine"}>
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-xl bg-muted/60 p-3"><div className="text-xl font-bold tabular-nums">{weeklyHabitRate == null ? '—' : `${fmtNum(settings.language, Math.round(weeklyHabitRate))}%`}</div><div className="text-[11px] text-muted-foreground">{fa ? 'نرخ عادت هفتگی' : 'Weekly habits'}</div></div>
-              <div className="rounded-xl bg-muted/60 p-3"><div className="text-xl font-bold tabular-nums">{fmtNum(settings.language, Math.round(focusMinutes))}</div><div className="text-[11px] text-muted-foreground">{fa ? 'دقیقه تمرکز' : 'Focus minutes'}</div></div>
+              <div className="rounded-xl bg-muted/60 p-3"><div data-testid="growth-focus-minutes" className="text-xl font-bold tabular-nums">{fmtNum(settings.language, Math.round(focusMinutes))}</div><div className="text-[11px] text-muted-foreground">{fa ? 'دقیقه تمرکز' : 'Focus minutes'}</div></div>
               <div className="rounded-xl bg-muted/60 p-3"><div className="text-xl font-bold tabular-nums">{fmtNum(settings.language, task.overdue.length)}</div><div className="text-[11px] text-muted-foreground">{fa ? 'وظیفه معوق' : 'Overdue tasks'}</div></div>
             </div>
             <div className="mt-3 flex items-center justify-between text-xs"><span>{fa ? 'امتیاز استمرار' : 'Consistency score'}</span><b>{consistencyScore == null ? (fa ? 'داده کافی نیست' : 'Not enough data') : `${fmtNum(settings.language, Math.round(consistencyScore))}/100`}</b></div>

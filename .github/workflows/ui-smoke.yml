@@ -5,6 +5,7 @@ on:
   pull_request:
     branches:
       - main
+      - fix/dropbox-settings-save-logo-sizing
   push:
     branches:
       - main
@@ -13,6 +14,7 @@ on:
       - fix/goals-hierarchy-integrity
       - fix/restore-purple-branding-profile-goals
       - fix/dropbox-settings-save-logo-sizing
+      - fix/ux-habits-search-growth-2026-11-23
     paths:
       - "apps/mealpha-pro/**"
       - "docs/favicon.svg"

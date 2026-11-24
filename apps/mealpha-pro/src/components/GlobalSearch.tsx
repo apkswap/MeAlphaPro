@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, ArrowRight, Command as CommandIcon } from 'lucide-react';
 import { useStore } from '../lib/store';
@@ -22,6 +22,11 @@ const normalize = (value: unknown) => String(value ?? '')
   .toLocaleLowerCase()
   .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
   .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+  .replace(/[يى]/g, 'ی')
+  .replace(/ك/g, 'ک')
+  .replace(/[أإٱآ]/g, 'ا')
+  .replace(/[ۀة]/g, 'ه')
+  .replace(/\u200c/g, '')
   .normalize('NFKD')
   .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
   .trim();
@@ -32,6 +37,8 @@ export default function GlobalSearch() {
   const fa = settings.language === 'fa';
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -39,11 +46,17 @@ export default function GlobalSearch() {
         event.preventDefault();
         setOpen(true);
       }
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape' && open) { event.preventDefault(); setOpen(false); }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    inputRef.current?.focus();
+    return () => { triggerRef.current?.focus(); };
+  }, [open]);
 
   const results = useMemo(() => {
     const q = normalize(query);
@@ -90,7 +103,7 @@ export default function GlobalSearch() {
 
   return (
     <>
-      <button type="button" onClick={openSearch}
+      <button ref={triggerRef} type="button" onClick={openSearch}
         className="flex h-9 w-9 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-xl border bg-card/70 px-2 text-start text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary sm:w-56 sm:justify-start sm:px-3"
         aria-label={fa ? 'جستجوی سراسری' : 'Global search'}>
         <Search className="h-4 w-4 shrink-0" />
@@ -101,10 +114,18 @@ export default function GlobalSearch() {
         <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/55 px-3 pt-[12vh] backdrop-blur-sm"
           role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setOpen(false); }}>
           <section role="dialog" aria-modal="true" aria-label={fa ? 'جستجوی سراسری' : 'Global search'}
+            onKeyDown={event => {
+              if (event.key !== 'Tab') return;
+              const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
+              if (!items.length) { event.preventDefault(); return; }
+              const first = items[0], last = items[items.length - 1];
+              if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+              else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+            }}
             className="w-full max-w-xl overflow-hidden rounded-2xl border bg-popover text-popover-foreground shadow-2xl">
             <div className="flex items-center gap-3 border-b px-4">
               <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
-              <input autoFocus value={query} onChange={event => setQuery(event.target.value)}
+              <input ref={inputRef} value={query} onChange={event => setQuery(event.target.value)}
                 onKeyDown={event => { if (event.key === 'Enter' && results[0]) choose(results[0].route); }}
                 placeholder={fa ? 'نام هدف، کار، حساب یا هر چیزی را بنویس...' : 'Search goals, tasks, accounts and more...'}
                 className="h-14 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
