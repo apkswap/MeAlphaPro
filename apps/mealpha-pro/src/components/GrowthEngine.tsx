@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { Sparkles, CheckCircle2, ArrowUpRight } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { useStore } from '../lib/store';
-import { fmtNum } from '../lib/i18n';
+import { fmtMoney, fmtNum } from '../lib/i18n';
 import { findings, habitStats, scores, taskStats } from '../lib/analytics';
 import { Panel, Bar } from '../components/ui-bits';
+import MoneyEquivalents from '../components/MoneyEquivalents';
 import { toast } from 'sonner';
 
 type FocusSession = { date?: string; minutes?: number; seconds?: number };
@@ -117,7 +118,11 @@ export default function GrowthEngine({ showMoney = false }: { showMoney?: boolea
               {recommendations.map((f) => (
                 <div key={f.id} className="rounded-xl border bg-card/60 p-3 space-y-2">
                   <div className="flex items-start gap-2"><span className={`mt-1 h-2 w-2 rounded-full shrink-0 ${f.severity === 'high' ? 'bg-destructive' : f.severity === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'}`} /><div className="text-sm font-semibold flex-1">{f.title}</div></div>
-                  <p className="text-xs text-muted-foreground">{f.id.startsWith('budget-') && !showMoney ? (fa ? 'جزئیات مالی مخفی است؛ برای مشاهده، مبالغ را در داشبورد نمایش دهید.' : 'Financial details are hidden. Show amounts on the dashboard to view them.') : f.evidence}</p>
+                  <p className="text-xs text-muted-foreground">{f.money ? (showMoney ? (fa ? `هزینه ${fmtMoney(settings.language, f.money.spent, f.money.currency)} در برابر بودجه ${fmtMoney(settings.language, f.money.budget, f.money.currency)}` : `Spent ${fmtMoney(settings.language, f.money.spent, f.money.currency)} vs budget ${fmtMoney(settings.language, f.money.budget, f.money.currency)}`) : (fa ? 'جزئیات مالی مخفی است؛ برای مشاهده، مبالغ را در داشبورد نمایش دهید.' : 'Financial details are hidden. Show amounts on the dashboard to view them.')) : f.evidence}</p>
+                  {showMoney && f.money && <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg bg-muted/40 p-2"><div className="mb-1 text-[10px] text-muted-foreground">{fa ? 'هزینه' : 'Spent'}</div><MoneyEquivalents amount={f.money.spent} settings={settings} /></div>
+                    <div className="rounded-lg bg-muted/40 p-2"><div className="mb-1 text-[10px] text-muted-foreground">{fa ? 'بودجه' : 'Budget'}</div><MoneyEquivalents amount={f.money.budget} settings={settings} /></div>
+                  </div>}
                   <p className="text-xs">{f.action}</p>
                   <div className="flex gap-2">
                     <Button size="sm" variant="secondary" onClick={() => void createTask(f)}><CheckCircle2 className="h-3.5 w-3.5 me-1" />{fa ? 'تبدیل به وظیفه' : 'Create task'}</Button>
