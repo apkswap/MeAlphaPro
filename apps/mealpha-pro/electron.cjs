@@ -135,7 +135,8 @@ async function createWindow() {
           } else {
             setTimeout(checkRenderer, 300);
           }
-        })        .catch((error) => {
+        })
+        .catch((error) => {
           console.error('MEALPHA_SMOKE_FAILED:', error);
           app.exit(1);
         });
