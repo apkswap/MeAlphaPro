@@ -20,6 +20,7 @@
   :root[data-color-theme='violet'] { --primary: 263 82% 66%; --primary-foreground: 0 0% 100%; --accent: 282 72% 68%; --ring: 263 82% 66%; --sidebar-primary: 263 82% 66%; --sidebar-ring: 263 82% 66%; --chart-1: 263 82% 66%; --chart-2: 282 72% 68%; }
   :root[data-color-theme='cyan'] { --primary: 187 82% 48%; --primary-foreground: 222 40% 8%; --accent: 173 70% 48%; --ring: 187 82% 48%; --sidebar-primary: 187 82% 48%; --sidebar-ring: 187 82% 48%; --chart-1: 187 82% 48%; --chart-2: 173 70% 48%; }
   :root[data-color-theme='pink'] { --primary: 333 78% 62%; --primary-foreground: 0 0% 100%; --accent: 315 72% 65%; --ring: 333 78% 62%; --sidebar-primary: 333 78% 62%; --sidebar-ring: 333 78% 62%; --chart-1: 333 78% 62%; --chart-2: 315 72% 65%; }
+  :root[data-color-theme='coral'] { --primary: 7 88% 63%; --primary-foreground: 0 0% 100%; --accent: 187 78% 48%; --ring: 7 88% 63%; --sidebar-primary: 7 88% 63%; --sidebar-ring: 7 88% 63%; --chart-1: 7 88% 63%; --chart-2: 187 78% 48%; --chart-3: 7 88% 63%; --chart-4: 38 88% 62%; --chart-5: 187 78% 48%; }
   :root:not(.dark) {
     --background: 210 24% 97%; --foreground: 222 28% 16%; --muted: 210 20% 92%; --muted-foreground: 215 12% 43%;
     --popover: 0 0% 100%; --popover-foreground: 222 28% 16%; --border: 214 18% 86%; --input: 214 18% 84%;
@@ -32,6 +33,7 @@
   :root:not(.dark)[data-color-theme='violet'] { --primary: 263 68% 53%; --accent: 282 58% 54%; --ring: 263 68% 53%; }
   :root:not(.dark)[data-color-theme='cyan'] { --primary: 187 82% 37%; --accent: 173 65% 36%; --ring: 187 82% 37%; }
   :root:not(.dark)[data-color-theme='pink'] { --primary: 333 68% 49%; --accent: 315 58% 49%; --ring: 333 68% 49%; }
+  :root:not(.dark)[data-color-theme='coral'] { --primary: 7 75% 49%; --primary-foreground: 0 0% 100%; --accent: 187 70% 38%; --ring: 7 75% 49%; --sidebar-primary: 7 75% 49%; --sidebar-ring: 7 75% 49%; }
   .dark { color-scheme: dark; }
   html[lang='fa'] { --font-sans: 'Vazirmatn', 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif; }
   html[lang='en'] { --font-sans: Inter, 'Segoe UI', Arial, sans-serif; }
@@ -63,49 +65,19 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
     --input: 216 24% 21%;
     --card: 222 29% 12%;
     --card-foreground: 214 28% 95%;
-    --primary: 7 88% 63%;
-    --primary-foreground: 0 0% 100%;
     --secondary: 218 24% 17%;
     --secondary-foreground: 214 28% 95%;
-    --accent: 187 78% 48%;
     --accent-foreground: 224 38% 8%;
-    --ring: 7 88% 63%;
     --sidebar-background: 224 34% 8%;
     --sidebar-foreground: 214 24% 88%;
-    --sidebar-primary: 7 88% 63%;
-    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 218 24% 16%;
     --sidebar-accent-foreground: 214 28% 95%;
     --sidebar-border: 216 24% 18%;
-    --sidebar-ring: 7 88% 63%;
-    --chart-1: 7 88% 63%;
-    --chart-2: 187 78% 48%;
-    --chart-3: 7 88% 63%;
-    --chart-4: 38 88% 62%;
-    --chart-5: 187 78% 48%;
-  }
-  :root.dark[data-color-theme='blue'],
-  :root.dark[data-color-theme='cyan'] {
-    --primary: 7 88% 63%;
-    --primary-foreground: 0 0% 100%;
-    --ring: 7 88% 63%;
-    --sidebar-primary: 7 88% 63%;
-    --sidebar-ring: 7 88% 63%;
-  }
-  :root.dark[data-color-theme='violet'],
-  :root.dark[data-color-theme='green'],
-  :root.dark[data-color-theme='pink'],
-  :root.dark[data-color-theme='orange'] {
-    --primary: 7 88% 63%;
-    --primary-foreground: 0 0% 100%;
-    --ring: 7 88% 63%;
-    --sidebar-primary: 7 88% 63%;
-    --sidebar-ring: 7 88% 63%;
   }
   .dark body {
     background:
       radial-gradient(ellipse at 78% -8%, hsl(187 78% 48% / .12), transparent 34%),
-      radial-gradient(ellipse at 8% 38%, hsl(7 88% 63% / .075), transparent 32%),
+      radial-gradient(ellipse at 8% 38%, hsl(var(--primary) / .075), transparent 32%),
       linear-gradient(145deg, hsl(226 34% 6%), hsl(225 32% 8%) 55%, hsl(228 36% 6%));
   }
 }
@@ -116,18 +88,18 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
   box-shadow: inset 0 1px 0 hsl(0 0% 100% / .045), 0 16px 42px hsl(226 45% 2% / .2);
   backdrop-filter: blur(22px) saturate(135%);
 }
-.dark aside {
+.dark .app-sidebar {
   background: linear-gradient(180deg, hsl(224 34% 9% / .96), hsl(226 36% 7% / .94));
   border-color: hsl(216 24% 19% / .9);
 }
-.dark header {
+.dark .app-topbar {
   background: hsl(226 34% 7% / .78);
   border-color: hsl(216 24% 19% / .85);
   backdrop-filter: blur(24px) saturate(140%);
 }
 .dark main > div,
 .dark [role='dialog'] {
-  scrollbar-color: hsl(7 88% 63% / .35) transparent;
+  scrollbar-color: hsl(var(--primary) / .35) transparent;
 }
 .dark .rounded-\[28px\].border,
 .dark .rounded-\[28px\].border.bg-card {
@@ -138,7 +110,7 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
   box-shadow: 0 24px 70px hsl(226 45% 2% / .28), inset 0 1px 0 hsl(0 0% 100% / .07);
 }
 .dark .bg-primary {
-  box-shadow: 0 8px 24px hsl(7 88% 55% / .22);
+  box-shadow: 0 8px 24px hsl(var(--primary) / .22);
 }
 .dark button,
 .dark a {
@@ -149,6 +121,6 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
   border-color: hsl(216 24% 25%);
 }
 .dark :is(input, textarea, select):focus-visible {
-  border-color: hsl(7 88% 63%);
-  box-shadow: 0 0 0 3px hsl(7 88% 63% / .13);
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / .13);
 }

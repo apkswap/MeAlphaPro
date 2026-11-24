@@ -21,7 +21,7 @@ const MAX_BACKUP_BYTES = 50 * 1024 * 1024;
 type CurrencyRateDraft = { from: string; to: string; rate: string };
 const toRateDrafts = (value: string, baseCurrency: string): CurrencyRateDraft[] =>
   parseRates(value, baseCurrency).map((pair) => ({ ...pair, rate: String(pair.rate) }));
-const THEMES = [{ id: 'violet', fa: 'بنفش', en: 'Violet', color: '#8b5cf6' }, { id: 'blue', fa: 'آبی', en: 'Blue', color: '#279be8' }, { id: 'green', fa: 'سبز', en: 'Green', color: '#2aa876' }, { id: 'cyan', fa: 'فیروزه‌ای', en: 'Cyan', color: '#06b6d4' }, { id: 'orange', fa: 'نارنجی', en: 'Orange', color: '#f28a35' }, { id: 'pink', fa: 'صورتی', en: 'Pink', color: '#ec4899' }] as const;
+const THEMES = [{ id: 'coral', fa: 'مرجانی', en: 'Coral', color: '#F36B5B' }, { id: 'violet', fa: 'بنفش', en: 'Violet', color: '#8b5cf6' }, { id: 'blue', fa: 'آبی', en: 'Blue', color: '#279be8' }, { id: 'green', fa: 'سبز', en: 'Green', color: '#2aa876' }, { id: 'cyan', fa: 'فیروزه‌ای', en: 'Cyan', color: '#06b6d4' }, { id: 'orange', fa: 'نارنجی', en: 'Orange', color: '#f28a35' }, { id: 'pink', fa: 'صورتی', en: 'Pink', color: '#ec4899' }] as const;
 
 export default function SettingsPage() {
   const { t, settings, setLocalSettings } = useStore();
@@ -427,7 +427,7 @@ export default function SettingsPage() {
               <div className="min-w-0 space-y-1"><Label className="text-[10px]">{fa ? 'مقدار معادل' : 'Equivalent'}</Label><Input dir="ltr" type="number" min="0" step="any" value={pair.rate} onChange={(e) => setCurrencyPairs((rows) => rows.map((row, i) => i === index ? { ...row, rate: e.target.value } : row))} placeholder="110000" /></div>
               <Button type="button" size="icon" variant="ghost" aria-label={fa ? 'حذف نرخ' : 'Remove rate'} onClick={() => setCurrencyPairs((rows) => rows.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </div>)}
-            <p className="text-xs text-muted-foreground">{fa ? 'مثال: اگر ارز گزارش IRT باشد، ارز مبدا USD، ارز مقصد IRT و مقدار معادل 110000 را وارد کنید تا ۱ دلار برابر ۱۱۰٬۰۰۰ واحد ارز انتخابی شما محاسبه شود. نرخ معکوس و تبدیل‌های زنجیره‌ای خودکار محاسبه می‌شوند.' : 'Example: From USD, To IRT, Equivalent 110000 means 1 USD = 110,000 IRT. Inverse and cross-rates are calculated automatically.'}</p>
+            <p className="text-xs text-muted-foreground">{fa ? 'مثال: USD = IRT 26000 یعنی هر ۱ دلار برابر ۲۶٬۰۰۰ واحد IRT است. در فرم بالا ارز مبدا USD، ارز مقصد IRT و مقدار معادل 26000 را وارد کنید. نرخ معکوس و تبدیل‌های زنجیره‌ای خودکار محاسبه می‌شوند.' : 'Example: USD = IRT 26000 means 1 USD = 26,000 IRT. Enter From USD, To IRT and Equivalent 26000 above. Inverse and cross-rates are calculated automatically.'}</p>
           </div>
         </div>
         <Button className="mt-6" onClick={submit} disabled={busy}>{busy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{t('save')}</Button>

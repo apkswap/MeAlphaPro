@@ -385,6 +385,27 @@ for (const viewport of viewports) {
     if (await profileLink.count()) {
       await profileLink.click();
       await page.waitForURL('**/settings');
+      const originalAccent = await page.evaluate(() => document.documentElement.dataset.colorTheme || 'coral');
+      const coralAccent = page.getByRole('button', { name: /مرجانی|Coral/i });
+      const violetAccent = page.getByRole('button', { name: /بنفش|Violet/i });
+      const saveProfile = page.getByRole('button', { name: /ذخیره پروفایل|Save profile/i });
+      if (await coralAccent.count() && await violetAccent.count() && await saveProfile.count()) {
+        await coralAccent.click();
+        await saveProfile.click();
+        await page.waitForFunction(() => document.documentElement.dataset.colorTheme === 'coral');
+        const coralValue = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim());
+        await violetAccent.click();
+        await saveProfile.click();
+        await page.waitForFunction(() => document.documentElement.dataset.colorTheme === 'violet');
+        const violetValue = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim());
+        if (coralValue !== '7 88% 63%' || violetValue === coralValue) failures.push(`${viewport.name}: accent themes are not applied independently`);
+        const restoreAccent = originalAccent === 'violet' ? violetAccent : coralAccent;
+        await restoreAccent.click();
+        await saveProfile.click();
+        await page.waitForFunction((theme) => document.documentElement.dataset.colorTheme === theme, originalAccent);
+      } else {
+        failures.push(`${viewport.name}: coral and violet accent options are missing`);
+      }
     } else {
       failures.push(`${viewport.name}: profile menu has no working settings link`);
     }
@@ -437,4 +458,4 @@ if (failures.length) {
   console.error('UI smoke test failures:\n' + failures.join('\n'));
   process.exit(1);
 }
-console.log('UI smoke tests passed: 10 routes at 320px, 390px, 768px and 1440px; no runtime errors or page-level horizontal overflow; language and theme switches verified.');
+console.log('UI smoke tests passed: 10 routes at 320px, 390px, 768px and 1440px; no runtime errors or page-level horizontal overflow; language, appearance and accent-color switches verified.');
