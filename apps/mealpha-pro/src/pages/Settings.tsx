@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Download, Upload, CheckCircle2, Camera, Cloud, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Download, Upload, CheckCircle2, Camera, Cloud, Plus, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
@@ -31,6 +31,21 @@ export default function SettingsPage() {
   useEffect(() => setCurrencyPairs(toRateDrafts(settings.exchangeRates, settings.currency)), [settings.exchangeRates, settings.currency]);
   const [busy, setBusy] = useState(false);
   const [dropboxBusy, setDropboxBusy] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreenBusy, setFullscreenBusy] = useState(false);
+  const desktopFullscreenAvailable = typeof window !== 'undefined' &&
+    typeof window.mealphaDesktop?.getFullscreen === 'function' &&
+    typeof window.mealphaDesktop?.setFullscreen === 'function';
+  useEffect(() => {
+    const desktop = window.mealphaDesktop;
+    if (!desktop?.getFullscreen) return;
+    let active = true;
+    void desktop.getFullscreen()
+      .then((value) => { if (active) setFullscreen(Boolean(value)); })
+      .catch((error) => console.warn('Could not read desktop fullscreen state:', error));
+    return () => { active = false; };
+  }, []);
+
   const importInputRef = useRef<HTMLInputElement>(null);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS((p) => ({ ...p, [k]: v }));
 
@@ -77,6 +92,22 @@ export default function SettingsPage() {
     }
   };
 
+
+
+  const toggleFullscreen = async () => {
+    const desktop = window.mealphaDesktop;
+    if (!desktop?.setFullscreen || fullscreenBusy) return;
+    setFullscreenBusy(true);
+    try {
+      const next = await desktop.setFullscreen(!fullscreen);
+      setFullscreen(Boolean(next));
+    } catch (error) {
+      console.error('Fullscreen toggle failed:', error);
+      toast.error(settings.language === 'fa' ? 'تغییر حالت تمام‌صفحه انجام نشد.' : 'Could not change fullscreen mode.');
+    } finally {
+      setFullscreenBusy(false);
+    }
+  };
 
   const saveDropboxSettings = async () => {
     setDropboxBusy(true);
@@ -409,6 +440,23 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <div><div className="flex items-center justify-between gap-2"><Label>{fa ? 'رنگ اصلی برنامه' : 'Accent color'}</Label><span className="text-[10px] text-muted-foreground">{fa ? 'در هر دو حالت روز و شب حفظ می‌شود' : 'Persists in both light and dark mode'}</span></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">{THEMES.map((theme) => <button key={theme.id} type="button" aria-pressed={s.colorTheme === theme.id} data-testid={`accent-theme-${theme.id}`} onClick={() => set('colorTheme', theme.id as Settings['colorTheme'])} className={`flex items-center gap-3 rounded-xl border p-3 text-start transition-all ${s.colorTheme === theme.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border hover:border-primary/50'}`}><span className="h-7 w-7 shrink-0 rounded-full shadow-sm" style={{ background: theme.color }} /><span className="text-sm font-medium">{fa ? theme.fa : theme.en}</span>{s.colorTheme === theme.id && <CheckCircle2 className="ms-auto h-4 w-4 text-primary" />}</button>)}</div></div>
           <div className="space-y-1.5"><Label>{fa ? 'حالت نمایش' : 'Appearance mode'}</Label><Select value={s.theme || 'dark'} onValueChange={(v) => set('theme', v as Settings['theme'])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="dark">{fa ? 'تیره' : 'Dark'}</SelectItem><SelectItem value="light">{fa ? 'روشن' : 'Light'}</SelectItem></SelectContent></Select></div>
+          {desktopFullscreenAvailable && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-background/50 p-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                  {fullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold">{fa ? 'حالت تمام‌صفحه' : 'Fullscreen mode'}</div>
+                  <p className="text-xs text-muted-foreground">{fa ? 'نمایش برنامه در تمام فضای صفحه ویندوز' : 'Use the full available Windows desktop area'}</p>
+                </div>
+              </div>
+              <Button type="button" data-testid="fullscreen-toggle" aria-pressed={fullscreen} variant={fullscreen ? 'secondary' : 'outline'} onClick={() => void toggleFullscreen()} disabled={fullscreenBusy}>
+                {fullscreenBusy && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                {fullscreen ? (fa ? 'خروج از تمام‌صفحه' : 'Exit fullscreen') : (fa ? 'فعال‌کردن تمام‌صفحه' : 'Enter fullscreen')}
+              </Button>
+            </div>
+          )}
         </div>
       </Panel>
       <Panel title={fa ? 'تنظیمات عمومی' : 'General settings'}>
