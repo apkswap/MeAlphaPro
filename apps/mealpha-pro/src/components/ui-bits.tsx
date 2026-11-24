@@ -16,7 +16,7 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
 
 export function Panel({ title, children, className, action }: { title?: string; children: ReactNode; className?: string; action?: ReactNode }) {
   return (
-    <section className={cn('group min-w-0 rounded-[22px] border border-border/80 bg-card/85 p-4 shadow-[0_12px_35px_-28px_hsl(var(--foreground)/0.32)] transition-shadow duration-200 hover:shadow-[0_16px_42px_-28px_hsl(var(--primary)/0.28)] sm:p-5', className)}>
+    <section className={cn('group min-w-0 rounded-[24px] border border-border/80 bg-card/85 p-4 shadow-[0_18px_48px_-30px_hsl(var(--foreground)/0.34)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_22px_54px_-30px_hsl(var(--primary)/0.3)] sm:p-5', className)}>
       {title && <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-2"><h2 className="break-words text-[11px] font-extrabold uppercase tracking-[.08em] text-muted-foreground">{title}</h2>{action}</div>}
       {children}
     </section>
@@ -26,7 +26,7 @@ export function Panel({ title, children, className, action }: { title?: string; 
 export function Kpi({ label, value, hint, tone = 'default', icon }: { label: string; value: ReactNode; hint?: ReactNode; tone?: 'default' | 'good' | 'bad' | 'accent'; icon?: ReactNode }) {
   const toneCls = { default: 'text-foreground', good: 'text-[hsl(var(--success))]', bad: 'text-destructive', accent: 'text-primary' }[tone];
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 rounded-2xl border border-border/80 bg-background/55 p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:p-4">
+    <div className="flex min-w-0 flex-col gap-1.5 rounded-2xl border border-border/80 bg-background/55 p-3.5 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.025)] transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-background/75 hover:shadow-lg sm:p-4">
       <div className="flex min-w-0 items-center justify-between gap-1 text-[11px] font-medium text-muted-foreground"><span className="min-w-0 break-words">{label}</span>{icon && <span className="shrink-0 text-primary">{icon}</span>}</div>
       <div className={cn('min-w-0 break-words text-xl font-black leading-tight tabular-nums sm:text-2xl', toneCls)}>{value}</div>
       {hint && <div className="min-w-0 break-words text-[10px] leading-5 text-muted-foreground">{hint}</div>}
