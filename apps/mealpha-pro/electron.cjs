@@ -122,6 +122,49 @@ async function createWindow() {
   else await win.loadURL('http://127.0.0.1:8080');
 }
 
+
+function getTrustedWindow(event) {
+  let senderUrl;
+  try { senderUrl = new URL(event.senderFrame?.url || ''); } catch { throw new Error('Untrusted application frame.'); }
+  const allowedSender = app.isPackaged
+    ? senderUrl.origin === 'http://localhost:4173'
+    : senderUrl.origin === 'http://127.0.0.1:8080';
+  if (!allowedSender) throw new Error('Fullscreen controls can only be used by the MeAlpha application.');
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win || win.isDestroyed()) throw new Error('The MeAlpha application window is unavailable.');
+  return win;
+}
+
+ipcMain.handle('mealpha:fullscreen:get', (event) => getTrustedWindow(event).isFullScreen());
+
+ipcMain.handle('mealpha:fullscreen:set', (event, enabled) => {
+  const win = getTrustedWindow(event);
+  const target = Boolean(enabled);
+  if (win.isFullScreen() === target) return Promise.resolve(target);
+  return new Promise((resolve, reject) => {
+    const eventName = target ? 'enter-full-screen' : 'leave-full-screen';
+    let timeout;
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      win.removeListener(eventName, finish);
+      win.removeListener('closed', finish);
+    };
+    const finish = () => {
+      cleanup();
+      resolve(!win.isDestroyed() && win.isFullScreen());
+    };
+    win.once(eventName, finish);
+    win.once('closed', finish);
+    timeout = setTimeout(finish, 1500);
+    try {
+      win.setFullScreen(target);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+});
+
 ipcMain.handle('mealpha:open-external', async (event, rawUrl) => {
   let senderUrl;
   try { senderUrl = new URL(event.senderFrame?.url || ''); } catch { throw new Error('Untrusted application frame.'); }
