@@ -185,7 +185,8 @@ export function taskStats(tasks: Rec[]) {
 export function scores(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLogs: Rec[]; transactions: Rec[] }, st: Settings) {
   const fin = monthFinance(d.transactions, st, 0);
   const finance = fin.savingsRate == null || !fin.complete ? null : Math.max(0, Math.min(100, 50 + fin.savingsRate * 166));
-  const g = d.goals.map(goalInfo).filter((x) => x.status !== 'Unknown' && x.status !== 'Completed');
+  // Qualitative goals without checklist progress are not evidence of a measurable 100% result.
+  const g = d.goals.map(goalInfo).filter((x) => x.progress != null && x.status !== 'Unknown' && x.status !== 'Completed');
   const goals = g.length ? (g.filter((x) => x.status === 'On Track').length / g.length) * 100 : null;
   const ts = taskStats(d.tasks);
   const tasks = ts.completionRate == null ? null : ts.completionRate * 100;
