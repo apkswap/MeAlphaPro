@@ -41,7 +41,8 @@ export default function GrowthEngine({ showMoney = false }: { showMoney?: boolea
   const weeklyHabitRate = habitsWithHistory.length ? habitStatsList.filter((s) => s.hasHistory).reduce((sum, s) => sum + s.thisWeek * 100, 0) / habitsWithHistory.length : null;
   const task = taskStats(d.tasks);
   const focusConsistency = weekSessions.length ? Math.min(100, focusMinutes / 300 * 100) : null;
-  const consistencyParts = [habitConsistency, task.completionRate == null ? null : task.completionRate * 100, focusConsistency].filter((v): v is number => v != null);
+  // Use the recent weekly habit trend and focus sessions; task completion already has its own Life Score domain.
+  const consistencyParts = [weeklyHabitRate, focusConsistency].filter((v): v is number => v != null);
   const consistencyScore = consistencyParts.length ? consistencyParts.reduce((a, b) => a + b, 0) / consistencyParts.length : null;
   const base = scores(d, settings);
   const lifeParts = { ...base.parts, consistency: consistencyScore };
