@@ -42,9 +42,7 @@ export default function Dashboard() {
   const sc = scores(d, settings), ts = taskStats(d.tasks), m = monthFinance(d.transactions, settings);
   const nw = netWorth(d.assets, d.liabilities, settings, d.transactions);
   const goals = d.goals.map((g) => ({ g, i: goalInfo(g) })).filter((x) => x.i.status !== 'Completed');
-  const atRisk = goals.filter((x) => x.i.status === 'At Risk' || x.i.status === 'Delayed');
   const habits = d.habits.filter((h) => !h.archived);
-  const doneHabits = habits.filter((h) => habitStats(h, d.habitLogs).doneToday).length;
   const { toggle, busy } = useHabitToggle();
   const chart = [5, 4, 3, 2, 1, 0].map((o) => { const x = monthFinance(d.transactions, settings, o); return { name: x.label.slice(2), [t('income')]: x.income, [t('expense')]: x.expense, complete: x.complete }; });
   const moneyTooltip = ({ active, payload, label }: any) => showMoney && active && payload?.length ? (
