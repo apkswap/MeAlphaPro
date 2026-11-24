@@ -96,6 +96,8 @@ jobs:
               """
               path.write_text(xml[:end] + intent_filter + xml[end:])
           PY
+      - name: Install brand asset generator dependency
+        run: npm install --no-save --no-audit --no-fund sharp
       - name: Generate Android launcher icons
         run: |
           python3 -m pip install --user --break-system-packages Pillow
