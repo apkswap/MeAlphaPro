@@ -115,8 +115,10 @@ async function createWindow() {
             control?.click();
             await new Promise(resolve => setTimeout(resolve, 900));
             fullscreen.toggled = await desktop.getFullscreen();
-            document.querySelector('[data-testid="fullscreen-toggle"]')?.click();
-            await new Promise(resolve => setTimeout(resolve, 900));
+            // Restore through the same trusted preload bridge rather than a second
+            // synthetic React click, which can race the renderer's state update.
+            fullscreen.restored = await desktop.setFullscreen(Boolean(before));
+            await new Promise(resolve => setTimeout(resolve, 300));
             fullscreen.restored = await desktop.getFullscreen();
           }
         }
