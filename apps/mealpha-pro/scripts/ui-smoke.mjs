@@ -83,6 +83,22 @@ for (const viewport of viewports) {
       failures.push(`${viewport.name} focus: manual session control missing`);
     }
     if (route === '/habits') {
+      const smokeHabitId = `smoke-calendar-${viewport.name}`;
+      await page.evaluate(async id => {
+        const db = await new Promise((resolve, reject) => {
+          const request = indexedDB.open('mealpha-pro-local', 3);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction('habits', 'readwrite');
+          tx.objectStore('habits').put({ id, name: 'Smoke calendar habit', frequency: 'Daily', targetPerPeriod: 1, archived: false });
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+      }, smokeHabitId);
+      await page.reload({ waitUntil: 'networkidle' });
       const calendar = await page.evaluate(() => {
         const grids = [...document.querySelectorAll('[class~="grid-cols-7"]')];
         const grid = grids.find(element => element.querySelectorAll('button[aria-label]').length >= 28);
@@ -97,6 +113,21 @@ for (const viewport of viewports) {
       if (!calendar || calendar.columns !== 7 || calendar.dayCount < 28 || calendar.minDayWidth < 24) {
         failures.push(`${viewport.name} habits: monthly calendar is not compact/readable ${JSON.stringify(calendar)}`);
       }
+      await page.evaluate(async id => {
+        const db = await new Promise((resolve, reject) => {
+          const request = indexedDB.open('mealpha-pro-local', 3);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction('habits', 'readwrite');
+          tx.objectStore('habits').delete(id);
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+      }, smokeHabitId);
+      await page.reload({ waitUntil: 'networkidle' });
     }
     if (route === '/insights') {
       for (const [label, pattern] of [['3-month', /3 (mo|ماه)/], ['6-month', /6 (mo|ماه)/], ['12-month', /12 (mo|ماه)/]]) {
