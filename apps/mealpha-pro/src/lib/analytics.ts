@@ -193,7 +193,8 @@ export function scores(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLogs
   const habits = hs.length ? (hs.reduce((s, x) => s + x.rate30, 0) / hs.length) * 100 : null;
   const parts = { finance, goals, tasks, habits };
   const avail = Object.values(parts).filter((v): v is number => v != null);
-  return { parts, overall: avail.length ? avail.reduce((a, b) => a + b, 0) / avail.length : null, coverage: avail.length };
+  // Do not publish a partial overall score: it can look perfect while key areas have no data.
+  return { parts, overall: avail.length === Object.keys(parts).length ? avail.reduce((a, b) => a + b, 0) / avail.length : null, coverage: avail.length };
 }
 
 // ---- Rule-based decision engine ----
