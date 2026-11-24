@@ -385,7 +385,6 @@ for (const viewport of viewports) {
     if (await profileLink.count()) {
       await profileLink.click();
       await page.waitForURL('**/settings');
-      const originalAccent = await page.evaluate(() => document.documentElement.dataset.colorTheme || 'coral');
       const coralAccent = page.getByRole('button', { name: /مرجانی|Coral/i });
       const violetAccent = page.getByRole('button', { name: /بنفش|Violet/i });
       const saveProfile = page.getByRole('button', { name: /ذخیره پروفایل|Save profile/i });
@@ -399,10 +398,9 @@ for (const viewport of viewports) {
         await page.waitForFunction(() => document.documentElement.dataset.colorTheme === 'violet');
         const violetValue = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim());
         if (coralValue !== '7 88% 63%' || violetValue === coralValue) failures.push(`${viewport.name}: accent themes are not applied independently`);
-        const restoreAccent = originalAccent === 'violet' ? violetAccent : coralAccent;
-        await restoreAccent.click();
+        await coralAccent.click();
         await saveProfile.click();
-        await page.waitForFunction((theme) => document.documentElement.dataset.colorTheme === theme, originalAccent);
+        await page.waitForFunction(() => document.documentElement.dataset.colorTheme === 'coral');
       } else {
         failures.push(`${viewport.name}: coral and violet accent options are missing`);
       }
