@@ -20,7 +20,7 @@ const readFocusSessions = (): FocusSession[] => {
   }
 };
 
-export default function GrowthEngine({ showMoney = false }: { showMoney?: boolean }) {
+export default function GrowthEngine({ showMoney = false, compact = false }: { showMoney?: boolean; compact?: boolean }) {
   const { data, settings, save } = useStore();
   const d = data!;
   const fa = settings.language === 'fa';
@@ -53,6 +53,49 @@ export default function GrowthEngine({ showMoney = false }: { showMoney?: boolea
   const labels = fa
     ? { finance: 'مالی', goals: 'اهداف', tasks: 'وظایف', habits: 'عادت‌ها', consistency: 'استمرار' }
     : { finance: 'Finance', goals: 'Goals', tasks: 'Tasks', habits: 'Habits', consistency: 'Consistency' };
+
+  if (compact) {
+    return (
+      <Panel title={fa ? 'هوش عملکردی آلفا' : 'Alpha Performance Intelligence'} action={<Link to="/insights" className="text-xs font-semibold text-primary">{fa ? 'تحلیل کامل' : 'Full analysis'} →</Link>}>
+        <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-center">
+          <div className="flex items-center gap-3">
+            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border bg-primary/5">
+              <span className="text-2xl font-black tabular-nums">{lifeScore == null ? '—' : fmtNum(settings.language, lifeScore)}</span>
+            </div>
+            <div>
+              <div className="text-sm font-semibold">{fa ? 'امتیاز رشد' : 'Life score'}</div>
+              <div className="text-xs text-muted-foreground">{fa ? `پوشش داده: ${available.length} از ۵ حوزه` : `Data coverage: ${available.length}/5 areas`}</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            {Object.entries(lifeParts).map(([key, value]) => (
+              <div key={key} className="min-w-0 space-y-1">
+                <div className="flex justify-between gap-2 text-[11px]"><span>{labels[key as keyof typeof labels]}</span><span className="tabular-nums text-muted-foreground">{value == null ? '—' : `${fmtNum(settings.language, Math.round(value))}%`}</span></div>
+                <Bar value={value == null ? null : value / 100} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {recommendations.length ? (
+          <div className="mt-4 space-y-2 border-t pt-3">
+            {recommendations.slice(0, 2).map((f) => (
+              <div key={f.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-muted/40 p-3">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${f.severity === 'high' ? 'bg-destructive' : 'bg-amber-500'}`} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-semibold">{f.title}</div>
+                  <div className="mt-1 text-[11px] text-muted-foreground">{f.evidence}</div>
+                  <div className="mt-1 text-xs">{f.action}</div>
+                </div>
+                <Button size="sm" variant="secondary" onClick={() => void createTask(f)}>{fa ? 'ثبت کار' : 'Make task'}</Button>
+                <Button size="sm" variant="ghost" onClick={() => dismiss(f.id)}>{fa ? 'رد' : 'Dismiss'}</Button>
+              </div>
+            ))}
+          </div>
+        ) : <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">{fa ? 'فعلاً هشدار یا پیشنهاد قابل اتکایی از داده‌ها استخراج نشده است.' : 'No reliable new recommendations from the available data.'}</p>}
+      </Panel>
+    );
+  }
+
 
   const createTask = async (f: (typeof recommendations)[number]) => {
     const ok = await save('tasks', {
