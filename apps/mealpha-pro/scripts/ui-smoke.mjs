@@ -481,13 +481,13 @@ for (const viewport of viewports) {
       db.close();
     });
     await page.goto('http://127.0.0.1:8080/habits', { waitUntil: 'networkidle' });
-    const weeklyCard = page.getByTestId('habit-card-smoke-weekly');
+    const weeklyCard = page.getByTestId('habit-card-smoke-weekly-habit');
     await weeklyCard.waitFor({ state: 'visible', timeout: 10000 });
     const currentStreak = await weeklyCard.getByTestId('habit-current-streak').innerText();
     const bestStreak = await weeklyCard.getByTestId('habit-best-streak').innerText();
     if (!/[3۳]/.test(currentStreak)) failures.push(`weekly habit streak should count completed weeks, got ${currentStreak}`);
     if (!/[3۳]/.test(bestStreak)) failures.push(`weekly habit best streak should count completed weeks, got ${bestStreak}`);
-    const archivedCard = page.getByTestId('habit-card-smoke-archived');
+    const archivedCard = page.getByTestId('habit-card-smoke-archived-habit');
     await archivedCard.waitFor({ state: 'visible', timeout: 10000 });
     if (!(await archivedCard.getByTestId('habit-toggle').isDisabled())) failures.push('archived habit can still be logged from its primary toggle');
     const archivedCalendarButtons = archivedCard.locator('button[title]');
