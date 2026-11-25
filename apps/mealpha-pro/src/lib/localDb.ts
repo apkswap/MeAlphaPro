@@ -19,7 +19,7 @@ function openDb(): Promise<IDBDatabase> {
       const tx = request.transaction!;
       for (const name of STORES) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: name === 'appMeta' ? 'key' : 'id' });
 
-      // Daily checklist entries and journal notes belong to the selected day's Tasks.
+      // Daily checklists migrate into dated Tasks; daily journals move to the private localNotes store in version 6.
       if (event.oldVersion < 5) {
         const tasks = tx.objectStore('tasks');
         const migrateCursor = (storeName: string, predicate: (value: Rec) => boolean, map: (value: Rec) => Rec) => {
@@ -36,11 +36,6 @@ function openDb(): Promise<IDBDatabase> {
           'customItems',
           (value) => value.kind === 'dashboard-daily-entry' && value.entryType === 'checklist',
           (value) => ({ ...value, id: 'daily-checklist-' + value.id, dueDate: value.date || value.dueDate, dailyEntryType: 'checklist', status: value.done ? 'Done' : 'Todo', priority: 'Medium' }),
-        );
-        if (db.objectStoreNames.contains('notes')) migrateCursor(
-          'notes',
-          (value) => false,
-          (value) => ({ ...value, id: 'daily-journal-' + value.id, dueDate: value.date || value.dueDate, dailyEntryType: 'journal', status: 'Todo', priority: 'Low', title: value.title || 'Daily journal' }),
         );
       }
       // Version 6: journal entries are private local-only records, never part of Dropbox snapshots.

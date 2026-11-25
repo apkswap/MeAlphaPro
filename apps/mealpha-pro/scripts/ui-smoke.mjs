@@ -1,10 +1,11 @@
 import { chromium } from 'playwright';
 
 const browser = await chromium.launch({ headless: true });
-// Upgrade regression: preserve v4 daily entries while moving them into dated Tasks.
+// Upgrade regression: dated checklists migrate to Tasks; journals stay private and local-only.
 const migrationPage = await browser.newPage();
+const smokeDate = new Date().toISOString().slice(0, 10);
 await migrationPage.goto('http://127.0.0.1:8080/favicon.ico');
-await migrationPage.evaluate(async () => {
+await migrationPage.evaluate(async (smokeDate) => {
   const db = await new Promise((resolve, reject) => {
     const request = indexedDB.open('mealpha-pro-local', 4);
     request.onupgradeneeded = () => {
@@ -12,34 +13,44 @@ await migrationPage.evaluate(async () => {
       for (const name of ['goals','tasks','habits','habitLogs','transactions','accounts','paymentReminders','customItems','notes','assets','liabilities','appMeta']) {
         if (!database.objectStoreNames.contains(name)) database.createObjectStore(name, { keyPath: name === 'appMeta' ? 'key' : 'id' });
       }
-      request.transaction.objectStore('customItems').put({ id: 'legacy-checklist-smoke', kind: 'dashboard-daily-entry', entryType: 'checklist', date: '2026-11-25', title: 'Legacy checklist migration', done: false });
-      request.transaction.objectStore('notes').put({ id: 'legacy-journal-smoke', kind: 'daily-journal', date: '2026-11-25', title: 'Daily journal', notes: 'Legacy journal migration' });
+      request.transaction.objectStore('customItems').put({ id: 'legacy-checklist-smoke', kind: 'dashboard-daily-entry', entryType: 'checklist', date: smokeDate, title: 'Legacy checklist migration', done: false });
+      request.transaction.objectStore('tasks').put({ id: 'legacy-task-journal-smoke', dailyEntryType: 'journal', dueDate: smokeDate, title: 'Legacy task journal', notes: 'Legacy task journal migration' });
+      request.transaction.objectStore('notes').put({ id: 'legacy-journal-smoke', kind: 'daily-journal', date: smokeDate, title: 'Daily journal', notes: 'Legacy journal migration' });
+      request.transaction.objectStore('customItems').put({ id: 'legacy-custom-journal-smoke', kind: 'dashboard-daily-entry', entryType: 'journal', date: smokeDate, title: 'Legacy custom journal', notes: 'Legacy custom journal migration' });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
   db.close();
-});
+}, smokeDate);
 await migrationPage.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
-const migrated = await migrationPage.evaluate(async () => {
+const migrated = await migrationPage.evaluate(async (smokeDate) => {
   const db = await new Promise((resolve, reject) => {
     const request = indexedDB.open('mealpha-pro-local', 6);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
   const result = await new Promise((resolve, reject) => {
-    const tx = db.transaction(['tasks','notes','customItems'], 'readonly');
-    const tasks = tx.objectStore('tasks').getAll(), notes = tx.objectStore('notes').getAll(), workspace = tx.objectStore('customItems').getAll();
-    tx.oncomplete = () => resolve({ tasks: tasks.result, notes: notes.result, workspace: workspace.result });
+    const tx = db.transaction(['tasks','notes','customItems','localNotes'], 'readonly');
+    const tasks = tx.objectStore('tasks').getAll(), notes = tx.objectStore('notes').getAll(), workspace = tx.objectStore('customItems').getAll(), localNotes = tx.objectStore('localNotes').getAll();
+    tx.oncomplete = () => resolve({ tasks: tasks.result, notes: notes.result, workspace: workspace.result, localNotes: localNotes.result });
     tx.onerror = () => reject(tx.error);
   });
   db.close();
-  return result.tasks.some(item => item.dailyEntryType === 'checklist' && item.title === 'Legacy checklist migration' && item.dueDate === '2026-11-25')
-    && result.tasks.some(item => item.dailyEntryType === 'journal' && item.notes === 'Legacy journal migration' && item.dueDate === '2026-11-25')
+  const snapshotModule = await import('/src/lib/localDb.ts');
+  const snapshot = await snapshotModule.getSnapshot();
+  return result.tasks.some(item => item.dailyEntryType === 'checklist' && item.title === 'Legacy checklist migration' && item.dueDate === smokeDate)
+    && !result.tasks.some(item => item.dailyEntryType === 'journal')
+    && result.localNotes.some(item => item.kind === 'daily-journal' && item.content === 'Legacy journal migration' && item.date === smokeDate)
+    && result.localNotes.some(item => item.kind === 'daily-journal' && item.content === 'Legacy task journal migration' && item.date === smokeDate)
+    && result.localNotes.some(item => item.kind === 'daily-journal' && item.content === 'Legacy custom journal migration' && item.date === smokeDate)
     && !result.notes.some(item => item.id === 'legacy-journal-smoke')
-    && !result.workspace.some(item => item.id === 'legacy-checklist-smoke');
-});
-if (!migrated) throw new Error('v4 daily entries were not migrated into dated Tasks');
+    && !result.workspace.some(item => item.id === 'legacy-checklist-smoke' || item.id === 'legacy-custom-journal-smoke')
+    && !Object.hasOwn(snapshot.data, 'localNotes')
+    && !snapshot.data.tasks.some(item => item.dailyEntryType === 'journal')
+    && !snapshot.data.notes.some(item => item.kind === 'daily-journal');
+}, smokeDate);
+if (!migrated) throw new Error('v4 daily entries were not migrated to Tasks/local-only journal storage correctly');
 await migrationPage.close();
 
 const failures = [];
@@ -707,7 +718,7 @@ for (const viewport of viewports) {
       }
     }
   }
-  // Regression: daily checklist and journal both live in Tasks, associated with the selected date.
+  // Regression: daily checklist lives in dated Tasks; the journal is private local-only data.
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
   const journalSection = page.locator('summary').filter({ hasText: /یادداشت و چک‌لیست روزانه|Daily notes & checklist/ });
   if (await journalSection.count()) await journalSection.click();
@@ -727,19 +738,21 @@ for (const viewport of viewports) {
         request.onerror = () => reject(request.error);
       });
       const result = await new Promise((resolve, reject) => {
-        const tx = db.transaction(['tasks', 'notes', 'customItems'], 'readonly');
+        const tx = db.transaction(['tasks', 'notes', 'customItems', 'localNotes'], 'readonly');
         const tasksRequest = tx.objectStore('tasks').getAll();
         const notesRequest = tx.objectStore('notes').getAll();
         const workspaceRequest = tx.objectStore('customItems').getAll();
-        tx.oncomplete = () => resolve({ tasks: tasksRequest.result, notes: notesRequest.result, workspace: workspaceRequest.result });
+        const localNotesRequest = tx.objectStore('localNotes').getAll();
+        tx.oncomplete = () => resolve({ tasks: tasksRequest.result, notes: notesRequest.result, workspace: workspaceRequest.result, localNotes: localNotesRequest.result });
         tx.onerror = () => reject(tx.error);
       });
       db.close();
       return result.tasks.some(item => item.title === checklistProbe && item.dailyEntryType === 'checklist' && !!item.dueDate)
-        && result.tasks.some(item => item.notes === journalProbe && item.dailyEntryType === 'journal' && !!item.dueDate)
+        && !result.tasks.some(item => item.title === journalProbe || item.notes === journalProbe || item.dailyEntryType === 'journal')
+        && result.localNotes.some(item => item.content === journalProbe && item.kind === 'daily-journal' && !!item.date)
         && !result.workspace.some(item => item.title === checklistProbe || item.notes === journalProbe)
         && !result.notes.some(item => item.notes === journalProbe);
-    }, { checklistProbe, journalProbe }, { timeout: 7000 }).catch(() => failures.push(`${viewport.name}: daily checklist/journal were not saved as dated Tasks outside Workspace`));
+    }, { checklistProbe, journalProbe }, { timeout: 7000 }).catch(() => failures.push(`${viewport.name}: daily checklist was not saved as a dated Task or journal was not kept local-only`));
     await page.reload({ waitUntil: 'networkidle' });
     const sectionAfterReload = page.locator('summary').filter({ hasText: /یادداشت و چک‌لیست روزانه|Daily notes & checklist/ });
     if (await sectionAfterReload.count()) await sectionAfterReload.click();
