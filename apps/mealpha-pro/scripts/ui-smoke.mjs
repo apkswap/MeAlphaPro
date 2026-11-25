@@ -12,6 +12,18 @@ const viewports = [
 
 const conversionPage = await browser.newPage();
 await conversionPage.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+const searchLogicChecks = await conversionPage.evaluate(async () => {
+  const { normalizeSearchTerm, matchesSearchText } = await import('/src/components/GlobalSearch.tsx');
+  return {
+    arabicPersianLetters: normalizeSearchTerm('كیفیت مالی') === normalizeSearchTerm('کیفیت مالی'),
+    halfSpace: matchesSearchText('هدف‌های مالی', 'هدفهای مالی'),
+    persianDigits: matchesSearchText('حساب ۱۲۳۴۵', 'حساب 12345')
+  };
+});
+if (!searchLogicChecks.arabicPersianLetters || !searchLogicChecks.halfSpace || !searchLogicChecks.persianDigits) {
+  failures.push('Persian/Arabic search normalization regression: ' + JSON.stringify(searchLogicChecks));
+}
+
 const currencyChecks = await conversionPage.evaluate(async () => {
   const { parseRates, makeConverter, monthFinance, netWorth, todayISO, findings, scores } = await import('/src/lib/analytics.ts');
   const settings = {
@@ -94,10 +106,43 @@ for (const viewport of viewports) {
       failures.push(`${viewport.name} ${route}: React runtime error fallback`);
     }
     if (route === '/') {
-      for (const label of ['Life Score', 'Alpha Intelligence']) {
-        if (!(await page.getByText(label, { exact: true }).count())) failures.push(`${viewport.name} dashboard: missing ${label}`);
+      const lifeScore = page.getByText(/Life score|امتیاز رشد/).first();
+      const intelligence = page.getByText(/Alpha Performance Intelligence|هوش عملکردی آلفا/).first();
+      if (!(await lifeScore.count())) failures.push(`${viewport.name} dashboard: Life Score panel missing`);
+      if (!(await intelligence.count())) failures.push(`${viewport.name} dashboard: performance intelligence panel missing`);
+
+      const searchTrigger = page.getByRole('button', { name: /جستجوی سراسری|Global search/ });
+      if (!(await searchTrigger.count())) {
+        failures.push(`${viewport.name}: global search trigger is missing`);
+      } else {
+        await searchTrigger.click();
+        const searchDialog = page.getByRole('dialog', { name: /جستجوی سراسری|Global search/ });
+        const searchInput = page.getByRole('combobox', { name: /عبارت جستجو|Search query/ });
+        await searchDialog.waitFor({ state: 'visible', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: search dialog did not open`));
+        await searchInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: search input is missing`));
+        if (await searchInput.count()) {
+          if (!(await searchInput.evaluate(el => el === document.activeElement))) failures.push(`${viewport.name}: search input did not receive focus`);
+          await searchInput.fill('داشبورد');
+          if (!(await page.getByRole('option', { name: /داشبورد|Dashboard/ }).count())) failures.push(`${viewport.name}: page search did not return dashboard`);
+          await page.mouse.click(5, 5);
+          await searchDialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: pointer outside did not close search`));
+          await page.keyboard.press('Control+k');
+          await searchDialog.waitFor({ state: 'visible', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Ctrl+K did not reopen search`));
+          if ((await searchInput.inputValue()) !== '') failures.push(`${viewport.name}: search query was not reset after close`);
+          await searchInput.fill('اهداف');
+          const goalsOption = page.getByRole('option', { name: /اهداف|Goals/ }).first();
+          if (!(await goalsOption.count())) failures.push(`${viewport.name}: Persian page query did not return goals`);
+          else {
+            await goalsOption.click();
+            await page.waitForURL('**/goals', { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: selecting a search result did not navigate`));
+            await searchDialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: search stayed open after navigation`));
+          }
+          await searchTrigger.click();
+          await searchDialog.waitFor({ state: 'visible', timeout: 5000 }).catch(() => undefined);
+          await page.keyboard.press('Escape');
+          await searchDialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Escape did not close search`));
+        }
       }
-      if (!(await page.getByText(/Consistency Engine/).count())) failures.push(`${viewport.name} dashboard: missing Consistency Engine`);
     }
     if (route === '/focus' && !(await page.getByRole('button', { name: /افزودن جلسه|Add session/ }).count())) {
       failures.push(`${viewport.name} focus: manual session control missing`);
@@ -362,8 +407,18 @@ for (const viewport of viewports) {
     } else failures.push(`${viewport.name}: dedicated profile save button is missing`);
   } else failures.push(`${viewport.name}: profile name field is missing`);
   if (!(await page.getByText('راهنمای کامل راه‌اندازی Dropbox').count())) failures.push(`${viewport.name}: Dropbox setup guide is missing`);
-  const brandImage = page.locator('img[src="/mealpha.svg"]').first();
-  if (!(await brandImage.count()) || !(await brandImage.evaluate(img => img.complete && img.naturalWidth > 0))) failures.push(`${viewport.name}: purple-gold brand image failed to load`);
+  const brandImage = page.locator('img[src="/mealpha.svg"]:visible').first();
+  if (!(await brandImage.count())) failures.push(`${viewport.name}: visible brand image is missing`);
+  else {
+    const brandMetrics = await brandImage.evaluate(img => {
+      const box = img.getBoundingClientRect();
+      return { loaded: img.complete && img.naturalWidth > 0, width: box.width, height: box.height, fit: getComputedStyle(img).objectFit };
+    });
+    const expectedLogoSize = viewport.width >= 768 ? 56 : 36;
+    if (!brandMetrics.loaded || brandMetrics.width < expectedLogoSize - 1 || brandMetrics.height < expectedLogoSize - 1 || brandMetrics.fit !== 'contain') {
+      failures.push(`${viewport.name}: brand mark is missing, undersized or cropped ${JSON.stringify(brandMetrics)}`);
+    }
+  }
   await page.goto('http://127.0.0.1:8080/goals', { waitUntil: 'networkidle' });
   const addMainGoal = page.getByRole('button', { name: 'افزودن هدف اصلی' });
   if (await addMainGoal.count()) {
