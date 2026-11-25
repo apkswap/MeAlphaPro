@@ -86,7 +86,7 @@ export default function Focus() {
     localStorage.setItem(KEY, JSON.stringify(next));
     if (task) {
       const previous = Number(task.actualMinutes) || 0;
-      await save('tasks', { actualMinutes: Math.round((previous + seconds / 60) * 100) / 100 }, task.id);
+      await save('tasks', { ...task, actualMinutes: Math.round((previous + seconds / 60) * 100) / 100 }, task.id);
     }
   };
 
@@ -175,7 +175,7 @@ export default function Focus() {
     localStorage.setItem(KEY, JSON.stringify(next));
     if (task) {
       const previous = Number(task.actualMinutes) || 0;
-      await save('tasks', { actualMinutes: Math.round((previous + totalSeconds / 60) * 100) / 100 }, task.id);
+      await save('tasks', { ...task, actualMinutes: Math.round((previous + totalSeconds / 60) * 100) / 100 }, task.id);
     }
     setManualOpen(false);
     setManualMinutes('25');
