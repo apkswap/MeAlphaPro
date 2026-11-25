@@ -1,12 +1,12 @@
 /** Local-first persistence. The app never needs a network connection to read or write data. */
-export const ENTITIES = ['goals', 'tasks', 'habits', 'habitLogs', 'transactions', 'accounts', 'paymentReminders', 'customItems', 'assets', 'liabilities'] as const;
+export const ENTITIES = ['goals', 'tasks', 'habits', 'habitLogs', 'transactions', 'accounts', 'paymentReminders', 'customItems', 'notes', 'assets', 'liabilities'] as const;
 export type Entity = (typeof ENTITIES)[number];
 export type Rec = Record<string, any>;
 export type AppSettings = { language: 'fa' | 'en'; calendar: string; currency: string; exchangeRates: string; monthlyBudget: number | null; displayName?: string; username?: string; bio?: string; avatarDataUrl?: string; coverDataUrl?: string; avatarEmoji?: string; avatarColor?: string; theme?: 'light' | 'dark'; colorTheme?: 'orange' | 'green' | 'blue' | 'violet' | 'cyan' | 'pink' | 'coral'; dropboxAppKey?: string; dropboxAccessToken?: string; dropboxRefreshToken?: string; dropboxExpiresAt?: number; dropboxAccountName?: string };
 export type Snapshot = { version: 1; exportedAt: string; settingsUpdatedAt: number; data: Record<Entity, Rec[]>; settings: AppSettings; tombstones: Record<string, number> };
 
 const DB_NAME = 'mealpha-pro-local';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const STORES = [...ENTITIES, 'appMeta'] as const;
 let dbPromise: Promise<IDBDatabase> | undefined;
 
@@ -14,9 +14,28 @@ function openDb(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result;
+      const tx = request.transaction!;
       for (const name of STORES) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: name === 'appMeta' ? 'key' : 'id' });
+
+      // Move legacy dashboard journal entries out of the flexible Workspace
+      // collection into their own private application database store.
+      if (event.oldVersion < 4 && db.objectStoreNames.contains('customItems') && db.objectStoreNames.contains('notes')) {
+        const legacy = tx.objectStore('customItems');
+        const notes = tx.objectStore('notes');
+        const cursorRequest = legacy.openCursor();
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) return;
+          const value = cursor.value as Rec;
+          if (value.kind === 'dashboard-daily-entry' && value.entryType === 'journal') {
+            notes.put({ ...value, kind: 'daily-journal', updatedAt: value.updatedAt ?? Date.now() });
+            cursor.delete();
+          }
+          cursor.continue();
+        };
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => {
