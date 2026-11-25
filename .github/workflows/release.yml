@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - fix/dropbox-settings-save-logo-sizing
     paths:
       - "apps/mealpha-pro/**"
       - "packages/**"
