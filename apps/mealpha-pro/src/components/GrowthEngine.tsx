@@ -57,7 +57,7 @@ export default function GrowthEngine({ showMoney = false, compact = false }: { s
             </div>
             <div>
               <div className="text-sm font-semibold">{fa ? 'امتیاز رشد' : 'Life score'}</div>
-              <div className="text-xs text-muted-foreground">{fa ? `پوشش داده: ${available.length} از ${base.coverageTotal} حوزه` : `Data coverage: ${available.length} of ${base.coverageTotal} areas`}</div>
+              <div className="text-xs text-muted-foreground">{fa ? `پوشش داده: ${fmtNum(settings.language, available.length)} از ${fmtNum(settings.language, base.coverageTotal)} حوزه` : `Data coverage: ${fmtNum(settings.language, available.length)} of ${fmtNum(settings.language, base.coverageTotal)} areas`}</div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
