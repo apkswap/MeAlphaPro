@@ -24,9 +24,9 @@ export default function Dashboard() {
   const [selectedDay, setSelectedDay] = useState(() => todayISO());
   const [newDailyTask, setNewDailyTask] = useState('');
   const [journalText, setJournalText] = useState('');
-  const dailyEntries = (d.customItems || []).filter((item) => item.kind === 'dashboard-daily-entry' && item.date === selectedDay);
-  const dailyTasks = dailyEntries.filter((item) => item.entryType === 'checklist');
-  const dailyJournal = dailyEntries.find((item) => item.entryType === 'journal');
+  const dailyEntries = (d.customItems || []).filter((item) => item.kind === 'dashboard-daily-entry' && item.entryType === 'checklist' && item.date === selectedDay);
+  const dailyTasks = dailyEntries;
+  const dailyJournal = (d.notes || []).find((item) => item.date === selectedDay);
   useEffect(() => { setJournalText(dailyJournal?.notes || ''); }, [selectedDay, dailyJournal?.id, dailyJournal?.notes]);
   const moneyText = (amount: number) => showMoney ? fmtMoney(L, amount, cur) : '••••••';
   const addDailyTask = async () => {
@@ -36,8 +36,8 @@ export default function Dashboard() {
     if (ok) setNewDailyTask('');
   };
   const saveJournal = async () => {
-    const payload = { ...(dailyJournal || {}), id: dailyJournal?.id || crypto.randomUUID(), kind: 'dashboard-daily-entry', entryType: 'journal', date: selectedDay, notes: journalText, title: fa ? 'یادداشت روزانه' : 'Daily journal' };
-    await save('customItems', payload, dailyJournal?.id);
+    const payload = { ...(dailyJournal || {}), id: dailyJournal?.id || crypto.randomUUID(), kind: 'daily-journal', date: selectedDay, notes: journalText, title: fa ? 'یادداشت روزانه' : 'Daily journal' };
+    await save('notes', payload, dailyJournal?.id);
   };
   const sc = scores(d, settings), ts = taskStats(d.tasks), m = monthFinance(d.transactions, settings);
   const nw = netWorth(d.assets, d.liabilities, settings, d.transactions);
