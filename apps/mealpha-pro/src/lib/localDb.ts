@@ -19,23 +19,6 @@ function openDb(): Promise<IDBDatabase> {
       const tx = request.transaction!;
       for (const name of STORES) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: name === 'appMeta' ? 'key' : 'id' });
 
-      // Move legacy dashboard journal entries out of the flexible Workspace
-      // collection into their own private application database store.
-      if (event.oldVersion < 4 && db.objectStoreNames.contains('customItems') && db.objectStoreNames.contains('notes')) {
-        const legacy = tx.objectStore('customItems');
-        const notes = tx.objectStore('notes');
-        const cursorRequest = legacy.openCursor();
-        cursorRequest.onsuccess = () => {
-          const cursor = cursorRequest.result;
-          if (!cursor) return;
-          const value = cursor.value as Rec;
-          if (value.kind === 'dashboard-daily-entry' && value.entryType === 'journal') {
-            notes.put({ ...value, kind: 'daily-journal', updatedAt: value.updatedAt ?? Date.now() });
-            cursor.delete();
-          }
-          cursor.continue();
-        };
-      }
       // Daily checklist entries and journal notes belong to the selected day's Tasks.
       if (event.oldVersion < 5) {
         const tasks = tx.objectStore('tasks');
@@ -56,7 +39,7 @@ function openDb(): Promise<IDBDatabase> {
         );
         if (db.objectStoreNames.contains('notes')) migrateCursor(
           'notes',
-          (value) => value.kind === 'daily-journal' || (value.kind === 'dashboard-daily-entry' && value.entryType === 'journal'),
+          (value) => false,
           (value) => ({ ...value, id: 'daily-journal-' + value.id, dueDate: value.date || value.dueDate, dailyEntryType: 'journal', status: 'Todo', priority: 'Low', title: value.title || 'Daily journal' }),
         );
       }
@@ -73,6 +56,10 @@ function openDb(): Promise<IDBDatabase> {
             cursor.continue();
           };
         };
+        moveCursor('customItems', (value) => value.kind === 'dashboard-daily-entry' && value.entryType === 'journal', (value) => ({
+          ...value, id: 'local-' + value.id, date: value.date || value.dueDate || new Date().toISOString().slice(0, 10),
+          title: value.title || 'Daily journal', content: value.content || value.notes || '', kind: 'daily-journal',
+        }));
         moveCursor('tasks', (value) => value.dailyEntryType === 'journal', (value) => ({
           ...value, id: 'local-' + value.id, date: value.dueDate || value.date || new Date().toISOString().slice(0, 10),
           title: value.title || 'Daily journal', content: value.notes || value.content || '', kind: 'daily-journal',
