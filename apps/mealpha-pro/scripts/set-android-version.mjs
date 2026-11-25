@@ -21,10 +21,12 @@ const gradlePath = process.argv[2]
   ? path.resolve(process.argv[2])
   : path.join(root, 'android', 'app', 'build.gradle');
 let gradle = fs.readFileSync(gradlePath, 'utf8');
+// Keep the mapping monotonic for normal SemVer increments: major*1,000,000 + minor*1,000 + patch.
 const codePattern = /(\bversionCode\s+)\d+/;
 const namePattern = /(\bversionName\s+)[\"'][^\"']+[\"']/;
-if (!codePattern.test(gradle) || !namePattern.test(gradle)) {
-  throw new Error(`Could not locate generated Android versionCode/versionName in ${gradlePath}`);
+if ([...gradle.matchAll(/\bversionCode\s+\d+/g)].length !== 1 ||
+    [...gradle.matchAll(/\bversionName\s+[\"'][^\"']+[\"']/g)].length !== 1) {
+  throw new Error(`Expected exactly one generated Android versionCode/versionName in ${gradlePath}`);
 }
 gradle = gradle.replace(codePattern, `$1${versionCode}`).replace(namePattern, `$1"${version}"`);
 if (!new RegExp(`\\bversionCode\\s+${versionCode}\\b`).test(gradle) ||
