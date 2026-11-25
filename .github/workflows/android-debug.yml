@@ -97,6 +97,7 @@ jobs:
           Version code: $VERSION_CODE
           Application ID: com.mealpha.pro
           Git commit: $GITHUB_SHA
+          Source branch: $GITHUB_REF_NAME
           Build type: Debug APK (testing only; not a production release)
           EOF
       - uses: actions/upload-artifact@v4
