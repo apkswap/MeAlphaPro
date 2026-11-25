@@ -28,7 +28,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       timedOut = true;
       setData({
         goals: [], tasks: [], habits: [], habitLogs: [], transactions: [],
-        accounts: [], paymentReminders: [], customItems: [], assets: [],
+        accounts: [], paymentReminders: [], customItems: [], notes: [], assets: [] ,
         liabilities: [], settings: null,
       } as Data);
       toast.error('Local storage is taking too long. MeAlpha opened in temporary view; your existing data has not been deleted.');
