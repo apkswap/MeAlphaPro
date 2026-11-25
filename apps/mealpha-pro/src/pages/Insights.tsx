@@ -5,7 +5,7 @@ import { Button } from '@project/components/ui/button';
 import { toast } from 'sonner';
 import { useStore } from '../lib/store';
 import { fmtMoney, fmtNum } from '../lib/i18n';
-import { findings, makeConverter, monthFinance, scores, todayISO, Finding } from '../lib/analytics';
+import { findings, makeConverter, monthFinance, readFocusSessions, scores, todayISO, Finding } from '../lib/analytics';
 import { Bar, Kpi, Panel, PageHeader } from '../components/ui-bits';
 import { cn } from '@project/components/lib/utils';
 import MoneyEquivalents from '../components/MoneyEquivalents';
@@ -46,7 +46,8 @@ export default function Insights() {
   const L = settings.language, fa = L === 'fa';
   const [dismissed, setDismissed] = useState(getDismissed);
   const [period, setPeriod] = useState<Period>(6);
-  const sc = scores(data!, settings);
+  const focusSessions = useMemo(readFocusSessions, []);
+  const sc = scores(data!, settings, focusSessions);
   const currentMonth = useMemo(() => monthFinance(data!.transactions, settings, 0), [data!.transactions, settings]);
   const previousMonth = useMemo(() => monthFinance(data!.transactions, settings, 1), [data!.transactions, settings]);
   const monthlyTrend = useMemo(() => Array.from({ length: period }, (_, i) => {
@@ -84,8 +85,8 @@ export default function Insights() {
     }
   };
   const labels: Record<string, string> = fa
-    ? { finance: 'مدیریت مالی', goals: 'دستیابی به اهداف', tasks: 'اجرای کارها', habits: 'ثبات عادت‌ها' }
-    : { finance: 'Financial management', goals: 'Goal achievement', tasks: 'Task execution', habits: 'Habit consistency' };
+    ? { finance: 'مدیریت مالی', goals: 'دستیابی به اهداف', tasks: 'اجرای کارها', habits: 'ثبات عادت‌ها', consistency: 'استمرار' }
+    : { finance: 'Financial management', goals: 'Goal achievement', tasks: 'Task execution', habits: 'Habit consistency', consistency: 'Consistency' };
   const weak = all.filter((f) => f.kind === 'weakness'), strong = all.filter((f) => f.kind === 'strength');
   const hasTrend = monthlyTrend.every((m) => m.missing.length === 0) && monthlyTrend.some((m) => m.income !== 0 || m.expense !== 0);
   const moneyTooltip = ({ active, payload, label }: any) => active && payload?.length ? (
@@ -119,7 +120,7 @@ export default function Insights() {
         <div className="flex flex-col md:flex-row gap-6 md:items-center">
           <div className="text-center md:w-40">
             <div className="text-5xl font-black bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">{sc.overall == null ? '—' : fmtNum(L, sc.overall)}</div>
-            <div className="text-xs text-muted-foreground mt-1">{fa ? `پوشش داده: ${fmtNum(L, sc.coverage)} از ۴` : `Data coverage: ${sc.coverage} of 4`}</div>
+            <div className="text-xs text-muted-foreground mt-1">{fa ? `پوشش داده: ${fmtNum(L, sc.coverage)} از ${sc.coverageTotal}` : `Data coverage: ${sc.coverage} of ${sc.coverageTotal}`}</div>
           </div>
           <div className="flex-1 grid sm:grid-cols-2 gap-4">
             {Object.entries(sc.parts).map(([k, v]) => (
@@ -131,8 +132,8 @@ export default function Insights() {
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-4">{fa
-          ? 'امتیاز کلی فقط با داده کافی در هر ۴ حوزه نمایش داده می‌شود؛ تا آن زمان پوشش داده و امتیازهای جزئی جداگانه قابل مشاهده‌اند. مالی = ۵۰ + نرخ پس‌انداز×۱۶۶ (محدود به ۰ تا ۱۰۰)؛ اهداف = درصد اهداف در مسیر؛ کارها = تعداد تسک‌های تکمیل‌شده تقسیم بر کل تسک‌ها؛ عادت‌ها = میانگین نرخ ۳۰ روزه.'
-          : 'Formula v1: equal-weighted mean of areas with data. Finance = 50 + savings rate×166 (clamped 0–100); Goals = % of dated goals on track; Tasks = all completed tasks / all tasks; Habits = mean 30-day completion.'}</p>
+          ? 'امتیاز کلی فقط با داده کافی در هر ۵ حوزه نمایش داده می‌شود؛ مالی = ۵۰ + نرخ پس‌انداز×۱۶۶ (محدود به ۰ تا ۱۰۰)؛ اهداف = میانگین پیشرفت اهداف قابل‌اندازه‌گیری؛ کارها = نرخ تکمیل با حداقل نمونه ۳ کار؛ عادت‌ها = میانگین نرخ ۳۰ روزه؛ استمرار = میانگین نرخ عادت هفتگی و امتیاز زمان تمرکز هفتگی (تا سقف ۳۰۰ دقیقه).'
+          : 'Overall score is shown only when all five areas have enough data. Equal weights: Finance = 50 + savings rate×166 (clamped 0–100); Goals = mean measurable goal progress; Tasks = 30-day completion rate (or all-time with at least 3 tasks); Habits = mean 30-day completion; Consistency = average weekly habit adherence and focus-time score (capped at 300 minutes/week).'}</p>
       </Panel>
       <div className="grid lg:grid-cols-2 gap-6">
         <Panel title={fa ? 'روند درآمد و هزینه' : 'Income & expense trend'} action={<div className="flex items-center gap-1 rounded-xl border bg-background/60 p-1" aria-label={fa ? 'بازه گزارش' : 'Report period'}>
