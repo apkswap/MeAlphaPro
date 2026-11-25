@@ -159,6 +159,44 @@ export function habitStats(h: Rec, logs: Rec[]) {
   };
 }
 
+// ---- Shared performance consistency metrics ----
+export type FocusSession = { date?: string; minutes?: number; seconds?: number };
+
+export function readFocusSessions(): FocusSession[] {
+  try {
+    if (typeof localStorage === 'undefined') return [];
+    const value = JSON.parse(localStorage.getItem('mealpha-focus-sessions') || '[]');
+    return Array.isArray(value) ? value as FocusSession[] : [];
+  } catch {
+    return [];
+  }
+}
+
+export function consistencyStats(habits: Rec[], habitLogs: Rec[], focusSessions: FocusSession[], now = Date.now()) {
+  const habitHistory = habits.filter((h) => !h.archived).map((h) => habitStats(h, habitLogs)).filter((s) => s.hasHistory);
+  const weeklyHabitRate = habitHistory.length
+    ? (habitHistory.reduce((sum, stat) => sum + stat.thisWeek, 0) / habitHistory.length) * 100
+    : null;
+  const weekStart = now - 7 * DAY;
+  const weekSessions = focusSessions.filter((session) => {
+    const date = new Date(session.date || '').getTime();
+    return Number.isFinite(date) && date >= weekStart && date <= now;
+  });
+  const focusMinutes = weekSessions.reduce((sum, session) => {
+    const seconds = Number(session.seconds);
+    const minutes = seconds > 0 ? seconds / 60 : Number(session.minutes) || 0;
+    return sum + (Number.isFinite(minutes) ? Math.max(0, minutes) : 0);
+  }, 0);
+  const focusScore = focusMinutes > 0 ? Math.min(100, focusMinutes / 300 * 100) : null;
+  const sources = [weeklyHabitRate, focusScore].filter((value): value is number => value != null);
+  return {
+    score: sources.length ? sources.reduce((sum, value) => sum + value, 0) / sources.length : null,
+    weeklyHabitRate,
+    focusMinutes,
+    focusScore,
+  };
+}
+
 // ---- Tasks ----
 export function taskStats(tasks: Rec[]) {
   // Journal entries are dated tasks for organization, not work items for metrics.
@@ -183,7 +221,11 @@ export function taskStats(tasks: Rec[]) {
 }
 
 // ---- Scores (missing data → null, never zero) ----
-export function scores(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLogs: Rec[]; transactions: Rec[] }, st: Settings) {
+export function scores(
+  d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLogs: Rec[]; transactions: Rec[] },
+  st: Settings,
+  focusSessions: FocusSession[] = [],
+) {
   const fin = monthFinance(d.transactions, st, 0);
   const finance = fin.savingsRate == null || !fin.complete ? null : Math.max(0, Math.min(100, 50 + fin.savingsRate * 166));
   // Score measurable progress itself, including completed goals. Exclude only goals with no measurable evidence.
@@ -200,11 +242,19 @@ export function scores(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLogs
       ? ts.completionRate * 100
       : null;
   const hs = d.habits.filter((h) => !h.archived).map((h) => habitStats(h, d.habitLogs)).filter((x) => x.hasHistory);
-  const habits = hs.length ? (hs.reduce((s, x) => s + x.rate30, 0) / hs.length) * 100 : null;
-  const parts = { finance, goals, tasks, habits };
-  const avail = Object.values(parts).filter((v): v is number => v != null);
+  const habits = hs.length ? (hs.reduce((sum, stat) => sum + stat.rate30, 0) / hs.length) * 100 : null;
+  const consistency = consistencyStats(d.habits, d.habitLogs, focusSessions);
+  const parts = { finance, goals, tasks, habits, consistency: consistency.score };
+  const avail = Object.values(parts).filter((value): value is number => value != null);
+  const coverageTotal = Object.keys(parts).length;
   // Do not publish a partial overall score: it can look perfect while key areas have no data.
-  return { parts, overall: avail.length === Object.keys(parts).length ? avail.reduce((a, b) => a + b, 0) / avail.length : null, coverage: avail.length };
+  return {
+    parts,
+    overall: avail.length === coverageTotal ? avail.reduce((sum, value) => sum + value, 0) / coverageTotal : null,
+    coverage: avail.length,
+    coverageTotal,
+    consistency,
+  };
 }
 
 // ---- Rule-based decision engine ----
