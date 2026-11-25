@@ -41,7 +41,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       console.error('Failed to initialize the local database:', error);
       setData({
         goals: [], tasks: [], habits: [], habitLogs: [], transactions: [],
-        accounts: [], paymentReminders: [], customItems: [], assets: [],
+        accounts: [], paymentReminders: [], customItems: [], notes: [], assets: [],
         liabilities: [], settings: null,
       } as Data);
       if (!timedOut) toast.error('Local storage is unavailable. MeAlpha opened in temporary view mode; changes may not be saved.');
