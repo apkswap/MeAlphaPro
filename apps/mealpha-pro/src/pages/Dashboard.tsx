@@ -18,15 +18,15 @@ import MoneyEquivalents from '../components/MoneyEquivalents';
 import { cn } from '@project/components/lib/utils';
 
 export default function Dashboard() {
-  const { data, t, settings, save, remove } = useStore();
+  const { data, t, settings, save, remove, saveLocalNote, removeLocalNote } = useStore();
   const d = data!, L = settings.language, cur = settings.currency, fa = L === 'fa';
   const [showMoney, setShowMoney] = useState(false);
   const [selectedDay, setSelectedDay] = useState(() => todayISO());
   const [newDailyTask, setNewDailyTask] = useState('');
   const [journalText, setJournalText] = useState('');
   const dailyTasks = (d.tasks || []).filter((item) => item.dueDate === selectedDay && item.dailyEntryType === 'checklist');
-  const dailyJournal = (d.tasks || []).find((item) => item.dueDate === selectedDay && item.dailyEntryType === 'journal');
-  useEffect(() => { setJournalText(dailyJournal?.notes || ''); }, [selectedDay, dailyJournal?.id, dailyJournal?.notes]);
+  const dailyJournal = (d.localNotes || []).find((item) => item.date === selectedDay && item.kind === 'daily-journal');
+  useEffect(() => { setJournalText(dailyJournal?.content || ''); }, [selectedDay, dailyJournal?.id, dailyJournal?.content]);
   const moneyText = (amount: number) => showMoney ? fmtMoney(L, amount, cur) : '••••••';
   const addDailyTask = async () => {
     const title = newDailyTask.trim();
@@ -35,9 +35,9 @@ export default function Dashboard() {
     if (ok) setNewDailyTask('');
   };
   const saveJournal = async () => {
-    if (!journalText.trim()) { if (dailyJournal?.id) await remove('tasks', dailyJournal.id); return; }
-    const payload = { ...(dailyJournal || {}), id: dailyJournal?.id || crypto.randomUUID(), dailyEntryType: 'journal', dueDate: selectedDay, status: dailyJournal?.status || 'Todo', priority: 'Low', notes: journalText, title: fa ? 'یادداشت روزانه' : 'Daily journal' };
-    await save('tasks', payload, dailyJournal?.id);
+    if (!journalText.trim()) { if (dailyJournal?.id) await removeLocalNote(dailyJournal.id); return; }
+    const payload = { ...(dailyJournal || {}), id: dailyJournal?.id || crypto.randomUUID(), kind: 'daily-journal', date: selectedDay, content: journalText, title: fa ? 'یادداشت روزانه' : 'Daily journal' };
+    await saveLocalNote(payload, dailyJournal?.id);
   };
   const sc = scores(d, settings), ts = taskStats(d.tasks), m = monthFinance(d.transactions, settings);
   const nw = netWorth(d.assets, d.liabilities, settings, d.transactions);
