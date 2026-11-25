@@ -120,7 +120,7 @@ export default function Insights() {
         <div className="flex flex-col md:flex-row gap-6 md:items-center">
           <div className="text-center md:w-40">
             <div className="text-5xl font-black bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">{sc.overall == null ? '—' : fmtNum(L, sc.overall)}</div>
-            <div className="text-xs text-muted-foreground mt-1">{fa ? `پوشش داده: ${fmtNum(L, sc.coverage)} از ${sc.coverageTotal}` : `Data coverage: ${sc.coverage} of ${sc.coverageTotal}`}</div>
+            <div className="text-xs text-muted-foreground mt-1">{fa ? `پوشش داده: ${fmtNum(L, sc.coverage)} از ${fmtNum(L, sc.coverageTotal)}` : `Data coverage: ${fmtNum(L, sc.coverage)} of ${fmtNum(L, sc.coverageTotal)}`}</div>
           </div>
           <div className="flex-1 grid sm:grid-cols-2 gap-4">
             {Object.entries(sc.parts).map(([k, v]) => (
