@@ -99,7 +99,7 @@ export default function Tasks() {
     { key: 'title', label: t('title'), render: (r) => (
       <div className="flex min-w-[190px] items-center gap-2">
         <Checkbox checked={r.status === 'Done'} onCheckedChange={() => toggle(r)} />
-        <div className={cn('min-w-0', r.status === 'Done' && 'line-through text-muted-foreground')}><div className="font-medium">{r.title}</div>{r.goalId && <div className="text-xs text-primary">{data!.goals.find((g) => g.id === r.goalId)?.title}</div>}</div>
+        <div className={cn('min-w-0', r.status === 'Done' && 'line-through text-muted-foreground')}><div className="font-medium">{r.title}</div>{r.dailyEntryType === 'journal' && <div className="text-[10px] font-semibold text-primary">{L === 'fa' ? 'روزنوشت همان روز' : 'Daily journal'}</div>}{r.goalId && <div className="text-xs text-primary">{data!.goals.find((g) => g.id === r.goalId)?.title}</div>}</div>
         <TaskReminders task={r} language={L} onSave={saveTask} />
       </div>) },
     { key: 'status', label: t('status'), render: (r) => opt(L, r.status) },
