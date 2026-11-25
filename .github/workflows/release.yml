@@ -1,4 +1,5 @@
 name: Release MeAlpha Pro
+# Android artifacts are production Release builds and require the official signing keystore.
 
 on:
   push:
