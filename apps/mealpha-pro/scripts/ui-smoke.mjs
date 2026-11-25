@@ -123,7 +123,36 @@ for (const viewport of viewports) {
         if (await searchInput.count()) {
           if (!(await searchInput.evaluate(el => el === document.activeElement))) failures.push(`${viewport.name}: search input did not receive focus`);
           await searchInput.fill('داشبورد');
-          if (!(await page.getByRole('option', { name: /داشبورد|Dashboard/ }).count())) failures.push(`${viewport.name}: page search did not return dashboard`);
+          const dashboardOption = page.getByRole('option', { name: /داشبورد|Dashboard/ }).first();
+          if (!(await dashboardOption.count())) failures.push(`${viewport.name}: page search did not return dashboard`);
+          else {
+            const overlayMetrics = await page.getByTestId('global-search-overlay').evaluate(el => {
+              const r = el.getBoundingClientRect();
+              const style = getComputedStyle(el);
+              return { parent: el.parentElement?.tagName, position: style.position, zIndex: Number(style.zIndex), top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height, viewportWidth: innerWidth, viewportHeight: innerHeight };
+            });
+            const dialogMetrics = await page.getByTestId('global-search-dialog').evaluate(el => {
+              const r = el.getBoundingClientRect();
+              return { top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight };
+            });
+            const optionMetrics = await dashboardOption.evaluate(el => {
+              const r = el.getBoundingClientRect();
+              return { top: r.top, bottom: r.bottom, height: r.height, visible: r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight };
+            });
+            if (overlayMetrics.parent !== 'BODY' || overlayMetrics.position !== 'fixed' || overlayMetrics.zIndex < 9999 ||
+                overlayMetrics.top > 0 || overlayMetrics.left > 0 || overlayMetrics.right < overlayMetrics.viewportWidth - 1 ||
+                overlayMetrics.bottom < overlayMetrics.viewportHeight - 1) {
+              failures.push(`${viewport.name}: search overlay is trapped by an app layout/stacking context ${JSON.stringify(overlayMetrics)}`);
+            }
+            if (dialogMetrics.top < 0 || dialogMetrics.left < 0 || dialogMetrics.right > viewport.width + 1 ||
+                dialogMetrics.bottom > viewport.height + 1 || dialogMetrics.height > viewport.height) {
+              failures.push(`${viewport.name}: search dialog exceeds the visible viewport ${JSON.stringify(dialogMetrics)}`);
+            }
+            if (!optionMetrics.visible) failures.push(`${viewport.name}: search result is clipped or outside the visible dialog ${JSON.stringify(optionMetrics)}`);
+            if ((await page.evaluate(() => getComputedStyle(document.body).overflow)) !== 'hidden') {
+              failures.push(`${viewport.name}: background page remains scrollable while search is open`);
+            }
+          }
           await page.mouse.click(5, 5);
           await searchDialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: pointer outside did not close search`));
           await page.keyboard.press('Control+k');
