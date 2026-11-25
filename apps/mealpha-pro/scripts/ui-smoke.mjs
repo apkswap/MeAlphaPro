@@ -556,71 +556,7 @@ for (const viewport of viewports) {
     db.close();
   }, focusTaskId);
 
-  // Regression: logging a focus session must update actualMinutes without replacing the task record.
-  const focusTaskId = `smoke-focus-task-${viewport.name}`;
-  const focusTaskTitle = `Focus session persistence ${viewport.name}`;
-  await page.evaluate(async ({ id, title, dueDate }) => {
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 6);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    await new Promise((resolve, reject) => {
-      const tx = db.transaction('tasks', 'readwrite');
-      tx.objectStore('tasks').put({
-        id, title, status: 'Todo', priority: 'High', dueDate,
-        notes: 'Preserve focus-linked task metadata', estimatedMinutes: 90, actualMinutes: 30,
-        goalId: 'smoke-focus-linked-goal',
-        reminders: [{ id: 'focus-task-reminder', at: '2030-03-01T09:00:00.000Z', enabled: true, repeat: 'monthly' }]
-      });
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
-    });
-    db.close();
-  }, { id: focusTaskId, title: focusTaskTitle, dueDate: today });
-  await page.goto('http://127.0.0.1:8080/focus', { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: /افزودن جلسه|Add session/ }).click();
-  await page.getByRole('combobox').last().click();
-  await page.getByRole('option', { name: focusTaskTitle, exact: true }).click();
-  await page.getByRole('button', { name: /ثبت جلسه|Save session/ }).click();
-  await page.waitForFunction(async ({ id, title }) => {
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 6);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    const record = await new Promise((resolve, reject) => {
-      const tx = db.transaction('tasks', 'readonly');
-      const request = tx.objectStore('tasks').get(id);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    db.close();
-    return record?.title === title && record?.status === 'Todo' && record?.priority === 'High'
-      && record?.dueDate === new Date().toISOString().slice(0, 10)
-      && record?.notes === 'Preserve focus-linked task metadata'
-      && record?.estimatedMinutes === 90 && record?.actualMinutes === 55
-      && record?.goalId === 'smoke-focus-linked-goal'
-      && record?.reminders?.[0]?.id === 'focus-task-reminder'
-      && record?.reminders?.[0]?.repeat === 'monthly';
-  }, { id: focusTaskId, title: focusTaskTitle }, { timeout: 7000 }).catch(() => failures.push(`${viewport.name}: focus session update erased existing task fields`));
-  await page.evaluate(async id => {
-    const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 6);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    await new Promise((resolve, reject) => {
-      const tx = db.transaction('tasks', 'readwrite');
-      tx.objectStore('tasks').delete(id);
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error);
-    });
-    db.close();
-  }, focusTaskId);
-
-  await page.goto('http://127.0.0.1:8080/settings', { waitUntil: 'networkidle' });
+    await page.goto('http://127.0.0.1:8080/settings', { waitUntil: 'networkidle' });
   const palettes = [
     { id: 'violet', label: 'بنفش' },
     { id: 'blue', label: 'آبی' },
