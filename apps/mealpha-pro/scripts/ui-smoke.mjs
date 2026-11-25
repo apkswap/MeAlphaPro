@@ -110,6 +110,24 @@ const currencyChecks = await conversionPage.evaluate(async () => {
   };
   const missingRateFindings = findings(missingRateData, { ...settings, monthlyBudget: 1 }, 'en');
   const missingRateFinanceScore = scores(missingRateData, settings).parts.finance;
+  const scoreToday = todayISO();
+  const focusSessions = [{ date: new Date().toISOString(), seconds: 18000 }];
+  const scoreFixture = {
+    goals: [{ id: 'score-goal', targetValue: 100, currentValue: 100 }],
+    tasks: [0, 1, 2].map(index => ({ id: 'score-task-' + index, status: 'Done', dueDate: scoreToday })),
+    habits: [{ id: 'score-habit', frequency: 'Daily', targetPerPeriod: 1, archived: false }],
+    habitLogs: [],
+    transactions: []
+  };
+  const partialScore = scores(scoreFixture, settings, focusSessions);
+  const completeScore = scores({
+    ...scoreFixture,
+    habitLogs: [{ id: 'score-habit-log', habitId: 'score-habit', date: scoreToday }],
+    transactions: [
+      { id: 'score-income', date: scoreToday, kind: 'Income', amount: 1000, currency: 'IRT' },
+      { id: 'score-expense', date: scoreToday, kind: 'Expense', amount: 500, currency: 'IRT' }
+    ]
+  }, settings, focusSessions);
   return {
     parsedPair: parsed.some(pair => pair.from === 'USD' && pair.to === 'IRT' && pair.rate === 26000),
     direct,
@@ -121,7 +139,12 @@ const currencyChecks = await conversionPage.evaluate(async () => {
     wealthIncomplete: incompleteWealth.complete === false && incompleteWealth.missing.includes('CAD'),
     budgetFindingCurrency: budgetFinding?.money?.spent === 500 && budgetFinding.money.budget === 400 && budgetFinding.money.currency === 'IRT',
     missingRateBudgetSuppressed: !missingRateFindings.some(item => item.id.startsWith('budget-')),
-    missingRateFinanceScoreIsNull: missingRateFinanceScore === null
+    missingRateFinanceScoreIsNull: missingRateFinanceScore === null,
+    scoreDomainsMatch: Object.keys(partialScore.parts).join(',') === 'finance,goals,tasks,habits,consistency',
+    partialScoreCoverage: partialScore.coverage === 3 && partialScore.coverageTotal === 5,
+    partialOverallHidden: partialScore.overall === null,
+    consistencyUsesFocusSessions: partialScore.parts.consistency === 100,
+    completeScoreCoverage: completeScore.coverage === 5 && Number.isFinite(completeScore.overall)
   };
 });
 if (!currencyChecks.parsedPair || currencyChecks.direct !== 26000 || currencyChecks.reverse !== 1 ||
@@ -129,6 +152,10 @@ if (!currencyChecks.parsedPair || currencyChecks.direct !== 26000 || currencyChe
     !currencyChecks.monthIncomplete || !currencyChecks.wealthIncomplete || !currencyChecks.budgetFindingCurrency ||
     !currencyChecks.missingRateBudgetSuppressed || !currencyChecks.missingRateFinanceScoreIsNull) {
   failures.push('Currency conversion regression: ' + JSON.stringify(currencyChecks));
+}
+if (!currencyChecks.scoreDomainsMatch || !currencyChecks.partialScoreCoverage || !currencyChecks.partialOverallHidden ||
+    !currencyChecks.consistencyUsesFocusSessions || !currencyChecks.completeScoreCoverage) {
+  failures.push('Five-domain shared Life Score regression: ' + JSON.stringify(currencyChecks));
 }
 await conversionPage.close();
 
@@ -162,6 +189,7 @@ for (const viewport of viewports) {
       const intelligence = page.getByText(/Alpha Performance Intelligence|هوش عملکردی آلفا/).first();
       if (!(await lifeScore.count())) failures.push(`${viewport.name} dashboard: Life Score panel missing`);
       if (!(await intelligence.count())) failures.push(`${viewport.name} dashboard: performance intelligence panel missing`);
+      if (!(await page.getByText(/پوشش داده:.*از ۵ حوزه|Data coverage:.*of 5 areas/).first().count())) failures.push(`${viewport.name} dashboard: five-domain score coverage label missing`);
 
       const searchTrigger = page.getByRole('button', { name: /جستجوی سراسری|Global search/ });
       if (!(await searchTrigger.count())) {
@@ -291,6 +319,8 @@ for (const viewport of viewports) {
       await page.reload({ waitUntil: 'networkidle' });
     }
     if (route === '/insights') {
+      if (!(await page.getByText(/پوشش داده:.*از ۵|Data coverage:.*of 5/).first().count())) failures.push(`${viewport.name} insights: five-domain score coverage label missing`);
+      if (!(await page.getByText(/استمرار|Consistency/).first().count())) failures.push(`${viewport.name} insights: consistency domain missing from shared score`);
       for (const [label, pattern] of [['3-month', /3 (mo|ماه)/], ['6-month', /6 (mo|ماه)/], ['12-month', /12 (mo|ماه)/]]) {
         const periodButton = page.getByRole('button', { name: pattern });
         if (!(await periodButton.count())) {
