@@ -57,10 +57,28 @@ jobs:
             throw "Build completed but no Windows EXE installer was found."
           }
           $files | Format-Table Name, Length
+      - name: Prepare Windows installer artifact metadata
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem "apps/mealpha-pro/release" -Filter "*.exe" -File | Select-Object -First 1
+          if (-not $installer) { throw "Windows x64 installer was not found." }
+          $version = node -p "require('./apps/mealpha-pro/package.json').version"
+          $sha256 = (Get-FileHash -Path $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          New-Item -ItemType Directory -Force "release-assets" | Out-Null
+          Copy-Item $installer.FullName "release-assets/$($installer.Name)"
+          @(
+            "Application: MeAlpha Pro"
+            "Version: $version"
+            "Architecture: x64"
+            "Installer: $($installer.Name)"
+            "SHA256: $sha256"
+            "Git commit: $env:GITHUB_SHA"
+            "Build type: NSIS installer; packaged Windows app smoke-tested"
+          ) | Set-Content -Path "release-assets/BUILD-INFO.txt" -Encoding utf8
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
           name: MeAlpha-Pro-Windows-x64
-          path: apps/mealpha-pro/release/*.exe
+          path: release-assets/*
           if-no-files-found: error
           retention-days: 14
