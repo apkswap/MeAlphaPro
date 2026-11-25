@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, X, ArrowRight, Command as CommandIcon } from 'lucide-react';
 import { useStore } from '../lib/store';
@@ -189,13 +190,28 @@ export default function GlobalSearch() {
         <span className="hidden min-w-0 flex-1 truncate text-xs sm:block">{fa ? 'جستجو در برنامه...' : 'Search your workspace...'}</span>
         <kbd className="hidden rounded border px-1.5 py-0.5 text-[9px] sm:inline">Ctrl K</kbd>
       </button>
-      {open && (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/60 px-3 py-[min(8vh,4rem)] backdrop-blur-md"
+      {open && createPortal(
+        <div data-testid="global-search-overlay"
+          className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-black/65 p-3 backdrop-blur-md sm:p-6"
           role="presentation" onPointerDown={event => { if (event.target === event.currentTarget) closeSearch(); }}>
-          <section ref={undefined} role="dialog" aria-modal="true" aria-label={fa ? 'جستجوی سراسری' : 'Global search'}
+          <section data-testid="global-search-dialog" role="dialog" aria-modal="true" aria-label={fa ? 'جستجوی سراسری' : 'Global search'}
             dir={fa ? 'rtl' : 'ltr'}
-            className="w-full max-w-[42rem] overflow-hidden rounded-[26px] border bg-popover text-popover-foreground shadow-2xl shadow-black/30">
-            <div className="flex items-center gap-3 border-b px-4 sm:px-5">
+            onKeyDown={event => {
+              if (event.key !== 'Tab') return;
+              const focusable = event.currentTarget.querySelectorAll<HTMLElement>('input:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+              if (!focusable.length) return;
+              const first = focusable[0];
+              const last = focusable[focusable.length - 1];
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+              }
+            }}
+            className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-[42rem] flex-col overflow-hidden rounded-[26px] border bg-popover text-popover-foreground shadow-2xl shadow-black/40 sm:max-h-[calc(100dvh-3rem)]">
+            <div className="flex shrink-0 items-center gap-3 border-b px-4 sm:px-5">
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Search className="h-5 w-5" /></div>
               <input ref={inputRef} role="combobox" aria-expanded={open} aria-autocomplete="list" aria-controls="mealpha-search-results"
                 aria-activedescendant={activeResult ? 'mealpha-search-option-' + activeIndex : undefined}
@@ -216,9 +232,9 @@ export default function GlobalSearch() {
                 placeholder={fa ? 'نام هدف، کار، حساب یا هر چیزی را بنویس...' : 'Search goals, tasks, accounts and more...'}
                 className="h-[4.25rem] min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                 aria-label={fa ? 'عبارت جستجو' : 'Search query'} autoComplete="off" spellCheck={false} />
-              <button type="button" onClick={closeSearch} className="rounded-xl border border-transparent p-2.5 text-muted-foreground transition-colors hover:border-border hover:bg-secondary" aria-label={fa ? 'بستن' : 'Close'}><X className="h-4 w-4" /></button>
+              <button type="button" onClick={closeSearch} className="shrink-0 rounded-xl border border-transparent p-2.5 text-muted-foreground transition-colors hover:border-border hover:bg-secondary" aria-label={fa ? 'بستن' : 'Close'}><X className="h-4 w-4" /></button>
             </div>
-            <div id="mealpha-search-results" role="listbox" aria-label={fa ? 'نتایج جستجو' : 'Search results'} className="max-h-[min(62vh,500px)] overflow-y-auto p-2 sm:p-3">
+            <div id="mealpha-search-results" role="listbox" aria-label={fa ? 'نتایج جستجو' : 'Search results'} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 sm:p-3">
               {!query.trim() ? (
                 <p className="px-3 py-10 text-center text-sm text-muted-foreground">{fa ? 'برای جستجو شروع به تایپ کن؛ میانبر Ctrl/⌘ + K هم فعاله.' : 'Start typing to search. Ctrl/⌘ + K also opens search.'}</p>
               ) : results.length === 0 ? (
@@ -241,12 +257,13 @@ export default function GlobalSearch() {
                 </div>
               )}
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-[10px] text-muted-foreground sm:px-5">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-[10px] text-muted-foreground sm:px-5">
               <span>{fa ? 'جستجو در اطلاعات ذخیره‌شده روی دستگاه' : 'Searches locally stored app data'}</span>
               <span className="flex items-center gap-3"><span>↑ ↓ {fa ? 'انتخاب' : 'Navigate'}</span><span>Enter {fa ? 'بازکردن' : 'Open'}</span><span>Esc {fa ? 'بستن' : 'Close'}</span><CommandIcon className="h-3 w-3" />K</span>
             </div>
           </section>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
