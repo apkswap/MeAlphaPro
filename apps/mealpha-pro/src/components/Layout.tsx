@@ -262,7 +262,19 @@ export default function Layout() {
 
           </div>
         </header>
-        {mobileMenu && <div role="dialog" aria-label={fa ? 'منوی اصلی' : 'Main menu'} className="fixed inset-x-0 top-[68px] z-50 max-h-[calc(100dvh-68px)] overflow-y-auto overscroll-contain border-b bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl md:hidden"><div className="grid grid-cols-2 gap-2">{NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({isActive}) => cn('flex items-center gap-2 rounded-xl p-3 text-sm', isActive ? 'bg-primary/10 text-primary' : 'bg-card text-muted-foreground')}><n.icon className="h-4 w-4" />{n.labelFa ? (fa ? n.labelFa : n.labelEn) : t(n.k)}</NavLink>)}</div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}
+        {mobileMenu && <div role="dialog" aria-label={fa ? 'منوی اصلی' : 'Main menu'} className="fixed inset-x-0 top-[68px] z-50 max-h-[calc(100dvh-68px)] overflow-y-auto overscroll-contain border-b bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl md:hidden"><div className="grid grid-cols-2 gap-2">
+          {NAV.filter(n => !n.parent).map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({isActive}) => cn('flex items-center gap-2 rounded-xl p-3 text-sm', isActive ? 'bg-primary/10 text-primary' : 'bg-card text-muted-foreground')}><n.icon className="h-4 w-4" />{t(n.k)}</NavLink>)}
+          <div className="col-span-2 rounded-xl border bg-card/60 p-2">
+            <button type="button" aria-expanded={financeOpen} onClick={() => setFinanceOpen(value => !value)} className="flex w-full items-center gap-2 rounded-lg p-2 text-sm font-semibold">
+              <Wallet className="h-4 w-4 text-primary" /><span className="flex-1 text-start">{fa ? 'مدیریت مالی' : 'Financial management'}</span><ChevronDown className={cn('h-4 w-4 transition-transform', financeOpen && 'rotate-180')} />
+            </button>
+            {financeOpen && <div className="mt-2 grid grid-cols-3 gap-2">
+              {NAV.filter(n => n.parent === 'finance').map(n => <NavLink key={n.to} to={n.to} className={({isActive}) => cn('flex min-w-0 flex-col items-center gap-1 rounded-lg bg-background p-2 text-center text-xs', isActive ? 'text-primary ring-1 ring-primary/30' : 'text-muted-foreground')}>
+                <n.icon className="h-4 w-4" /><span className="truncate">{fa ? n.labelFa : n.labelEn}</span>
+              </NavLink>)}
+            </div>}
+          </div>
+        </div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}
         <main className="mx-auto w-full max-w-[1600px] px-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
         <nav aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'} className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 gap-1 border-t bg-background/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),8px)] shadow-[0_-8px_30px_-20px_hsl(var(--foreground)/0.35)] backdrop-blur-xl md:hidden">
           {MOBILE_NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cn('flex min-w-0 min-h-[3.35rem] flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 text-[10px] font-medium transition-colors', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}>

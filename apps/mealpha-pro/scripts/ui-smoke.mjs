@@ -1,6 +1,47 @@
 import { chromium } from 'playwright';
 
 const browser = await chromium.launch({ headless: true });
+// Upgrade regression: preserve v4 daily entries while moving them into dated Tasks.
+const migrationPage = await browser.newPage();
+await migrationPage.goto('http://127.0.0.1:8080/favicon.ico');
+await migrationPage.evaluate(async () => {
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('mealpha-pro-local', 4);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      for (const name of ['goals','tasks','habits','habitLogs','transactions','accounts','paymentReminders','customItems','notes','assets','liabilities','appMeta']) {
+        if (!database.objectStoreNames.contains(name)) database.createObjectStore(name, { keyPath: name === 'appMeta' ? 'key' : 'id' });
+      }
+      request.transaction.objectStore('customItems').put({ id: 'legacy-checklist-smoke', kind: 'dashboard-daily-entry', entryType: 'checklist', date: '2026-11-25', title: 'Legacy checklist migration', done: false });
+      request.transaction.objectStore('notes').put({ id: 'legacy-journal-smoke', kind: 'daily-journal', date: '2026-11-25', title: 'Daily journal', notes: 'Legacy journal migration' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  db.close();
+});
+await migrationPage.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+const migrated = await migrationPage.evaluate(async () => {
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('mealpha-pro-local', 5);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const result = await new Promise((resolve, reject) => {
+    const tx = db.transaction(['tasks','notes','customItems'], 'readonly');
+    const tasks = tx.objectStore('tasks').getAll(), notes = tx.objectStore('notes').getAll(), workspace = tx.objectStore('customItems').getAll();
+    tx.oncomplete = () => resolve({ tasks: tasks.result, notes: notes.result, workspace: workspace.result });
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+  return result.tasks.some(item => item.dailyEntryType === 'checklist' && item.title === 'Legacy checklist migration' && item.dueDate === '2026-11-25')
+    && result.tasks.some(item => item.dailyEntryType === 'journal' && item.notes === 'Legacy journal migration' && item.dueDate === '2026-11-25')
+    && !result.notes.some(item => item.id === 'legacy-journal-smoke')
+    && !result.workspace.some(item => item.id === 'legacy-checklist-smoke');
+});
+if (!migrated) throw new Error('v4 daily entries were not migrated into dated Tasks');
+await migrationPage.close();
+
 const failures = [];
 const routes = ['/', '/goals', '/tasks', '/habits', '/focus', '/transactions', '/wealth', '/insights', '/settings', '/workspace'];
 const viewports = [
@@ -180,7 +221,7 @@ for (const viewport of viewports) {
       const smokeHabitId = `smoke-calendar-${viewport.name}`;
       await page.evaluate(async id => {
         const db = await new Promise((resolve, reject) => {
-          const request = indexedDB.open('mealpha-pro-local', 4);
+          const request = indexedDB.open('mealpha-pro-local', 5);
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
         });
@@ -209,7 +250,7 @@ for (const viewport of viewports) {
       }
       await page.evaluate(async id => {
         const db = await new Promise((resolve, reject) => {
-          const request = indexedDB.open('mealpha-pro-local', 4);
+          const request = indexedDB.open('mealpha-pro-local', 5);
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
         });
@@ -279,7 +320,7 @@ for (const viewport of viewports) {
   const today = new Date().toISOString().slice(0, 10);
   await page.evaluate(async ({ id, title, dueDate }) => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 4);
+      const request = indexedDB.open('mealpha-pro-local', 5);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -304,7 +345,7 @@ for (const viewport of viewports) {
   await taskRow.getByRole('checkbox').click();
   await page.waitForFunction(async ({ id, title }) => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 4);
+      const request = indexedDB.open('mealpha-pro-local', 5);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -320,7 +361,7 @@ for (const viewport of viewports) {
   }, { id: taskId }, { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: dashboard completion erased task fields or reminders`));
   await page.evaluate(async id => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 4);
+      const request = indexedDB.open('mealpha-pro-local', 5);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -338,7 +379,7 @@ for (const viewport of viewports) {
   const listTaskTitle = `Task list persistence ${viewport.name}`;
   await page.evaluate(async ({ id, title, dueDate }) => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 4);
+      const request = indexedDB.open('mealpha-pro-local', 5);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -362,7 +403,7 @@ for (const viewport of viewports) {
   await listTaskRow.getByRole('checkbox').click();
   await page.waitForFunction(async ({ id, title }) => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 4);
+      const request = indexedDB.open('mealpha-pro-local', 5);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -382,7 +423,7 @@ for (const viewport of viewports) {
   }, { id: listTaskId, title: listTaskTitle }, { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Tasks page completion erased task fields, goal link or reminder settings`));
   await page.evaluate(async id => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 4);
+      const request = indexedDB.open('mealpha-pro-local', 5);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -485,7 +526,7 @@ for (const viewport of viewports) {
       // Regression: qualitative subgoals use checklist items instead of target/current numeric values.
       await page.evaluate(async title => {
         const db = await new Promise((resolve, reject) => {
-          const request = indexedDB.open('mealpha-pro-local', 4);
+          const request = indexedDB.open('mealpha-pro-local', 5);
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
         });
@@ -529,7 +570,7 @@ for (const viewport of viewports) {
         await page.reload({ waitUntil: 'networkidle' });
         const checklistState = await page.evaluate(async title => {
           const db = await new Promise((resolve, reject) => {
-            const request = indexedDB.open('mealpha-pro-local', 4);
+            const request = indexedDB.open('mealpha-pro-local', 5);
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
           });
@@ -643,41 +684,45 @@ for (const viewport of viewports) {
       }
     }
   }
-  // Regression: daily journal content belongs to the dedicated notes store, never Workspace/customItems.
+  // Regression: daily checklist and journal both live in Tasks, associated with the selected date.
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
   const journalSection = page.locator('summary').filter({ hasText: /یادداشت و چک‌لیست روزانه|Daily notes & checklist/ });
   if (await journalSection.count()) await journalSection.click();
+  const checklistInput = page.getByPlaceholder(/کار جدید برای امروز|Add a task for this day/);
   const journalInput = page.getByPlaceholder(/اتفاقات، افکار یا نکات امروزت را اینجا بنوی|Write down your day, thoughts or notes/);
+  const checklistProbe = `Smoke checklist ${viewport.name} ${Date.now()}`;
   const journalProbe = `Smoke journal ${viewport.name} ${Date.now()}`;
-  if (await journalInput.count()) {
+  if (await checklistInput.count() && await journalInput.count()) {
+    await checklistInput.fill(checklistProbe);
+    await page.getByRole('button', { name: /افزودن|Add/ }).last().click();
     await journalInput.fill(journalProbe);
     await page.getByRole('button', { name: /ذخیره یادداشت|Save journal/ }).click();
-    await page.waitForFunction(async probe => {
+    await page.waitForFunction(async ({ checklistProbe, journalProbe }) => {
       const db = await new Promise((resolve, reject) => {
-        const request = indexedDB.open('mealpha-pro-local', 4);
+        const request = indexedDB.open('mealpha-pro-local', 5);
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
       });
       const result = await new Promise((resolve, reject) => {
-        const tx = db.transaction(['notes', 'customItems'], 'readonly');
+        const tx = db.transaction(['tasks', 'notes', 'customItems'], 'readonly');
+        const tasksRequest = tx.objectStore('tasks').getAll();
         const notesRequest = tx.objectStore('notes').getAll();
         const workspaceRequest = tx.objectStore('customItems').getAll();
-        tx.oncomplete = () => resolve({ notes: notesRequest.result, workspace: workspaceRequest.result });
+        tx.oncomplete = () => resolve({ tasks: tasksRequest.result, notes: notesRequest.result, workspace: workspaceRequest.result });
         tx.onerror = () => reject(tx.error);
       });
       db.close();
-      return result.notes.some(item => item.notes === probe && item.kind === 'daily-journal')
-        && !result.workspace.some(item => item.notes === probe);
-    }, journalProbe, { timeout: 7000 }).catch(() => failures.push(`${viewport.name}: daily journal was not saved to its dedicated notes database store`));
+      return result.tasks.some(item => item.title === checklistProbe && item.dailyEntryType === 'checklist' && !!item.dueDate)
+        && result.tasks.some(item => item.notes === journalProbe && item.dailyEntryType === 'journal' && !!item.dueDate)
+        && !result.workspace.some(item => item.title === checklistProbe || item.notes === journalProbe)
+        && !result.notes.some(item => item.notes === journalProbe);
+    }, { checklistProbe, journalProbe }, { timeout: 7000 }).catch(() => failures.push(`${viewport.name}: daily checklist/journal were not saved as dated Tasks outside Workspace`));
     await page.reload({ waitUntil: 'networkidle' });
-    const journalSectionAfterReload = page.locator('summary').filter({ hasText: /یادداشت و چک‌لیست روزانه|Daily notes & checklist/ });
-    if (await journalSectionAfterReload.count()) await journalSectionAfterReload.click();
-    if ((await page.getByPlaceholder(/اتفاقات، افکار یا نکات امروزت را اینجا بنوی|Write down your day, thoughts or notes/).inputValue()) !== journalProbe) {
-      failures.push(`${viewport.name}: daily journal did not persist after reload`);
-    }
-  } else {
-    failures.push(`${viewport.name}: daily journal editor is missing`);
-  }
+    const sectionAfterReload = page.locator('summary').filter({ hasText: /یادداشت و چک‌لیست روزانه|Daily notes & checklist/ });
+    if (await sectionAfterReload.count()) await sectionAfterReload.click();
+    if ((await page.getByPlaceholder(/اتفاقات، افکار یا نکات امروزت را اینجا بنوی|Write down your day, thoughts or notes/).inputValue()) !== journalProbe) failures.push(`${viewport.name}: daily journal did not persist after reload`);
+    if (!(await page.getByText(checklistProbe, { exact: true }).count())) failures.push(`${viewport.name}: daily checklist did not persist after reload`);
+  } else failures.push(`${viewport.name}: daily checklist or journal editor is missing`);
   await page.close();
 }
 await browser.close();
