@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Languages, Layers3, Sun, Moon, Bell, Cloud, Menu, X, ChevronLeft, CalendarClock } from 'lucide-react';
+import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Wallet, ChevronDown, Sparkles, Settings, Languages, Layers3, Sun, Moon, Bell, Cloud, Menu, X, ChevronLeft, CalendarClock } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { cn } from '@project/components/lib/utils';
 import { useStore } from '../lib/store';
@@ -11,14 +11,15 @@ import GlobalSearch from './GlobalSearch';
 import { toast } from 'sonner';
 import { nextTaskReminderDate, syncNativeTaskReminders } from '../lib/taskNotifications';
 
-const NAV: { to: string; k: Key; icon: typeof Target; group: 'main' | 'manage' | 'system' }[] = [
+const NAV: { to: string; k: Key; icon: typeof Target; group: 'main' | 'manage' | 'system'; parent?: 'finance'; labelFa?: string; labelEn?: string }[] = [
   { to: '/', k: 'dashboard', icon: LayoutDashboard, group: 'main' },
   { to: '/goals', k: 'goals', icon: Target, group: 'manage' },
   { to: '/tasks', k: 'tasks', icon: ListChecks, group: 'manage' },
   { to: '/habits', k: 'habits', icon: Repeat, group: 'manage' },
   { to: '/focus', k: 'focus', icon: Timer, group: 'manage' },
-  { to: '/transactions', k: 'finance', icon: Receipt, group: 'manage' },
-  { to: '/wealth', k: 'wealth', icon: Landmark, group: 'manage' },
+  { to: '/transactions', k: 'finance', icon: Receipt, group: 'manage', parent: 'finance', labelFa: 'تراکنش‌ها', labelEn: 'Transactions' },
+  { to: '/wealth?tab=assets', k: 'wealth', icon: Landmark, group: 'manage', parent: 'finance', labelFa: 'دارایی‌ها', labelEn: 'Assets' },
+  { to: '/wealth?tab=liabilities', k: 'wealth', icon: Landmark, group: 'manage', parent: 'finance', labelFa: 'بدهی‌ها', labelEn: 'Liabilities' },
   { to: '/insights', k: 'insights', icon: Sparkles, group: 'manage' },
   { to: '/workspace', k: 'workspace', icon: Layers3, group: 'system' },
   { to: '/settings', k: 'settings', icon: Settings, group: 'system' },
@@ -30,6 +31,7 @@ export default function Layout() {
   const { t, settings, setLocalSettings, data, save } = useStore();
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [financeOpen, setFinanceOpen] = useState(false);
   const [activePopover, setActivePopover] = useState<'notifications' | 'profile' | null>(null);
   const firedTaskReminders = useRef(new Set<string>());
   const location = useLocation();
@@ -73,12 +75,14 @@ export default function Layout() {
   const toggleTheme = () => setLocalSettings({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' });
   const toggleLang = () => setLocalSettings({ ...settings, language: settings.language === 'fa' ? 'en' : 'fa' });
   const fa = settings.language === 'fa';
+  const financeActive = location.pathname === '/transactions' || location.pathname === '/wealth';
+  useEffect(() => { if (financeActive) setFinanceOpen(true); }, [financeActive]);
   const dropboxConnected = Boolean(settings.dropboxRefreshToken || settings.dropboxAccessToken);
   const today = todayISO();
   const notifications = useMemo(() => {
     if (!data) return [];
     const taskItems = data.tasks
-      .filter((task: any) => task.status !== 'Done' && task.dueDate && task.dueDate <= today)
+      .filter((task: any) => task.dailyEntryType !== 'journal' && task.status !== 'Done' && task.dueDate && task.dueDate <= today)
       .map((task: any) => ({
         id: `task:${task.id}`, title: task.title || (fa ? 'کار بدون عنوان' : 'Untitled task'),
         detail: task.dueDate < today ? (fa ? 'کار عقب‌افتاده' : 'Overdue task') : (fa ? 'موعد امروز' : 'Due today'),
@@ -97,7 +101,7 @@ export default function Layout() {
         to: '/transactions', overdue: reminder.dueDate < today,
       }));
     const scheduledTaskItems = data.tasks.flatMap((task: any) =>
-      (Array.isArray(task.reminders) ? task.reminders : [])
+      task.dailyEntryType === 'journal' ? [] : (Array.isArray(task.reminders) ? task.reminders : [])
         .filter((reminder: any) => reminder.enabled && reminder.at && nextTaskReminderDate(reminder) && nextTaskReminderDate(reminder)!.getTime() <= Date.now() + 24 * 60 * 60 * 1000)
         .map((reminder: any) => {
           const nextAt = nextTaskReminderDate(reminder)!;
@@ -171,15 +175,30 @@ export default function Layout() {
     <div key={group.id} className="mb-5">
       <div className="px-3 pb-2 text-[9px] font-bold tracking-[.16em] text-muted-foreground/70">{group.label}</div>
       <div className="space-y-1">
-        {NAV.filter(n => n.group === group.id).map(n => (
+        {NAV.filter(n => n.group === group.id && !n.parent).map(n => (
           <NavLink key={n.to} to={n.to} end={n.to === '/'} className={navLink}>
-            <n.icon className="h-[17px] w-[17px] shrink-0" />
-            <span className="truncate">{t(n.k)}</span>
+            <n.icon className="h-[17px] w-[17px] shrink-0" /><span className="truncate">{t(n.k)}</span>
           </NavLink>
         ))}
+        {group.id === 'manage' && <div className="space-y-1">
+          <button type="button" aria-expanded={financeOpen} onClick={() => setFinanceOpen(value => !value)}
+            className={cn('group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start text-[13px] font-medium transition-all duration-200', financeActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}>
+            <Wallet className="h-[17px] w-[17px] shrink-0" /><span className="flex-1 truncate">{fa ? 'مدیریت مالی' : 'Financial management'}</span>
+            <ChevronDown className={cn('h-4 w-4 transition-transform', financeOpen && 'rotate-180')} />
+          </button>
+          {financeOpen && <div className="ms-4 space-y-1 border-s border-border ps-3">
+            {NAV.filter(n => n.parent === 'finance').map(n => {
+              const selected = n.to === '/transactions' ? location.pathname === '/transactions' : location.pathname === '/wealth' && location.search === n.to.slice('/wealth'.length);
+              return <NavLink key={n.to} to={n.to} className={cn('flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors', selected ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}>
+                <n.icon className="h-3.5 w-3.5 shrink-0" /><span>{fa ? n.labelFa : n.labelEn}</span>
+              </NavLink>;
+            })}
+          </div>}
+        </div>}
       </div>
     </div>
   ));
+  const currentNav = NAV.find(n => n.to === location.pathname + location.search) ?? NAV.find(n => n.to === location.pathname);
   const profileLabel = settings.displayName || settings.username || (fa ? 'پروفایل من' : 'My profile');
   return (
     <div className="min-h-screen bg-background text-foreground md:flex">
@@ -208,7 +227,7 @@ export default function Layout() {
           <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-3">
             <button className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={fa ? 'بازکردن منو' : 'Open menu'}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
             <div className="md:hidden flex shrink-0 items-center gap-1 whitespace-nowrap text-[13px] font-black"><img src="/mealpha.svg" alt="" className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-lg shadow-primary/20" />MeAlpha <span className="text-primary">Pro</span></div>
-            <div className="hidden min-w-0 truncate text-xs text-muted-foreground lg:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{t(NAV.find(n => n.to === location.pathname)?.k ?? 'dashboard')}</span></div>
+            <div className="hidden min-w-0 truncate text-xs text-muted-foreground lg:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{currentNav ? (fa ? currentNav.labelFa || t(currentNav.k) : currentNav.labelEn || t(currentNav.k)) : t('dashboard')}</span></div>
           </div>
           <div className="relative flex items-center gap-2">
             <GlobalSearch />
@@ -243,7 +262,7 @@ export default function Layout() {
 
           </div>
         </header>
-        {mobileMenu && <div role="dialog" aria-label={fa ? 'منوی اصلی' : 'Main menu'} className="fixed inset-x-0 top-[68px] z-50 max-h-[calc(100dvh-68px)] overflow-y-auto overscroll-contain border-b bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl md:hidden"><div className="grid grid-cols-2 gap-2">{NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({isActive}) => cn('flex items-center gap-2 rounded-xl p-3 text-sm', isActive ? 'bg-primary/10 text-primary' : 'bg-card text-muted-foreground')}><n.icon className="h-4 w-4" />{t(n.k)}</NavLink>)}</div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}
+        {mobileMenu && <div role="dialog" aria-label={fa ? 'منوی اصلی' : 'Main menu'} className="fixed inset-x-0 top-[68px] z-50 max-h-[calc(100dvh-68px)] overflow-y-auto overscroll-contain border-b bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl md:hidden"><div className="grid grid-cols-2 gap-2">{NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({isActive}) => cn('flex items-center gap-2 rounded-xl p-3 text-sm', isActive ? 'bg-primary/10 text-primary' : 'bg-card text-muted-foreground')}><n.icon className="h-4 w-4" />{n.labelFa ? (fa ? n.labelFa : n.labelEn) : t(n.k)}</NavLink>)}</div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}
         <main className="mx-auto w-full max-w-[1600px] px-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
         <nav aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'} className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 gap-1 border-t bg-background/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),8px)] shadow-[0_-8px_30px_-20px_hsl(var(--foreground)/0.35)] backdrop-blur-xl md:hidden">
           {MOBILE_NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cn('flex min-w-0 min-h-[3.35rem] flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 text-[10px] font-medium transition-colors', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}>
