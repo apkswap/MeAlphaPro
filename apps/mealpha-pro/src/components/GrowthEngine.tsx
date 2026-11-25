@@ -4,21 +4,10 @@ import { Sparkles, CheckCircle2, ArrowUpRight } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { useStore } from '../lib/store';
 import { fmtMoney, fmtNum } from '../lib/i18n';
-import { findings, habitStats, scores, taskStats } from '../lib/analytics';
+import { findings, readFocusSessions, scores, taskStats } from '../lib/analytics';
 import { Panel, Bar } from '../components/ui-bits';
 import MoneyEquivalents from '../components/MoneyEquivalents';
 import { toast } from 'sonner';
-
-type FocusSession = { date?: string; minutes?: number; seconds?: number };
-
-const readFocusSessions = (): FocusSession[] => {
-  try {
-    const value = JSON.parse(localStorage.getItem('mealpha-focus-sessions') || '[]');
-    return Array.isArray(value) ? value : [];
-  } catch {
-    return [];
-  }
-};
 
 export default function GrowthEngine({ showMoney = false, compact = false }: { showMoney?: boolean; compact?: boolean }) {
   const { data, settings, save } = useStore();
@@ -28,26 +17,14 @@ export default function GrowthEngine({ showMoney = false, compact = false }: { s
     try { return JSON.parse(localStorage.getItem('mealpha-dismissed') || '[]'); } catch { return []; }
   });
   const focusSessions = useMemo(readFocusSessions, []);
-  const weekStart = Date.now() - 7 * 86400000;
-  const weekSessions = focusSessions.filter((s) => {
-    const date = new Date(s.date || '').getTime();
-    return Number.isFinite(date) && date >= weekStart && date <= Date.now();
-  });
-  const focusMinutes = weekSessions.reduce((sum, s) => sum + (Number(s.seconds) > 0 ? Number(s.seconds) / 60 : Number(s.minutes) || 0), 0);
-  const activeHabits = d.habits.filter((h) => !h.archived);
-  const habitStatsList = activeHabits.map((h) => habitStats(h, d.habitLogs));
-  const habitsWithHistory = habitStatsList.filter((s) => s.hasHistory);
-  const habitConsistency = habitsWithHistory.length ? habitsWithHistory.reduce((sum, s) => sum + s.rate30 * 100, 0) / habitsWithHistory.length : null;
-  const weeklyHabitRate = habitsWithHistory.length ? habitStatsList.filter((s) => s.hasHistory).reduce((sum, s) => sum + s.thisWeek * 100, 0) / habitsWithHistory.length : null;
+  const base = scores(d, settings, focusSessions);
+  const weeklyHabitRate = base.consistency.weeklyHabitRate;
+  const focusMinutes = base.consistency.focusMinutes;
+  const consistencyScore = base.consistency.score;
   const task = taskStats(d.tasks);
-  const focusConsistency = weekSessions.length ? Math.min(100, focusMinutes / 300 * 100) : null;
-  // Use the recent weekly habit trend and focus sessions; task completion already has its own Life Score domain.
-  const consistencyParts = [weeklyHabitRate, focusConsistency].filter((v): v is number => v != null);
-  const consistencyScore = consistencyParts.length ? consistencyParts.reduce((a, b) => a + b, 0) / consistencyParts.length : null;
-  const base = scores(d, settings);
-  // Keep the dashboard Life Score identical to the four-domain score shown in Insights.
+  // Dashboard intelligence and Insights consume the same five-domain score calculation.
   const lifeParts = base.parts;
-  const available = Object.values(lifeParts).filter((v): v is number => v != null);
+  const available = Object.values(lifeParts).filter((value): value is number => value != null);
   const lifeScore = base.overall == null ? null : Math.round(base.overall);
   const recommendations = findings(d, settings, settings.language).filter((f) => f.kind === 'weakness' && !dismissed.includes(f.id)).slice(0, 3);
   const labels = fa
@@ -80,7 +57,7 @@ export default function GrowthEngine({ showMoney = false, compact = false }: { s
             </div>
             <div>
               <div className="text-sm font-semibold">{fa ? 'امتیاز رشد' : 'Life score'}</div>
-              <div className="text-xs text-muted-foreground">{fa ? `پوشش داده: ${available.length} از ۴ حوزه` : `Data coverage: ${available.length}/4 areas`}</div>
+              <div className="text-xs text-muted-foreground">{fa ? `پوشش داده: ${available.length} از ${base.coverageTotal} حوزه` : `Data coverage: ${available.length} of ${base.coverageTotal} areas`}</div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -131,7 +108,7 @@ export default function GrowthEngine({ showMoney = false, compact = false }: { s
             </div>
             <div className="min-w-0">
               <div className="font-semibold">{fa ? 'امتیاز رشد کلی' : 'Overall growth score'}</div>
-              <p className="text-xs text-muted-foreground mt-1">{fa ? `پوشش داده: ${available.length} از ۴ حوزه` : `Data coverage: ${available.length} of 5 areas`}</p>
+              <p className="text-xs text-muted-foreground mt-1">{fa ? `پوشش داده: ${available.length} از ${base.coverageTotal} حوزه` : `Data coverage: ${available.length} of ${base.coverageTotal} areas`}</p>
               <Link to="/insights" className="inline-flex items-center gap-1 text-xs text-primary mt-2">{fa ? 'تحلیل کامل' : 'Full analysis'} <ArrowUpRight className="h-3 w-3" /></Link>
             </div>
           </div>
