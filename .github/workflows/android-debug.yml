@@ -10,6 +10,9 @@ on:
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/android-debug.yml"
+      - ".github/workflows/build-windows.yml"
+      - ".github/workflows/release.yml"
+      - ".github/workflows/ui-smoke.yml"
   workflow_dispatch:
 
 permissions:
