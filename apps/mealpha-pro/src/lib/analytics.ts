@@ -161,20 +161,21 @@ export function habitStats(h: Rec, logs: Rec[]) {
 
 // ---- Tasks ----
 export function taskStats(tasks: Rec[]) {
+  // Journal entries are dated tasks for organization, not work items for metrics.
+  const relevantTasks = tasks.filter((task) => task.dailyEntryType !== 'journal');
   const today = todayISO();
   const since = isoOf(new Date(Date.now() - 30 * DAY));
-  const due30 = tasks.filter((t) => t.dueDate && t.dueDate >= since && t.dueDate <= today);
+  const due30 = relevantTasks.filter((t) => t.dueDate && t.dueDate >= since && t.dueDate <= today);
   const done30 = due30.filter((t) => t.status === 'Done');
-  const overdue = tasks.filter((t) => t.status !== 'Done' && t.dueDate && t.dueDate < today);
-  const todays = tasks.filter((t) => t.dueDate === today);
-  const timed = tasks.filter((t) => t.status === 'Done' && Number(t.estimatedMinutes) > 0 && Number(t.actualMinutes) > 0);
+  const overdue = relevantTasks.filter((t) => t.status !== 'Done' && t.dueDate && t.dueDate < today);
+  const todays = relevantTasks.filter((t) => t.dueDate === today);
+  const timed = relevantTasks.filter((t) => t.status === 'Done' && Number(t.estimatedMinutes) > 0 && Number(t.actualMinutes) > 0);
   const est = timed.reduce((s, t) => s + Number(t.estimatedMinutes), 0);
   const act = timed.reduce((s, t) => s + Number(t.actualMinutes), 0);
-  const completed = tasks.filter((task) => task.status === 'Done').length;
+  const completed = relevantTasks.filter((task) => task.status === 'Done').length;
   return {
-    // Overall completion is based on every task, not only tasks with a due date.
-    completionRate: tasks.length ? completed / tasks.length : null,
-    completed, total: tasks.length,
+    completionRate: relevantTasks.length ? completed / relevantTasks.length : null,
+    completed, total: relevantTasks.length,
     due30CompletionRate: due30.length ? done30.length / due30.length : null, due30: due30.length,
     overdue, todays, estimateRatio: timed.length >= 3 ? act / est : null, timedCount: timed.length,
     focusToday: todays.filter((task) => task.status !== 'Done').length,
