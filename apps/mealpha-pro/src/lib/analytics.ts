@@ -217,12 +217,13 @@ export function findings(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLo
   const fa = lang === 'fa';
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   const out: Finding[] = [];
+  const monthlyBudget = Number(st.monthlyBudget ?? 0);
   const m0 = monthFinance(d.transactions, st, 0), m1 = monthFinance(d.transactions, st, 1);
-  if (m0.complete && st.monthlyBudget && m0.expense > st.monthlyBudget)
+  if (m0.complete && monthlyBudget && m0.expense > monthlyBudget)
     out.push({ id: `budget-${m0.label}`, kind: 'weakness', severity: 'high', confidence: 'confirmed',
       title: fa ? 'عبور از بودجه ماهانه' : 'Monthly budget exceeded',
-      evidence: fa ? `هزینه این ماه ${m0.expense.toLocaleString()} ${st.currency} در برابر بودجه ${st.monthlyBudget.toLocaleString()} ${st.currency}` : `Spent ${m0.expense.toLocaleString()} ${st.currency} vs budget ${st.monthlyBudget.toLocaleString()} ${st.currency}`,
-      money: { spent: m0.expense, budget: st.monthlyBudget, currency: st.currency },
+      evidence: fa ? `هزینه این ماه ${m0.expense.toLocaleString()} ${st.currency} در برابر بودجه ${monthlyBudget.toLocaleString()} ${st.currency}` : `Spent ${m0.expense.toLocaleString()} ${st.currency} vs budget ${monthlyBudget.toLocaleString()} ${st.currency}`,
+      money: { spent: m0.expense, budget: monthlyBudget, currency: st.currency },
       action: fa ? 'هزینه‌های اختیاری این ماه را بازبینی کنید' : 'Review discretionary expenses this month' });
   if (m0.complete && m0.expense > 0 && m0.discretionary / m0.expense > 0.4)
     out.push({ id: `disc-${m0.label}`, kind: 'weakness', severity: 'medium', confidence: 'confirmed',
@@ -247,10 +248,10 @@ export function findings(d: { goals: Rec[]; tasks: Rec[]; habits: Rec[]; habitLo
       title: fa ? 'حاشیه پس‌انداز پایین' : 'Low savings margin',
       evidence: fa ? `نرخ پس‌انداز این ماه ${pct(m0.savingsRate)} است` : `This month's savings rate is ${pct(m0.savingsRate)}`,
       action: fa ? 'هزینه‌های ثابت و اختیاری را برای ایجاد حاشیه امن بازبینی کنید' : 'Review fixed and discretionary costs to create a safer margin' });
-  if (m0.complete && st.monthlyBudget > 0 && m0.expense >= st.monthlyBudget * 0.8 && m0.expense <= st.monthlyBudget)
+  if (m0.complete && monthlyBudget > 0 && m0.expense >= monthlyBudget * 0.8 && m0.expense <= monthlyBudget)
     out.push({ id: `budget-near-${m0.label}`, kind: 'weakness', severity: 'medium', confidence: 'confirmed',
       title: fa ? 'نزدیک شدن به سقف بودجه' : 'Approaching the monthly budget limit',
-      evidence: fa ? `${pct(m0.expense / st.monthlyBudget)} از بودجه ماهانه مصرف شده است` : `${pct(m0.expense / st.monthlyBudget)} of the monthly budget has been used`,
+      evidence: fa ? `${pct(m0.expense / monthlyBudget)} از بودجه ماهانه مصرف شده است` : `${pct(m0.expense / monthlyBudget)} of the monthly budget has been used`,
       action: fa ? 'پیش از ثبت هزینه‌های جدید، مانده بودجه را بررسی کنید' : 'Check the remaining budget before adding new discretionary costs' });
   if (m0.complete && m1.complete && m0.savingsRate != null && m1.savingsRate != null && m0.count >= 3 && m1.count >= 3) {
     const diff = m0.savingsRate - m1.savingsRate;
