@@ -18,7 +18,7 @@ type Ctx = {
 };
 const C = createContext<Ctx>(null as unknown as Ctx);
 export const useStore = () => useContext(C);
-const DEFAULTS: Settings = { language: 'fa', calendar: 'jalali', currency: 'IRT', exchangeRates: '', monthlyBudget: null, displayName: '', username: '', bio: '', avatarEmoji: 'α', avatarColor: '#8b5cf6', theme: 'dark', colorTheme: 'coral' };
+const DEFAULTS: Settings = { language: 'fa', calendar: 'jalali', currency: 'IRT', exchangeRates: '', monthlyBudget: null, displayName: '', username: '', bio: '', avatarEmoji: 'α', avatarColor: '#8b5cf6', theme: 'dark', colorTheme: 'blue' };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<Data | null>(null);
@@ -56,7 +56,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = settings.language;
     document.documentElement.dir = settings.language === 'fa' ? 'rtl' : 'ltr';
     document.documentElement.classList.toggle('dark', settings.theme !== 'light');
-    document.documentElement.dataset.colorTheme = settings.colorTheme || 'coral';
+    document.documentElement.dataset.colorTheme = settings.colorTheme || 'blue';
   }, [settings.language, settings.theme, settings.colorTheme]);
   const t = useCallback((k: Key) => tr(settings.language, k), [settings.language]);
   const save = async (entity: Entity, record: Rec, id?: string) => {
