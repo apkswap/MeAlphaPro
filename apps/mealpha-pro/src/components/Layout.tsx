@@ -279,7 +279,7 @@ export default function Layout() {
           </div>
         </div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}
         <main className="mx-auto w-full max-w-[1600px] px-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
-        <nav aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'} className="fixed inset-x-3 bottom-[max(env(safe-area-inset-bottom),10px)] z-30 grid grid-cols-5 gap-1 rounded-2xl border border-white/15 bg-background/90 px-2 pt-2 pb-2 shadow-2xl shadow-black/20 backdrop-blur-2xl md:hidden">
+        <nav aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'} className="fixed inset-x-3 bottom-[env(safe-area-inset-bottom)] z-30 grid grid-cols-5 gap-1 rounded-2xl border border-white/15 bg-background/90 px-2 pt-2 pb-2 shadow-2xl shadow-black/20 backdrop-blur-2xl md:hidden">
           {MOBILE_NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cn('flex min-w-0 min-h-[3.35rem] flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 text-[10px] font-semibold transition-all duration-200', isActive ? 'bg-primary/12 text-primary shadow-inner ring-1 ring-primary/15' : 'text-muted-foreground hover:bg-secondary/80 hover:text-foreground')}>
             <n.icon className="h-[19px] w-[19px] shrink-0" />
             <span className="max-w-full truncate leading-tight">{t(n.k)}</span>
