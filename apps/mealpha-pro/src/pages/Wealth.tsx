@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@project/components/ui/tabs';
@@ -42,6 +43,8 @@ const keepHistory = (r: Rec, prev?: Rec | null) => {
 export default function Wealth() {
   const { data, t, settings } = useStore();
   const [form, setForm] = useState<{ kind: 'assets' | 'liabilities'; rec: Rec | null } | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') === 'liabilities' ? 'liabilities' : 'assets';
   const L = settings.language, cal = settings.calendar, cur = settings.currency;
   const { conv, factorToBase } = makeConverter(settings);
   const conversionLine = (amount: number, currency: string) => {
@@ -78,7 +81,7 @@ export default function Wealth() {
         <div><Kpi label={t('netWorth')} value={nw.complete ? fmtMoney(L, nw.net, cur) : '—'} tone="accent" />{nw.complete && <MoneyEquivalents amount={nw.net} settings={settings} />}</div>
       </div>
       {nw.missing.length > 0 && <p className="text-xs text-[hsl(var(--warning))] mb-3">{t('missingRate')}: {nw.missing.join(', ')}</p>}
-      <Tabs defaultValue="assets">
+      <Tabs value={activeTab} onValueChange={(value) => setSearchParams({ tab: value })}>
         <TabsList><TabsTrigger value="assets">{t('assets')}</TabsTrigger><TabsTrigger value="liabilities">{t('liabilities')}</TabsTrigger></TabsList>
         <TabsContent value="assets">
           <DataList rows={data!.assets} cols={aCols} entity="assets" onEdit={(r) => setForm({ kind: 'assets', rec: r })} searchKeys={['name', 'assetType']}
