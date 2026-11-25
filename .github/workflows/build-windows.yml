@@ -73,6 +73,7 @@ jobs:
             "Installer: $($installer.Name)"
             "SHA256: $sha256"
             "Git commit: $env:GITHUB_SHA"
+            "Source branch: $env:GITHUB_REF_NAME"
             "Build type: NSIS installer; packaged Windows app smoke-tested"
           ) | Set-Content -Path "release-assets/BUILD-INFO.txt" -Encoding utf8
       - name: Upload Windows installer
