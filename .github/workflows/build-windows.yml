@@ -23,6 +23,8 @@ on:
       - "tsconfig.json"
       - ".github/workflows/build-windows.yml"
       - ".github/workflows/build-android.yml"
+      - ".github/workflows/android-debug.yml"
+      - ".github/workflows/release.yml"
       - ".github/workflows/ui-smoke.yml"
 
 permissions:
