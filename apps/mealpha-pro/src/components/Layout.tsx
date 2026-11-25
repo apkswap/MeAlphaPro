@@ -269,9 +269,12 @@ export default function Layout() {
               <Wallet className="h-4 w-4 text-primary" /><span className="flex-1 text-start">{fa ? 'مدیریت مالی' : 'Financial management'}</span><ChevronDown className={cn('h-4 w-4 transition-transform', financeOpen && 'rotate-180')} />
             </button>
             {financeOpen && <div className="mt-2 grid grid-cols-3 gap-2">
-              {NAV.filter(n => n.parent === 'finance').map(n => <NavLink key={n.to} to={n.to} className={({isActive}) => cn('flex min-w-0 flex-col items-center gap-1 rounded-lg bg-background p-2 text-center text-xs', isActive ? 'text-primary ring-1 ring-primary/30' : 'text-muted-foreground')}>
-                <n.icon className="h-4 w-4" /><span className="truncate">{fa ? n.labelFa : n.labelEn}</span>
-              </NavLink>)}
+              {NAV.filter(n => n.parent === 'finance').map(n => {
+                const selected = n.to === '/transactions' ? location.pathname === '/transactions' : location.pathname === '/wealth' && location.search === n.to.slice('/wealth'.length);
+                return <NavLink key={n.to} to={n.to} className={cn('flex min-w-0 flex-col items-center gap-1 rounded-lg bg-background p-2 text-center text-xs', selected ? 'text-primary ring-1 ring-primary/30' : 'text-muted-foreground')}>
+                  <n.icon className="h-4 w-4" /><span className="truncate">{fa ? n.labelFa : n.labelEn}</span>
+                </NavLink>;
+              })}
             </div>}
           </div>
         </div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}

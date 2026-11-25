@@ -156,6 +156,21 @@ for (const viewport of viewports) {
       if (!(await searchTrigger.count())) {
         failures.push(`${viewport.name}: global search trigger is missing`);
       } else {
+        const triggerIcon = await searchTrigger.locator('svg').first().evaluate(el => {
+          const box = el.getBoundingClientRect();
+          return { width: box.width, height: box.height };
+        });
+        if (triggerIcon.width > 15 || triggerIcon.height > 15) failures.push(`${viewport.name}: global search trigger icon is not compact ${JSON.stringify(triggerIcon)}`);
+        if (viewport.width >= 768) {
+          const financeGroup = page.getByRole('button', { name: /مدیریت مالی|Financial management/ });
+          if (!(await financeGroup.count())) failures.push(`${viewport.name}: finance parent navigation is missing`);
+          else {
+            await financeGroup.click();
+            for (const label of [/تراکنش‌ها|Transactions/, /دارایی‌ها|Assets/, /بدهی‌ها|Liabilities/]) {
+              if (!(await page.getByRole('link', { name: label }).count())) failures.push(`${viewport.name}: finance subtask ${label} is missing`);
+            }
+          }
+        }
         await searchTrigger.click();
         const searchDialog = page.getByRole('dialog', { name: /جستجوی سراسری|Global search/ });
         const searchInput = page.getByRole('combobox', { name: /عبارت جستجو|Search query/ });
@@ -654,6 +669,14 @@ for (const viewport of viewports) {
       const menu = page.getByRole('dialog', { name: /منوی اصلی|Main menu/ });
       if (!(await menu.count())) failures.push(`${viewport.name}: hamburger menu did not open`);
       else {
+        const financeGroup = menu.getByRole('button', { name: /مدیریت مالی|Financial management/ });
+        if (!(await financeGroup.count())) failures.push(`${viewport.name}: mobile finance parent group is missing`);
+        else {
+          await financeGroup.click();
+          for (const label of [/تراکنش‌ها|Transactions/, /دارایی‌ها|Assets/, /بدهی‌ها|Liabilities/]) {
+            if (!(await menu.getByRole('link', { name: label }).count())) failures.push(`${viewport.name}: mobile finance subtask ${label} is missing`);
+          }
+        }
         const bounds = await menu.evaluate(el => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: r.height, viewport: innerHeight, position: getComputedStyle(el).position }; });
         if (bounds.position !== 'fixed' || bounds.top < 60 || bounds.bottom > bounds.viewport + 1 || bounds.height < 40) {
           failures.push(`${viewport.name}: scrolled hamburger menu is outside the visible viewport ${JSON.stringify(bounds)}`);
