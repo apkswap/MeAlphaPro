@@ -91,11 +91,20 @@ jobs:
           mkdir -p release-assets
           cp "$APK" release-assets/MeAlpha-Pro-Android-debug.apk
           sha256sum release-assets/MeAlpha-Pro-Android-debug.apk > release-assets/SHA256SUMS.txt
+          cat > release-assets/BUILD-INFO.txt <<EOF
+          Application: MeAlpha Pro
+          Version: $VERSION
+          Version code: $VERSION_CODE
+          Application ID: com.mealpha.pro
+          Git commit: $GITHUB_SHA
+          Build type: Debug APK (testing only; not a production release)
+          EOF
       - uses: actions/upload-artifact@v4
         with:
           name: MeAlpha-Pro-Android-debug
           path: |
             release-assets/MeAlpha-Pro-Android-debug.apk
             release-assets/SHA256SUMS.txt
+            release-assets/BUILD-INFO.txt
           if-no-files-found: error
           retention-days: 14
