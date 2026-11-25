@@ -14,13 +14,13 @@
     --sidebar-accent-foreground: 215 30% 94%; --sidebar-border: 218 24% 18%; --sidebar-ring: 199 92% 55%;
     --chart-1: 7 88% 63%; --chart-2: 187 78% 48%; --chart-3: 166 62% 48%; --chart-4: 38 85% 58%; --chart-5: 220 60% 60%;
   }
-  :root[data-color-theme='orange'] { --primary: 25 92% 55%; --primary-foreground: 222 40% 8%; --accent: 35 95% 62%; --ring: 25 92% 55%; --sidebar-primary: 25 92% 55%; --sidebar-ring: 25 92% 55%; --chart-1: 25 92% 55%; --chart-2: 38 95% 60%; --chart-3: 15 75% 54%; --chart-4: 48 90% 58%; --chart-5: 215 45% 56%; }
-  :root[data-color-theme='green'] { --primary: 152 58% 43%; --primary-foreground: 0 0% 100%; --accent: 158 48% 55%; --ring: 152 58% 43%; --sidebar-primary: 152 58% 43%; --sidebar-ring: 152 58% 43%; --chart-1: 152 58% 43%; --chart-2: 158 48% 55%; --chart-3: 166 42% 48%; --chart-4: 38 85% 58%; --chart-5: 190 30% 48%; }
+  :root[data-color-theme='orange'] { --primary: 25 92% 55%; --primary-foreground: 222 40% 8%; --accent: 35 95% 62%; --ring: 25 92% 55%; --sidebar-primary: 25 92% 55%; --sidebar-ring: 25 92% 55%; --chart-1: 25 92% 55%; --chart-2: 187 78% 48%; --chart-3: 152 58% 43%; --chart-4: 263 72% 68%; --chart-5: 333 78% 62%; }
+  :root[data-color-theme='green'] { --primary: 152 58% 43%; --primary-foreground: 0 0% 100%; --accent: 158 48% 55%; --ring: 152 58% 43%; --sidebar-primary: 152 58% 43%; --sidebar-ring: 152 58% 43%; --chart-1: 152 58% 43%; --chart-2: 38 85% 58%; --chart-3: 199 82% 55%; --chart-4: 7 88% 63%; --chart-5: 263 72% 68%; }
   :root[data-color-theme='blue'] { --primary: 199 92% 55%; --primary-foreground: 222 40% 8%; --accent: 190 85% 48%; --ring: 199 92% 55%; --sidebar-primary: 199 92% 55%; --sidebar-ring: 199 92% 55%; }
-  :root[data-color-theme='violet'] { --primary: 263 82% 66%; --primary-foreground: 0 0% 100%; --accent: 282 72% 68%; --ring: 263 82% 66%; --sidebar-primary: 263 82% 66%; --sidebar-ring: 263 82% 66%; --chart-1: 263 82% 66%; --chart-2: 282 72% 68%; }
-  :root[data-color-theme='cyan'] { --primary: 187 82% 48%; --primary-foreground: 222 40% 8%; --accent: 173 70% 48%; --ring: 187 82% 48%; --sidebar-primary: 187 82% 48%; --sidebar-ring: 187 82% 48%; --chart-1: 187 82% 48%; --chart-2: 173 70% 48%; }
-  :root[data-color-theme='pink'] { --primary: 333 78% 62%; --primary-foreground: 0 0% 100%; --accent: 315 72% 65%; --ring: 333 78% 62%; --sidebar-primary: 333 78% 62%; --sidebar-ring: 333 78% 62%; --chart-1: 333 78% 62%; --chart-2: 315 72% 65%; }
-  :root[data-color-theme='coral'] { --primary: 7 88% 63%; --primary-foreground: 0 0% 100%; --accent: 187 78% 48%; --ring: 7 88% 63%; --sidebar-primary: 7 88% 63%; --sidebar-ring: 7 88% 63%; --chart-1: 7 88% 63%; --chart-2: 187 78% 48%; --chart-3: 7 88% 63%; --chart-4: 38 88% 62%; --chart-5: 187 78% 48%; }
+  :root[data-color-theme='violet'] { --primary: 263 82% 66%; --primary-foreground: 0 0% 100%; --accent: 282 72% 68%; --ring: 263 82% 66%; --sidebar-primary: 263 82% 66%; --sidebar-ring: 263 82% 66%; --chart-1: 263 82% 66%; --chart-2: 187 78% 48%; --chart-3: 38 85% 58%; --chart-4: 333 78% 62%; --chart-5: 152 58% 43%; }
+  :root[data-color-theme='cyan'] { --primary: 187 82% 48%; --primary-foreground: 222 40% 8%; --accent: 173 70% 48%; --ring: 187 82% 48%; --sidebar-primary: 187 82% 48%; --sidebar-ring: 187 82% 48%; --chart-1: 187 82% 48%; --chart-2: 263 82% 66%; --chart-3: 38 85% 58%; --chart-4: 7 88% 63%; --chart-5: 152 58% 43%; }
+  :root[data-color-theme='pink'] { --primary: 333 78% 62%; --primary-foreground: 0 0% 100%; --accent: 315 72% 65%; --ring: 333 78% 62%; --sidebar-primary: 333 78% 62%; --sidebar-ring: 333 78% 62%; --chart-1: 333 78% 62%; --chart-2: 187 78% 48%; --chart-3: 38 85% 58%; --chart-4: 263 72% 68%; --chart-5: 152 58% 43%; }
+  :root[data-color-theme='coral'] { --primary: 7 88% 63%; --primary-foreground: 0 0% 100%; --accent: 187 78% 48%; --ring: 7 88% 63%; --sidebar-primary: 7 88% 63%; --sidebar-ring: 7 88% 63%; --chart-1: 7 88% 63%; --chart-2: 187 78% 48%; --chart-3: 152 58% 48%; --chart-4: 38 88% 62%; --chart-5: 263 72% 68%; }
   :root:not(.dark) {
     --background: 210 24% 97%; --foreground: 222 28% 16%; --muted: 210 20% 92%; --muted-foreground: 215 12% 43%;
     --popover: 0 0% 100%; --popover-foreground: 222 28% 16%; --border: 214 18% 86%; --input: 214 18% 84%;
@@ -126,21 +126,6 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
 }
 
 
-/* Coral identity is applied through shared design tokens; semantic status colors stay independent. */
-:root.dark:not([data-color-theme]) {
-  --primary: 7 88% 63%;
-  --primary-foreground: 0 0% 100%;
-  --accent: 187 78% 48%;
-  --accent-foreground: 224 38% 8%;
-  --ring: 7 88% 63%;
-  --sidebar-primary: 7 88% 63%;
-  --sidebar-ring: 7 88% 63%;
-  --chart-1: 7 88% 63%;
-  --chart-2: 187 78% 48%;
-  --chart-3: 38 88% 62%;
-  --chart-4: 263 72% 68%;
-  --chart-5: 205 78% 62%;
-}
 .dark :is(.app-sidebar, .app-topbar) {
   box-shadow: inset 0 1px 0 hsl(0 0% 100% / .025), 0 18px 48px hsl(226 45% 2% / .12);
 }
@@ -157,37 +142,3 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
 }
 
 
-/* Coral brand treatment for the global navigation and shared surfaces. */
-:root[data-color-theme='coral'] {
-  --sidebar-background: 7 76% 54%;
-  --sidebar-foreground: 0 0% 100%;
-  --sidebar-primary: 0 0% 100%;
-  --sidebar-primary-foreground: 7 76% 46%;
-  --sidebar-accent: 7 70% 60%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 7 62% 66%;
-  --sidebar-ring: 0 0% 100%;
-}
-:root:not(.dark)[data-color-theme='coral'] {
-  --sidebar-background: 7 76% 54%;
-  --sidebar-foreground: 0 0% 100%;
-  --sidebar-primary: 0 0% 100%;
-  --sidebar-primary-foreground: 7 76% 46%;
-  --sidebar-accent: 7 70% 60%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 7 62% 66%;
-  --sidebar-ring: 0 0% 100%;
-}
-:root[data-color-theme='coral'] .app-sidebar {
-  background: linear-gradient(165deg, hsl(7 82% 61%), hsl(7 78% 52%) 58%, hsl(7 76% 46%));
-  border-color: hsl(7 62% 66% / .7);
-  color: white;
-}
-:root[data-color-theme='coral'] .app-sidebar a[aria-current='page'] {
-  background: hsl(0 0% 100% / .2);
-  color: white;
-  box-shadow: inset 0 0 0 1px hsl(0 0% 100% / .25);
-}
-:root[data-color-theme='coral'] .app-sidebar a[aria-current='page'] svg {
-  color: white;
-}
