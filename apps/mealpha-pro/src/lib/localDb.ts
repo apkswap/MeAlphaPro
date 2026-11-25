@@ -126,7 +126,7 @@ export async function loadAll() {
   const [records, localNotes, settingsRow] = await Promise.all([Promise.all(recordRequests), localNotesRequest, settingsRequest]);
   const data: Record<string, Rec[]> = {};
   ENTITIES.forEach((name, index) => { data[name] = records[index]; });
-  return { ...data, localNotes, settings: (settingsRow?.value ?? null) as AppSettings | null } as Record<Entity, Rec[]> & { settings: AppSettings | null };
+  return { ...data, localNotes, settings: (settingsRow?.value ?? null) as AppSettings | null } as Record<Entity, Rec[]> & { localNotes: Rec[]; settings: AppSettings | null };
 }
 
 export async function saveRecord(entity: Entity, record: Rec, id?: string) {

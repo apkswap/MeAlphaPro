@@ -30,7 +30,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       timedOut = true;
       setData({
         goals: [], tasks: [], habits: [], habitLogs: [], transactions: [],
-        accounts: [], paymentReminders: [], customItems: [], notes: [], assets: [] ,
+        accounts: [], paymentReminders: [], customItems: [], notes: [], localNotes: [], assets: [] ,
         liabilities: [], localNotes: [], settings: null,
       } as Data);
       toast.error('Local storage is taking too long. MeAlpha opened in temporary view; your existing data has not been deleted.');
@@ -43,7 +43,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       console.error('Failed to initialize the local database:', error);
       setData({
         goals: [], tasks: [], habits: [], habitLogs: [], transactions: [],
-        accounts: [], paymentReminders: [], customItems: [], notes: [], assets: [],
+        accounts: [], paymentReminders: [], customItems: [], notes: [], localNotes: [], assets: [],
         liabilities: [], settings: null,
       } as Data);
       if (!timedOut) toast.error('Local storage is unavailable. MeAlpha opened in temporary view mode; changes may not be saved.');
