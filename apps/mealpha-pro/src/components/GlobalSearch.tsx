@@ -13,7 +13,8 @@ const PAGES = [
   { titleFa: 'عادت‌ها', titleEn: 'Habits', route: '/habits', keywords: 'routine habit روتین' },
   { titleFa: 'تمرکز', titleEn: 'Focus', route: '/focus', keywords: 'timer pomodoro تایمر' },
   { titleFa: 'تراکنش‌ها و امور مالی', titleEn: 'Transactions & Finance', route: '/transactions', keywords: 'money expense income payment account هزینه درآمد پرداخت حساب' },
-  { titleFa: 'دارایی‌ها و ثروت', titleEn: 'Wealth', route: '/wealth', keywords: 'assets liabilities wealth دارایی بدهی' },
+  { titleFa: 'دارایی‌ها', titleEn: 'Assets', route: '/wealth?tab=assets', keywords: 'assets wealth دارایی' },
+  { titleFa: 'بدهی‌ها', titleEn: 'Liabilities', route: '/wealth?tab=liabilities', keywords: 'liabilities debt بدهی' },
   { titleFa: 'بینش‌ها و گزارش‌ها', titleEn: 'Insights & Reports', route: '/insights', keywords: 'analytics report chart تحلیل گزارش نمودار' },
   { titleFa: 'فضای کار', titleEn: 'Workspace', route: '/workspace', keywords: 'workspace محیط کار' },
   { titleFa: 'تنظیمات', titleEn: 'Settings', route: '/settings', keywords: 'preferences profile تنظیمات ترجیحات پروفایل' },
@@ -186,7 +187,7 @@ export default function GlobalSearch() {
       <button ref={triggerRef} type="button" onClick={openSearch}
         className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-xl border bg-card/70 px-2 text-start text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary sm:w-60 sm:justify-start sm:px-3"
         aria-label={fa ? 'جستجوی سراسری' : 'Global search'} aria-haspopup="dialog" aria-expanded={open}>
-        <Search className="h-4 w-4 shrink-0" />
+        <Search className="h-3.5 w-3.5 shrink-0" />
         <span className="hidden min-w-0 flex-1 truncate text-xs sm:block">{fa ? 'جستجو در برنامه...' : 'Search your workspace...'}</span>
         <kbd className="hidden rounded border px-1.5 py-0.5 text-[9px] sm:inline">Ctrl K</kbd>
       </button>
