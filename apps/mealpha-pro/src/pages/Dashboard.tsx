@@ -24,20 +24,20 @@ export default function Dashboard() {
   const [selectedDay, setSelectedDay] = useState(() => todayISO());
   const [newDailyTask, setNewDailyTask] = useState('');
   const [journalText, setJournalText] = useState('');
-  const dailyEntries = (d.customItems || []).filter((item) => item.kind === 'dashboard-daily-entry' && item.entryType === 'checklist' && item.date === selectedDay);
-  const dailyTasks = dailyEntries;
-  const dailyJournal = (d.notes || []).find((item) => item.date === selectedDay);
+  const dailyTasks = (d.tasks || []).filter((item) => item.dueDate === selectedDay && item.dailyEntryType === 'checklist');
+  const dailyJournal = (d.tasks || []).find((item) => item.dueDate === selectedDay && item.dailyEntryType === 'journal');
   useEffect(() => { setJournalText(dailyJournal?.notes || ''); }, [selectedDay, dailyJournal?.id, dailyJournal?.notes]);
   const moneyText = (amount: number) => showMoney ? fmtMoney(L, amount, cur) : '••••••';
   const addDailyTask = async () => {
     const title = newDailyTask.trim();
     if (!title) return;
-    const ok = await save('customItems', { id: crypto.randomUUID(), kind: 'dashboard-daily-entry', entryType: 'checklist', date: selectedDay, title, done: false, createdAt: new Date().toISOString() });
+    const ok = await save('tasks', { id: crypto.randomUUID(), dailyEntryType: 'checklist', dueDate: selectedDay, title, status: 'Todo', priority: 'Medium', createdAt: new Date().toISOString() });
     if (ok) setNewDailyTask('');
   };
   const saveJournal = async () => {
-    const payload = { ...(dailyJournal || {}), id: dailyJournal?.id || crypto.randomUUID(), kind: 'daily-journal', date: selectedDay, notes: journalText, title: fa ? 'یادداشت روزانه' : 'Daily journal' };
-    await save('notes', payload, dailyJournal?.id);
+    if (!journalText.trim()) { if (dailyJournal?.id) await remove('tasks', dailyJournal.id); return; }
+    const payload = { ...(dailyJournal || {}), id: dailyJournal?.id || crypto.randomUUID(), dailyEntryType: 'journal', dueDate: selectedDay, status: dailyJournal?.status || 'Todo', priority: 'Low', notes: journalText, title: fa ? 'یادداشت روزانه' : 'Daily journal' };
+    await save('tasks', payload, dailyJournal?.id);
   };
   const sc = scores(d, settings), ts = taskStats(d.tasks), m = monthFinance(d.transactions, settings);
   const nw = netWorth(d.assets, d.liabilities, settings, d.transactions);
@@ -98,8 +98,8 @@ export default function Dashboard() {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-3">
             <div className="flex gap-2"><Input value={newDailyTask} onChange={(event) => setNewDailyTask(event.target.value)} placeholder={fa ? 'کار جدید برای امروز...' : 'Add a task for this day...'} onKeyDown={(event) => { if (event.key === 'Enter') void addDailyTask(); }} /><Button type="button" size="sm" onClick={() => void addDailyTask()} disabled={!newDailyTask.trim()}><Plus className="me-1 h-4 w-4" />{fa ? 'افزودن' : 'Add'}</Button></div>
-            {dailyTasks.length ? <ul className="space-y-2">{dailyTasks.map((item) => <li key={item.id} className="flex items-center gap-2 rounded-xl border bg-background/50 p-2"><Checkbox checked={!!item.done} onCheckedChange={(checked) => void save('customItems', { ...item, done: !!checked }, item.id)} /><span className={cn('min-w-0 flex-1 text-sm', item.done && 'text-muted-foreground line-through')}>{item.title}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" aria-label={fa ? 'حذف مورد' : 'Delete item'} onClick={() => void remove('customItems', item.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button></li>)}</ul> : <div className="rounded-xl border border-dashed p-5 text-center text-xs text-muted-foreground">{fa ? 'برای این روز هنوز کاری ثبت نشده است.' : 'No checklist items for this day yet.'}</div>}
-            <div className="text-[11px] text-muted-foreground">{fa ? 'انجام‌شده' : 'Completed'}: {dailyTasks.filter((item) => item.done).length} / {dailyTasks.length}</div>
+            {dailyTasks.length ? <ul className="space-y-2">{dailyTasks.map((item) => <li key={item.id} className="flex items-center gap-2 rounded-xl border bg-background/50 p-2"><Checkbox checked={item.status === 'Done'} onCheckedChange={(checked) => void save('tasks', completeTx({ ...item, status: checked ? 'Done' : 'Todo' }, item), item.id)} /><span className={cn('min-w-0 flex-1 text-sm', item.status === 'Done' && 'text-muted-foreground line-through')}>{item.title}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" aria-label={fa ? 'حذف مورد' : 'Delete item'} onClick={() => void remove('tasks', item.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button></li>)}</ul> : <div className="rounded-xl border border-dashed p-5 text-center text-xs text-muted-foreground">{fa ? 'برای این روز هنوز کاری ثبت نشده است.' : 'No checklist items for this day yet.'}</div>}
+            <div className="text-[11px] text-muted-foreground">{fa ? 'انجام‌شده' : 'Completed'}: {dailyTasks.filter((item) => item.status === 'Done').length} / {dailyTasks.length}</div>
           </div>
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold"><NotebookPen className="h-4 w-4 text-primary" />{fa ? 'روزنوشت' : 'Daily journal'}</div>
