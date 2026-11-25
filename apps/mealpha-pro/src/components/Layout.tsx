@@ -169,7 +169,7 @@ export default function Layout() {
   ] as const;
   const navLink = ({ isActive }: { isActive: boolean }) => cn(
     'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200',
-    isActive ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+    isActive ? 'bg-gradient-to-r from-primary via-primary to-primary/85 text-primary-foreground shadow-xl shadow-primary/25 ring-1 ring-white/15' : 'text-muted-foreground hover:bg-primary/[.07] hover:text-foreground'
   );
   const navItems = () => groups.map(group => (
     <div key={group.id} className="mb-5">
@@ -202,7 +202,7 @@ export default function Layout() {
   const profileLabel = settings.displayName || settings.username || (fa ? 'پروفایل من' : 'My profile');
   return (
     <div className="min-h-screen bg-background text-foreground md:flex">
-      <aside className="app-sidebar hidden md:sticky md:top-0 md:flex md:h-screen md:w-[264px] md:shrink-0 md:flex-col md:border-e md:border-sidebar-border md:bg-sidebar-background/90 md:px-4 md:py-6 md:backdrop-blur-xl">
+      <aside className="app-sidebar hidden md:sticky md:top-4 md:my-4 md:ms-4 md:flex md:h-[calc(100dvh-2rem)] md:w-[264px] md:shrink-0 md:flex-col md:rounded-[1.75rem] md:border md:border-white/10 md:bg-sidebar-background/85 md:px-4 md:py-6 md:shadow-2xl md:shadow-primary/10 md:backdrop-blur-2xl">
         <NavLink to="/" className="mb-9 flex items-center gap-3 rounded-2xl px-2 py-2 transition-colors hover:bg-white/[.03]">
           <img src="/mealpha.svg" alt="MeAlpha Pro" className="h-14 w-14 shrink-0 rounded-[1.35rem] object-contain shadow-xl shadow-primary/25 ring-1 ring-amber-300/20" />
           <div><div className="text-[15px] font-black tracking-tight">MeAlpha <span className="text-primary">Pro</span></div><div className="mt-0.5 text-[9px] font-semibold tracking-[.18em] text-muted-foreground">PERSONAL COMMAND CENTER</div></div>
@@ -279,8 +279,8 @@ export default function Layout() {
           </div>
         </div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}
         <main className="mx-auto w-full max-w-[1600px] px-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
-        <nav aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'} className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 gap-1 border-t bg-background/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),8px)] shadow-[0_-8px_30px_-20px_hsl(var(--foreground)/0.35)] backdrop-blur-xl md:hidden">
-          {MOBILE_NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cn('flex min-w-0 min-h-[3.35rem] flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 text-[10px] font-medium transition-colors', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}>
+        <nav aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'} className="fixed inset-x-3 bottom-[max(env(safe-area-inset-bottom),10px)] z-30 grid grid-cols-5 gap-1 rounded-2xl border border-white/15 bg-background/90 px-2 pt-2 pb-2 shadow-2xl shadow-black/20 backdrop-blur-2xl md:hidden">
+          {MOBILE_NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cn('flex min-w-0 min-h-[3.35rem] flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 text-[10px] font-semibold transition-all duration-200', isActive ? 'bg-primary/12 text-primary shadow-inner ring-1 ring-primary/15' : 'text-muted-foreground hover:bg-secondary/80 hover:text-foreground')}>
             <n.icon className="h-[19px] w-[19px] shrink-0" />
             <span className="max-w-full truncate leading-tight">{t(n.k)}</span>
           </NavLink>)}
