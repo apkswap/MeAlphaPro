@@ -56,7 +56,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = settings.language;
     document.documentElement.dir = settings.language === 'fa' ? 'rtl' : 'ltr';
     document.documentElement.classList.toggle('dark', settings.theme !== 'light');
-    document.documentElement.dataset.colorTheme = settings.colorTheme || 'blue';
+    document.documentElement.dataset.colorTheme = settings.colorTheme || 'coral';
   }, [settings.language, settings.theme, settings.colorTheme]);
   const t = useCallback((k: Key) => tr(settings.language, k), [settings.language]);
   const save = async (entity: Entity, record: Rec, id?: string) => {
