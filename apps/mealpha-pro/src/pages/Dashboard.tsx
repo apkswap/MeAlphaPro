@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar as RBar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ArrowDownRight, ArrowUpRight, Minus, Check, Flame, Plus, Sparkles, Wallet, Target, CalendarDays, Clock3, ChevronLeft, ChevronRight, Eye, EyeOff, Trash2, NotebookPen } from 'lucide-react';
@@ -8,7 +8,7 @@ import { Input } from '@project/components/ui/input';
 import { Textarea } from '@project/components/ui/textarea';
 import { useStore } from '../lib/store';
 import { fmtMoney, fmtNum } from '../lib/i18n';
-import { goalInfo, habitStats, monthFinance, netWorth, scores, taskStats, todayISO } from '../lib/analytics';
+import { goalInfo, habitStats, monthFinance, netWorth, readFocusSessions, scores, taskStats, todayISO } from '../lib/analytics';
 import { Bar, Kpi, Panel, PageHeader, StatusPill } from '../components/ui-bits';
 import { statusKey } from './Goals';
 import { completeTx } from './Tasks';
@@ -21,6 +21,7 @@ export default function Dashboard() {
   const { data, t, settings, save, remove, saveLocalNote, removeLocalNote } = useStore();
   const d = data!, L = settings.language, cur = settings.currency, fa = L === 'fa';
   const [showMoney, setShowMoney] = useState(false);
+  const focusSessions = useMemo(readFocusSessions, []);
   const [selectedDay, setSelectedDay] = useState(() => todayISO());
   const [newDailyTask, setNewDailyTask] = useState('');
   const [journalText, setJournalText] = useState('');
@@ -39,7 +40,7 @@ export default function Dashboard() {
     const payload = { ...(dailyJournal || {}), id: dailyJournal?.id || crypto.randomUUID(), kind: 'daily-journal', date: selectedDay, content: journalText, title: fa ? 'یادداشت روزانه' : 'Daily journal' };
     await saveLocalNote(payload, dailyJournal?.id);
   };
-  const sc = scores(d, settings), ts = taskStats(d.tasks), m = monthFinance(d.transactions, settings);
+  const sc = scores(d, settings, focusSessions), ts = taskStats(d.tasks), m = monthFinance(d.transactions, settings);
   const nw = netWorth(d.assets, d.liabilities, settings, d.transactions);
   const goals = d.goals.map((g) => ({ g, i: goalInfo(g) })).filter((x) => x.i.status !== 'Completed');
   const habits = d.habits.filter((h) => !h.archived);
@@ -77,7 +78,7 @@ export default function Dashboard() {
         <div className="relative mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border bg-background/65 p-4"><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{t('netWorth')}</span><Wallet className="h-4 w-4 text-primary" /></div><div className="mt-2 break-words text-xl font-black tabular-nums sm:text-2xl">{nw.complete ? moneyText(nw.net) : '—'}</div>{showMoney && nw.complete && <MoneyEquivalents amount={nw.net} settings={settings} />}<div className="mt-1 text-[10px] text-muted-foreground">{fa ? 'دارایی خالص ثبت‌شده' : 'Recorded net worth'}</div></div>
           <div className="rounded-2xl border bg-background/65 p-4"><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{t('cashFlow')}</span>{!m.complete ? <Minus className="h-4 w-4 text-muted-foreground" /> : m.net >= 0 ? <ArrowUpRight className="h-4 w-4 text-emerald-500" /> : <ArrowDownRight className="h-4 w-4 text-rose-500" />}</div><div className={cn('mt-2 break-words text-xl font-black tabular-nums sm:text-2xl',!m.complete ? 'text-muted-foreground' : m.net >= 0 ? 'text-emerald-500' : 'text-rose-500')}>{m.complete ? moneyText(m.net) : '—'}</div>{showMoney && m.complete && <MoneyEquivalents amount={m.net} settings={settings} />}<div className="mt-1 text-[10px] text-muted-foreground">{fa ? 'خالص این ماه' : 'Net this month'}</div></div>
-          <div className="rounded-2xl border bg-background/65 p-4"><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{t('overallScore')}</span><Sparkles className="h-4 w-4 text-primary" /></div><div className="mt-2 text-xl font-black tabular-nums sm:text-2xl">{sc.overall == null ? '—' : fmtNum(L,sc.overall)}<span className="ms-1 text-xs font-medium text-muted-foreground">/100</span></div><div className="mt-1 text-[10px] text-muted-foreground">{fa ? `پوشش داده: ${fmtNum(L,sc.coverage)} از ۴ حوزه` : `Data coverage: ${sc.coverage} of 4 areas`}</div></div>
+          <div className="rounded-2xl border bg-background/65 p-4"><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{t('overallScore')}</span><Sparkles className="h-4 w-4 text-primary" /></div><div className="mt-2 text-xl font-black tabular-nums sm:text-2xl">{sc.overall == null ? '—' : fmtNum(L,sc.overall)}<span className="ms-1 text-xs font-medium text-muted-foreground">/100</span></div><div className="mt-1 text-[10px] text-muted-foreground">{fa ? `پوشش داده: ${fmtNum(L,sc.coverage)} از ${sc.coverageTotal} حوزه` : `Data coverage: ${sc.coverage} of ${sc.coverageTotal} areas`}</div></div>
           
         </div>
       </section>
