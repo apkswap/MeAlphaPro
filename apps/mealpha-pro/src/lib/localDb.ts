@@ -6,7 +6,7 @@ export type AppSettings = { language: 'fa' | 'en'; calendar: string; currency: s
 export type Snapshot = { version: 1; exportedAt: string; settingsUpdatedAt: number; data: Record<Entity, Rec[]>; settings: AppSettings; tombstones: Record<string, number> };
 
 const DB_NAME = 'mealpha-pro-local';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const STORES = [...ENTITIES, 'appMeta'] as const;
 let dbPromise: Promise<IDBDatabase> | undefined;
 
@@ -35,6 +35,30 @@ function openDb(): Promise<IDBDatabase> {
           }
           cursor.continue();
         };
+      }
+      // Daily checklist entries and journal notes belong to the selected day's Tasks.
+      if (event.oldVersion < 5) {
+        const tasks = tx.objectStore('tasks');
+        const migrateCursor = (storeName: string, predicate: (value: Rec) => boolean, map: (value: Rec) => Rec) => {
+          const cursorRequest = tx.objectStore(storeName).openCursor();
+          cursorRequest.onsuccess = () => {
+            const cursor = cursorRequest.result;
+            if (!cursor) return;
+            const value = cursor.value as Rec;
+            if (predicate(value)) { tasks.put(map(value)); cursor.delete(); }
+            cursor.continue();
+          };
+        };
+        if (db.objectStoreNames.contains('customItems')) migrateCursor(
+          'customItems',
+          (value) => value.kind === 'dashboard-daily-entry' && value.entryType === 'checklist',
+          (value) => ({ ...value, id: 'daily-checklist-' + value.id, dueDate: value.date || value.dueDate, dailyEntryType: 'checklist', status: value.done ? 'Done' : 'Todo', priority: 'Medium' }),
+        );
+        if (db.objectStoreNames.contains('notes')) migrateCursor(
+          'notes',
+          (value) => value.kind === 'daily-journal' || (value.kind === 'dashboard-daily-entry' && value.entryType === 'journal'),
+          (value) => ({ ...value, id: 'daily-journal-' + value.id, dueDate: value.date || value.dueDate, dailyEntryType: 'journal', status: 'Todo', priority: 'Low', title: value.title || 'Daily journal' }),
+        );
       }
     };
     request.onsuccess = () => resolve(request.result);
