@@ -49,6 +49,8 @@ jobs:
           node-version: "22.14.0"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Install vector icon renderer
+        run: npm install --no-save --no-audit --no-fund sharp
       - name: Prepare Windows icon
         shell: pwsh
         run: ./apps/mealpha-pro/scripts/prepare-windows-icon.ps1
@@ -160,6 +162,8 @@ jobs:
           echo "Android SDK available at $ANDROID_HOME"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Install vector icon renderer
+        run: npm install --no-save --no-audit --no-fund sharp
       - name: Build web application
         run: npm run build --workspace apps/mealpha-pro
       - name: Create Android project
