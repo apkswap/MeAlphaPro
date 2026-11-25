@@ -23,7 +23,7 @@ await migrationPage.evaluate(async () => {
 await migrationPage.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
 const migrated = await migrationPage.evaluate(async () => {
   const db = await new Promise((resolve, reject) => {
-    const request = indexedDB.open('mealpha-pro-local', 5);
+    const request = indexedDB.open('mealpha-pro-local', 6);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
@@ -236,7 +236,7 @@ for (const viewport of viewports) {
       const smokeHabitId = `smoke-calendar-${viewport.name}`;
       await page.evaluate(async id => {
         const db = await new Promise((resolve, reject) => {
-          const request = indexedDB.open('mealpha-pro-local', 5);
+          const request = indexedDB.open('mealpha-pro-local', 6);
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
         });
@@ -265,7 +265,7 @@ for (const viewport of viewports) {
       }
       await page.evaluate(async id => {
         const db = await new Promise((resolve, reject) => {
-          const request = indexedDB.open('mealpha-pro-local', 5);
+          const request = indexedDB.open('mealpha-pro-local', 6);
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
         });
@@ -335,7 +335,7 @@ for (const viewport of viewports) {
   const today = new Date().toISOString().slice(0, 10);
   await page.evaluate(async ({ id, title, dueDate }) => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 5);
+      const request = indexedDB.open('mealpha-pro-local', 6);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -360,7 +360,7 @@ for (const viewport of viewports) {
   await taskRow.getByRole('checkbox').click();
   await page.waitForFunction(async ({ id, title }) => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 5);
+      const request = indexedDB.open('mealpha-pro-local', 6);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -376,7 +376,7 @@ for (const viewport of viewports) {
   }, { id: taskId }, { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: dashboard completion erased task fields or reminders`));
   await page.evaluate(async id => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 5);
+      const request = indexedDB.open('mealpha-pro-local', 6);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -394,7 +394,7 @@ for (const viewport of viewports) {
   const listTaskTitle = `Task list persistence ${viewport.name}`;
   await page.evaluate(async ({ id, title, dueDate }) => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 5);
+      const request = indexedDB.open('mealpha-pro-local', 6);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -418,7 +418,7 @@ for (const viewport of viewports) {
   await listTaskRow.getByRole('checkbox').click();
   await page.waitForFunction(async ({ id, title }) => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 5);
+      const request = indexedDB.open('mealpha-pro-local', 6);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -438,7 +438,7 @@ for (const viewport of viewports) {
   }, { id: listTaskId, title: listTaskTitle }, { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Tasks page completion erased task fields, goal link or reminder settings`));
   await page.evaluate(async id => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 5);
+      const request = indexedDB.open('mealpha-pro-local', 6);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -541,7 +541,7 @@ for (const viewport of viewports) {
       // Regression: qualitative subgoals use checklist items instead of target/current numeric values.
       await page.evaluate(async title => {
         const db = await new Promise((resolve, reject) => {
-          const request = indexedDB.open('mealpha-pro-local', 5);
+          const request = indexedDB.open('mealpha-pro-local', 6);
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
         });
@@ -585,7 +585,7 @@ for (const viewport of viewports) {
         await page.reload({ waitUntil: 'networkidle' });
         const checklistState = await page.evaluate(async title => {
           const db = await new Promise((resolve, reject) => {
-            const request = indexedDB.open('mealpha-pro-local', 5);
+            const request = indexedDB.open('mealpha-pro-local', 6);
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
           });
@@ -722,7 +722,7 @@ for (const viewport of viewports) {
     await page.getByRole('button', { name: /ذخیره یادداشت|Save journal/ }).click();
     await page.waitForFunction(async ({ checklistProbe, journalProbe }) => {
       const db = await new Promise((resolve, reject) => {
-        const request = indexedDB.open('mealpha-pro-local', 5);
+        const request = indexedDB.open('mealpha-pro-local', 6);
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
       });
