@@ -189,7 +189,7 @@ export default function Layout() {
             </div>}
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1600px] ps-[5.5rem] pe-3 pb-8 pt-6 sm:ps-6 sm:pe-6 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
+        <main className="mx-auto w-full max-w-[1600px] ps-[5.5rem] pe-3 pb-8 pt-6 sm:ps-[5.5rem] sm:pe-6 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
       </div>
     </div>
   );
