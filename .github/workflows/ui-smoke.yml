@@ -13,6 +13,8 @@ on:
       - fix/goals-hierarchy-integrity
       - fix/restore-purple-branding-profile-goals
       - fix/dropbox-settings-save-logo-sizing
+      - ui/reference-glass-navigation
+      - release/2.1.0-from-cbd4dfc
     paths:
       - "apps/mealpha-pro/**"
       - "docs/favicon.svg"
