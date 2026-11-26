@@ -58,7 +58,7 @@ for (const viewport of viewports) {
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
   const isMobile = viewport.width < 768;
   if (isMobile) {
-    const glassNav = page.getByRole('navigation', { name: /ناوبری شیشه‌ای|Glass navigation/ });
+    const glassNav = page.locator('aside[aria-label="ناوبری شیشه‌ای"], aside[aria-label="Glass navigation"]');
     if (!(await glassNav.count())) failures.push(`${viewport.name}: mobile glass navigation missing`);
     else if (await glassNav.getByRole('link').count() !== 11) failures.push(`${viewport.name}: mobile glass navigation links missing`);
   }
@@ -148,7 +148,7 @@ for (const viewport of viewports) {
   }
   if (isMobile) {
     await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
-    const glassNav = page.getByRole('navigation', { name: /ناوبری شیشه‌ای|Glass navigation/ });
+    const glassNav = page.locator('aside[aria-label="ناوبری شیشه‌ای"], aside[aria-label="Glass navigation"]');
     if (!(await glassNav.count())) failures.push(`${viewport.name}: mobile glass navigation missing`);
     else {
       const geometry = await glassNav.evaluate(el => {
