@@ -6,7 +6,6 @@ on:
     branches:
       - main
       - fix/dropbox-settings-save-logo-sizing
-      - fix/dropbox-settings-save-logo-sizing
     paths:
       - "apps/mealpha-pro/**"
       - "packages/**"
@@ -260,15 +259,15 @@ jobs:
       contents: write
     needs: [version, windows, android, linux]
     steps:
-      # Create the v3 tag with the Actions token before creating the Release.
-      # The target commit adds a workflow file, so the Release API call must
-      # see an already-existing tag; this avoids requiring Workflows: write
-      # on the separate RELEASE_TOKEN used by softprops/action-gh-release.
-      - name: Checkout exact release commit
+      # Use RELEASE_TOKEN for both the tag push and Release creation.
+      # The exact release commit includes workflow files, so GitHub requires
+      # Contents: write and Workflows: write for this authenticated push.
+      - name: Checkout exact release commit with release-capable token
         uses: actions/checkout@v4
         with:
           ref: 810db678ef333f150cc112fc2032b095743fe223
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
       - name: Create or verify exact v3 tag
         env:
           RELEASE_COMMIT: 810db678ef333f150cc112fc2032b095743fe223
