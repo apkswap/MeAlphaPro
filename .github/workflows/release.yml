@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - release/2.1.0-fresh-signing-key
+      - V2.2
     paths:
       - "apps/mealpha-pro/**"
       - "packages/**"
@@ -251,7 +252,7 @@ jobs:
           retention-days: 7
 
   publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/V2.2')
     runs-on: ubuntu-latest
     permissions:
       contents: write
