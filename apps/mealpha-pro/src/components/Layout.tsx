@@ -124,7 +124,7 @@ export default function Layout() {
           <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-300 via-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/35 ring-1 ring-white/25"><img src="/mealpha.svg" alt="MeAlpha" className="h-8 w-8 object-contain" /></div>
           <div className="min-w-0 whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100"><div className="text-[15px] font-black tracking-tight text-white">MeAlpha <span className="text-sky-300">Pro</span></div><div className="mt-0.5 text-[9px] font-semibold tracking-[.18em] text-slate-400">PERSONAL COMMAND CENTER</div></div>
         </NavLink>
-        <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-0.5 pt-1">{navItems()}</nav>
+        <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-0.5 pt-1 group-hover/panel:pe-10">{navItems()}</nav>
         <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.06] p-2">
           <div className="mb-2 flex items-center gap-2 whitespace-nowrap text-[11px] font-semibold text-slate-200"><span className={cn('h-2 w-2 rounded-full', online ? 'bg-emerald-500' : 'bg-amber-500')} />{online ? (fa ? 'اینترنت متصل' : 'Internet connected') : (fa ? 'بدون اینترنت' : 'Offline')}</div>
           <div className="mb-3 flex min-w-0 items-center gap-2 whitespace-nowrap text-[11px] opacity-0 transition-opacity group-hover/panel:opacity-100" role="status" aria-live="polite">
@@ -137,7 +137,14 @@ export default function Layout() {
             <Button variant="ghost" size="sm" className="h-9 min-w-9 rounded-xl px-2 text-xs text-slate-200 hover:bg-white/10 hover:text-white" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-1 h-4 w-4" /> : <Sun className="me-1 h-4 w-4" />}{settings.theme === 'light' ? (fa ? 'شب' : 'Night') : (fa ? 'روز' : 'Day')}</Button>
             <Button variant="ghost" size="sm" className="h-9 min-w-9 rounded-xl px-2 text-xs text-slate-200 hover:bg-white/10 hover:text-white" onClick={toggleLang}><Languages className="me-1 h-4 w-4" />{fa ? 'EN' : 'فا'}</Button>
           </div>
-        </div></div>
+        <div className="absolute end-2 top-3 bottom-3 z-20 hidden w-9 flex-col items-center gap-2 rounded-full border border-slate-200/80 bg-white/95 py-3 text-slate-700 shadow-[0_8px_28px_-12px_rgba(255,255,255,.5)] group-hover/panel:flex">
+          <button type="button" onClick={toggleTheme} aria-label={fa ? 'تغییر پوسته' : 'Toggle theme'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200">{settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
+          <button type="button" onClick={toggleLang} aria-label={fa ? 'تغییر زبان' : 'Change language'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200"><Languages className="h-4 w-4" /></button>
+          <span className="my-1 h-px w-5 bg-slate-300" />
+          <NavLink to="/settings" aria-label={fa ? 'تنظیمات' : 'Settings'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200"><Settings className="h-4 w-4" /></NavLink>
+          <span className="mt-auto text-[8px] font-bold tracking-widest text-slate-400" style={{ writingMode: 'vertical-rl' }}>MEALPHA</span>
+        </div>
+      </div></div>
       </aside>
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between border-b border-white/10 bg-slate-950/35 px-3 text-foreground shadow-[0_8px_30px_-24px_rgba(0,0,0,.8)] backdrop-blur-2xl sm:px-4 md:px-8">
