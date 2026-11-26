@@ -100,17 +100,17 @@ export default function Layout() {
     { id: 'system', label: fa ? 'فضای کار' : 'WORKSPACE' },
   ] as const;
   const navLink = ({ isActive }: { isActive: boolean }) => cn(
-    'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200',
-    isActive ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+    'group flex min-h-11 items-center justify-center gap-3 rounded-2xl px-0 py-2.5 text-[13px] font-medium transition-all duration-200 group-hover/panel:justify-start group-hover/panel:px-3',
+    isActive ? 'bg-gradient-to-r from-sky-300/25 to-indigo-400/20 text-white shadow-[0_8px_28px_-12px_rgba(56,189,248,.65)] ring-1 ring-sky-200/25' : 'text-slate-300/75 hover:bg-white/10 hover:text-white'
   );
   const navItems = () => groups.map(group => (
     <div key={group.id} className="mb-5">
-      <div className="px-3 pb-2 text-[9px] font-bold tracking-[.16em] text-muted-foreground/70">{group.label}</div>
+      <div className="h-2 overflow-hidden whitespace-nowrap px-3 pb-2 text-[9px] font-bold tracking-[.16em] text-sky-200/65 opacity-0 transition-opacity group-hover/panel:h-auto group-hover/panel:opacity-100">{group.label}</div>
       <div className="space-y-1">
         {NAV.filter(n => n.group === group.id).map(n => (
           <NavLink key={n.to} to={n.to} end={n.to === '/'} className={navLink}>
             <n.icon className="h-[17px] w-[17px] shrink-0" />
-            <span className="truncate">{t(n.k)}</span>
+            <span className="truncate opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100">{t(n.k)}</span>
           </NavLink>
         ))}
       </div>
@@ -118,29 +118,36 @@ export default function Layout() {
   ));
   const profileLabel = settings.displayName || settings.username || (fa ? 'پروفایل من' : 'My profile');
   return (
-    <div className="min-h-screen bg-background text-foreground md:flex">
-      <aside className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-[248px] md:shrink-0 md:flex-col md:border-e md:border-sidebar-border md:bg-sidebar-background/90 md:px-4 md:py-5 md:backdrop-blur-xl">
-        <NavLink to="/" className="mb-8 flex items-center gap-3 px-2">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25"><img src="/mealpha.svg" alt="MeAlpha" className="h-8 w-8 object-contain" /></div>
-          <div><div className="text-[15px] font-black tracking-tight">MeAlpha <span className="text-primary">Pro</span></div><div className="mt-0.5 text-[9px] font-semibold tracking-[.18em] text-muted-foreground">PERSONAL COMMAND CENTER</div></div>
+    <div className="mealpha-glass-shell min-h-screen bg-background text-foreground md:flex">
+      <aside className="relative hidden md:sticky md:top-0 md:block md:h-screen md:w-[88px] md:shrink-0"><div className="group/panel absolute inset-y-4 start-3 z-50 flex w-[64px] flex-col overflow-hidden rounded-[28px] border border-white/15 bg-slate-950/60 px-2 py-3 text-white shadow-[0_18px_70px_-22px_rgba(0,0,0,.85)] backdrop-blur-2xl transition-[width,background,box-shadow] duration-300 ease-out hover:w-[252px] hover:bg-slate-950/85 hover:shadow-[0_24px_80px_-20px_rgba(15,23,42,.95)]">
+        <NavLink to="/" className="mb-7 flex min-h-12 items-center gap-3 px-1">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-300 via-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/35 ring-1 ring-white/25"><img src="/mealpha.svg" alt="MeAlpha" className="h-8 w-8 object-contain" /></div>
+          <div className="min-w-0 whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100"><div className="text-[15px] font-black tracking-tight text-white">MeAlpha <span className="text-sky-300">Pro</span></div><div className="mt-0.5 text-[9px] font-semibold tracking-[.18em] text-slate-400">PERSONAL COMMAND CENTER</div></div>
         </NavLink>
-        <nav className="min-h-0 flex-1 overflow-y-auto">{navItems()}</nav>
-        <div className="mt-4 rounded-2xl border bg-card/70 p-3">
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold"><span className={cn('h-2 w-2 rounded-full', online ? 'bg-emerald-500' : 'bg-amber-500')} />{online ? (fa ? 'اینترنت متصل' : 'Internet connected') : (fa ? 'بدون اینترنت' : 'Offline')}</div>
-          <div className="mb-3 flex min-w-0 items-center gap-2 text-[11px]" role="status" aria-live="polite">
+        <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-0.5 pt-1 group-hover/panel:pe-10">{navItems()}</nav>
+        <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.06] p-2">
+          <div className="mb-2 flex items-center gap-2 whitespace-nowrap text-[11px] font-semibold text-slate-200"><span className={cn('h-2 w-2 rounded-full', online ? 'bg-emerald-500' : 'bg-amber-500')} />{online ? (fa ? 'اینترنت متصل' : 'Internet connected') : (fa ? 'بدون اینترنت' : 'Offline')}</div>
+          <div className="mb-3 flex min-w-0 items-center gap-2 whitespace-nowrap text-[11px] opacity-0 transition-opacity group-hover/panel:opacity-100" role="status" aria-live="polite">
             <Cloud className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <span className={cn('h-2 w-2 shrink-0 rounded-full', dropboxConnected ? 'bg-emerald-500' : 'bg-muted-foreground/50')} />
             <span className={cn('truncate font-semibold', dropboxConnected ? 'text-[hsl(var(--success))]' : 'text-muted-foreground')}>{dropboxConnected ? (fa ? 'حساب Dropbox متصل' : 'Dropbox account linked') : (fa ? 'Dropbox متصل نیست' : 'Dropbox not connected')}</span>
             {dropboxConnected && settings.dropboxAccountName && <span className="ms-auto max-w-20 truncate text-[9px] text-muted-foreground">{settings.dropboxAccountName}</span>}
           </div>
-          <div className="flex items-center justify-between gap-2">
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-1 h-4 w-4" /> : <Sun className="me-1 h-4 w-4" />}{settings.theme === 'light' ? (fa ? 'شب' : 'Night') : (fa ? 'روز' : 'Day')}</Button>
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={toggleLang}><Languages className="me-1 h-4 w-4" />{fa ? 'EN' : 'فا'}</Button>
+          <div className="flex items-center justify-center gap-2 group-hover/panel:justify-between">
+            <Button variant="ghost" size="sm" className="h-9 min-w-9 rounded-xl px-2 text-xs text-slate-200 hover:bg-white/10 hover:text-white" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-1 h-4 w-4" /> : <Sun className="me-1 h-4 w-4" />}{settings.theme === 'light' ? (fa ? 'شب' : 'Night') : (fa ? 'روز' : 'Day')}</Button>
+            <Button variant="ghost" size="sm" className="h-9 min-w-9 rounded-xl px-2 text-xs text-slate-200 hover:bg-white/10 hover:text-white" onClick={toggleLang}><Languages className="me-1 h-4 w-4" />{fa ? 'EN' : 'فا'}</Button>
           </div>
+        <div className="absolute end-2 top-3 bottom-3 z-20 hidden w-9 flex-col items-center gap-2 rounded-full border border-slate-200/80 bg-white/95 py-3 text-slate-700 shadow-[0_8px_28px_-12px_rgba(255,255,255,.5)] group-hover/panel:flex">
+          <button type="button" onClick={toggleTheme} aria-label={fa ? 'تغییر پوسته' : 'Toggle theme'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200">{settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
+          <button type="button" onClick={toggleLang} aria-label={fa ? 'تغییر زبان' : 'Change language'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200"><Languages className="h-4 w-4" /></button>
+          <span className="my-1 h-px w-5 bg-slate-300" />
+          <NavLink to="/settings" aria-label={fa ? 'تنظیمات' : 'Settings'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200"><Settings className="h-4 w-4" /></NavLink>
+          <span className="mt-auto text-[8px] font-bold tracking-widest text-slate-400" style={{ writingMode: 'vertical-rl' }}>MEALPHA</span>
         </div>
+      </div></div>
       </aside>
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between border-b bg-background/90 px-3 backdrop-blur-xl sm:px-4 md:px-8">
+        <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between border-b border-white/10 bg-slate-950/35 px-3 text-foreground shadow-[0_8px_30px_-24px_rgba(0,0,0,.8)] backdrop-blur-2xl sm:px-4 md:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button className="grid h-9 w-9 place-items-center rounded-xl border md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={fa ? 'بازکردن منو' : 'Open menu'}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
             <div className="md:hidden flex items-center gap-2 text-sm font-black"><img src="/mealpha.svg" alt="" className="h-7 w-7 rounded-lg" />MeAlpha <span className="text-primary">Pro</span></div>
@@ -166,7 +173,7 @@ export default function Layout() {
             </div>}
           </div>
         </header>
-        {mobileMenu && <div className="absolute inset-x-0 top-[68px] z-30 border-b bg-background p-4 shadow-xl md:hidden"><div className="grid grid-cols-2 gap-2">{NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({isActive}) => cn('flex items-center gap-2 rounded-xl p-3 text-sm', isActive ? 'bg-primary/10 text-primary' : 'bg-card text-muted-foreground')}><n.icon className="h-4 w-4" />{t(n.k)}</NavLink>)}</div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}
+        {mobileMenu && <div className="absolute inset-x-0 top-[68px] z-30 border-b border-white/10 bg-slate-950/95 p-4 text-white shadow-xl backdrop-blur-2xl md:hidden"><div className="grid grid-cols-2 gap-2">{NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({isActive}) => cn('flex items-center gap-2 rounded-xl p-3 text-sm', isActive ? 'bg-primary/10 text-primary' : 'bg-card text-muted-foreground')}><n.icon className="h-4 w-4" />{t(n.k)}</NavLink>)}</div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}
         <main className="mx-auto w-full max-w-[1600px] px-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
         <nav aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'} className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 gap-1 border-t bg-background/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),8px)] shadow-[0_-8px_30px_-20px_hsl(var(--foreground)/0.35)] backdrop-blur-xl md:hidden">
           {MOBILE_NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cn('flex min-w-0 min-h-[3.35rem] flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 text-[10px] font-medium transition-colors', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}>
