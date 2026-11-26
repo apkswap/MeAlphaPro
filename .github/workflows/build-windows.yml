@@ -12,6 +12,8 @@ on:
       - feature/cinematic-3d-dashboard
       - feature/premium-command-center-ui
       - fix/dropbox-settings-save-logo-sizing
+      - ui/reference-glass-navigation
+      - release/2.1.0-from-cbd4dfc
       - feat/hierarchical-goals-task-reminders
       - fix/goals-hierarchy-integrity
       - fix/restore-purple-branding-profile-goals
