@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 810db678ef333f150cc112fc2032b095743fe223
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Read application version
         id: version
@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 810db678ef333f150cc112fc2032b095743fe223
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -109,7 +109,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 810db678ef333f150cc112fc2032b095743fe223
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -150,7 +150,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 810db678ef333f150cc112fc2032b095743fe223
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -254,6 +254,8 @@ jobs:
           retention-days: 7
 
   publish:
+    # Publishing a public GitHub Release requires an explicit manual dispatch.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -264,7 +266,7 @@ jobs:
       - name: Checkout exact release commit
         uses: actions/checkout@v4
         with:
-          ref: 810db678ef333f150cc112fc2032b095743fe223
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Download release binaries
         uses: actions/download-artifact@v4
@@ -283,7 +285,7 @@ jobs:
         with:
           token: ${{ github.token }}
           tag_name: v${{ needs.version.outputs.version }}
-          target_commitish: 810db678ef333f150cc112fc2032b095743fe223
+          target_commitish: ${{ github.sha }}
           name: MeAlpha Pro v${{ needs.version.outputs.version }}
           generate_release_notes: true
           make_latest: true
