@@ -277,7 +277,7 @@ jobs:
             git fetch origin refs/tags/v3:refs/tags/v3
             test "$(git rev-list -n 1 refs/tags/v3)" = "$RELEASE_COMMIT"
           else
-            git tag -a v3 "$RELEASE_COMMIT" -m "MeAlpha Pro v3"
+            git tag v3 "$RELEASE_COMMIT"
             git push origin refs/tags/v3
           fi
       - name: Download release binaries
