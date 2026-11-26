@@ -58,12 +58,12 @@ for (const viewport of viewports) {
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
   const isMobile = viewport.width < 768;
   if (isMobile) {
-    const menuToggle = page.getByRole('button', { name: /بازکردن منو|Open menu/ });
-    if (await menuToggle.count()) await menuToggle.click();
-    else failures.push(`${viewport.name}: mobile menu control not visible`);
+    const glassNav = page.locator('aside[aria-label="ناوبری شیشه‌ای"], aside[aria-label="Glass navigation"]');
+    if (!(await glassNav.count())) failures.push(`${viewport.name}: mobile glass navigation missing`);
+    else if (await glassNav.getByRole('link').count() !== 11) failures.push(`${viewport.name}: mobile glass navigation links missing`);
   }
   const languageButton = isMobile
-    ? page.getByRole('button', { name: /English/ })
+    ? page.getByRole('button', { name: /English|فارسی/ })
     : page.getByRole('button', { name: /^(EN|فا)$/i });
   if (await languageButton.count()) {
     await languageButton.click();
@@ -148,25 +148,22 @@ for (const viewport of viewports) {
   }
   if (isMobile) {
     await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
-    const bottomNav = page.locator('nav[aria-label="ناوبری اصلی"]');
-    if (!(await bottomNav.count())) failures.push(`${viewport.name}: mobile bottom navigation missing`);
+    const glassNav = page.locator('aside[aria-label="ناوبری شیشه‌ای"], aside[aria-label="Glass navigation"]');
+    if (!(await glassNav.count())) failures.push(`${viewport.name}: mobile glass navigation missing`);
     else {
-      const layout = await bottomNav.evaluate(el => {
-        const nav = el.getBoundingClientRect();
-        const links = [...el.querySelectorAll('a')].map(a => {
-          const r = a.getBoundingClientRect();
-          return { top: r.top, bottom: r.bottom, width: r.width };
+      const geometry = await glassNav.evaluate(el => {
+        const r = el.getBoundingClientRect();
+        const links = [...el.querySelectorAll('a[aria-label]')].map(a => {
+          const box = a.getBoundingClientRect();
+          return { top: box.top, bottom: box.bottom, width: box.width };
         });
-        return { navTop: nav.top, navBottom: nav.bottom, viewportHeight: innerHeight, links };
+        return { top: r.top, bottom: r.bottom, height: innerHeight, links };
       });
-      if (layout.links.length !== 5 || layout.links.some(link => link.width < 42)) {
-        failures.push(`${viewport.name}: mobile navigation items are missing or too narrow ${JSON.stringify(layout)}`);
+      if (geometry.links.length !== 11 || geometry.links.some(link => link.width < 30)) {
+        failures.push(`${viewport.name}: vertical navigation links missing or too narrow ${JSON.stringify(geometry)}`);
       }
-      if (layout.links.length && Math.max(...layout.links.map(link => link.top)) - Math.min(...layout.links.map(link => link.top)) > 3) {
-        failures.push(`${viewport.name}: mobile navigation items are stacked instead of aligned in one row ${JSON.stringify(layout)}`);
-      }
-      if (layout.navBottom < layout.viewportHeight - 2 || layout.navTop < layout.viewportHeight - 130) {
-        failures.push(`${viewport.name}: mobile navigation is not anchored to the bottom safe area ${JSON.stringify(layout)}`);
+      if (geometry.bottom > geometry.height || geometry.top < 0) {
+        failures.push(`${viewport.name}: vertical navigation extends outside viewport ${JSON.stringify(geometry)}`);
       }
     }
   }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Languages, Layers3, Sun, Moon, Bell, Cloud, Menu, X, UserRound, ChevronLeft, CalendarClock } from 'lucide-react';
+import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Sparkles, Settings, Languages, Layers3, Sun, Moon, Bell, Cloud, X, UserRound, ChevronLeft, CalendarClock } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { cn } from '@project/components/lib/utils';
 import { useStore } from '../lib/store';
@@ -20,13 +20,11 @@ const NAV: { to: string; k: Key; icon: typeof Target; group: 'main' | 'manage' |
   { to: '/workspace', k: 'workspace', icon: Layers3, group: 'system' },
   { to: '/settings', k: 'settings', icon: Settings, group: 'system' },
 ];
-
-const MOBILE_NAV = NAV.filter(n => ['/', '/tasks', '/habits', '/transactions', '/settings'].includes(n.to));
+ 
 
 export default function Layout() {
   const { t, settings, setLocalSettings, data } = useStore();
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
-  const [mobileMenu, setMobileMenu] = useState(false);
   const [activePopover, setActivePopover] = useState<'notifications' | 'profile' | null>(null);
   const location = useLocation();
   useEffect(() => {
@@ -65,7 +63,7 @@ export default function Layout() {
       window.removeEventListener('offline', onOffline);
     };
   }, []);
-  useEffect(() => { setMobileMenu(false); setActivePopover(null); }, [location.pathname]);
+  useEffect(() => { setActivePopover(null); }, [location.pathname]);
   const toggleTheme = () => setLocalSettings({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' });
   const toggleLang = () => setLocalSettings({ ...settings, language: settings.language === 'fa' ? 'en' : 'fa' });
   const fa = settings.language === 'fa';
@@ -146,10 +144,28 @@ export default function Layout() {
         </div>
       </div></div>
       </aside>
+      <aside aria-label={fa ? 'ناوبری شیشه‌ای' : 'Glass navigation'} className="fixed start-2 top-1/2 z-50 flex -translate-y-1/2 items-center md:hidden">
+        <div className="relative flex h-[min(76dvh,620px)] w-12 flex-col overflow-visible rounded-[24px] border border-white/15 bg-slate-950/80 px-1.5 py-2.5 text-white shadow-[0_18px_60px_-18px_rgba(0,0,0,.82)] backdrop-blur-2xl">
+          <NavLink to="/" aria-label="MeAlpha Pro home" className="mb-2 grid h-9 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-violet-500/80 to-amber-400/70 ring-1 ring-white/20">
+            <img src="/mealpha.svg" alt="" className="h-6 w-6 object-contain" />
+          </NavLink>
+          <nav aria-label={fa ? 'صفحه‌های برنامه' : 'App sections'} className="min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden py-1">
+            {NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} title={t(n.k)} aria-label={t(n.k)} className={({ isActive }) => cn('grid h-9 w-9 place-items-center rounded-xl transition-all', isActive ? 'bg-gradient-to-br from-violet-400/35 to-amber-300/20 text-amber-200 shadow-[0_0_20px_-6px_rgba(196,160,255,.75)] ring-1 ring-violet-200/30' : 'text-slate-300 hover:bg-white/10 hover:text-white')}>
+              <n.icon className="h-[18px] w-[18px]" />
+            </NavLink>)}
+          </nav>
+          <span className={cn('mx-auto mt-1 h-1.5 w-1.5 shrink-0 rounded-full', online ? 'bg-emerald-400' : 'bg-amber-400')} title={online ? (fa ? 'آنلاین' : 'Online') : (fa ? 'آفلاین' : 'Offline')} />
+          <div className="absolute end-[-30px] top-1/2 flex -translate-y-1/2 flex-col items-center gap-2 rounded-full border border-slate-200/90 bg-white/95 p-1.5 text-slate-700 shadow-[0_10px_30px_-12px_rgba(255,255,255,.55)] backdrop-blur-xl">
+            <button type="button" onClick={toggleTheme} aria-label={fa ? 'تغییر تم' : 'Toggle theme'} title={fa ? 'تغییر تم' : 'Toggle theme'} className="grid h-7 w-7 place-items-center rounded-full transition-colors hover:bg-slate-200">{settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
+            <button type="button" onClick={toggleLang} aria-label={fa ? 'English' : 'فارسی'} title={fa ? 'English' : 'فارسی'} className="grid h-7 w-7 place-items-center rounded-full text-[10px] font-bold transition-colors hover:bg-slate-200">{fa ? 'EN' : 'فا'}</button>
+            <span className="h-px w-4 bg-slate-300" />
+            <NavLink to="/settings" aria-label={fa ? 'تنظیمات' : 'Settings'} title={fa ? 'تنظیمات' : 'Settings'} className="grid h-7 w-7 place-items-center rounded-full transition-colors hover:bg-slate-200"><Settings className="h-4 w-4" /></NavLink>
+          </div>
+        </div>
+      </aside>
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between border-b border-white/10 bg-slate-950/35 px-3 text-foreground shadow-[0_8px_30px_-24px_rgba(0,0,0,.8)] backdrop-blur-2xl sm:px-4 md:px-8">
           <div className="flex min-w-0 items-center gap-3">
-            <button className="grid h-9 w-9 place-items-center rounded-xl border md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={fa ? 'بازکردن منو' : 'Open menu'}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
             <div className="md:hidden flex items-center gap-2 text-sm font-black"><img src="/mealpha.svg" alt="" className="h-7 w-7 rounded-lg" />MeAlpha <span className="text-primary">Pro</span></div>
             <div className="hidden text-xs text-muted-foreground sm:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{t(NAV.find(n => n.to === location.pathname)?.k ?? 'dashboard')}</span></div>
           </div>
@@ -173,14 +189,7 @@ export default function Layout() {
             </div>}
           </div>
         </header>
-        {mobileMenu && <div className="absolute inset-x-0 top-[68px] z-30 border-b border-white/10 bg-slate-950/95 p-4 text-white shadow-xl backdrop-blur-2xl md:hidden"><div className="grid grid-cols-2 gap-2">{NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({isActive}) => cn('flex items-center gap-2 rounded-xl p-3 text-sm', isActive ? 'bg-primary/10 text-primary' : 'bg-card text-muted-foreground')}><n.icon className="h-4 w-4" />{t(n.k)}</NavLink>)}</div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}
-        <main className="mx-auto w-full max-w-[1600px] px-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
-        <nav aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'} className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 gap-1 border-t bg-background/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),8px)] shadow-[0_-8px_30px_-20px_hsl(var(--foreground)/0.35)] backdrop-blur-xl md:hidden">
-          {MOBILE_NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cn('flex min-w-0 min-h-[3.35rem] flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 text-[10px] font-medium transition-colors', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}>
-            <n.icon className="h-[19px] w-[19px] shrink-0" />
-            <span className="max-w-full truncate leading-tight">{t(n.k)}</span>
-          </NavLink>)}
-        </nav>
+        <main className="mx-auto w-full max-w-[1600px] ps-[5.5rem] pe-3 pb-8 pt-6 sm:ps-[5.5rem] sm:pe-6 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
       </div>
     </div>
   );
