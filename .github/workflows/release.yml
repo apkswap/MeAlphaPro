@@ -279,9 +279,9 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         with:
-          token: ${{ secrets.RELEASE_TOKEN }}
+          token: ${{ github.token }}
           tag_name: v${{ needs.version.outputs.version }}
           target_commitish: 810db678ef333f150cc112fc2032b095743fe223
           name: MeAlpha Pro v${{ needs.version.outputs.version }}
