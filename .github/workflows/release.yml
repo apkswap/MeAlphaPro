@@ -100,11 +100,11 @@ jobs:
           New-Item -ItemType Directory -Force release-assets | Out-Null
           $installer = Get-ChildItem "apps/mealpha-pro/release" -Filter "*.exe" -File | Select-Object -First 1
           if (-not $installer) { throw "No Windows installer was produced." }
-          Copy-Item $installer.FullName "release-assets/MeAlpha-Pro-Windows-x64.exe"
+          Copy-Item $installer.FullName "release-assets/MeAlpha-Pro-V2.exe"
       - uses: actions/upload-artifact@v4
         with:
-          name: MeAlpha-Pro-Windows-x64
-          path: release-assets/MeAlpha-Pro-Windows-x64.exe
+          name: MeAlpha-Pro-V2-Windows
+          path: release-assets/MeAlpha-Pro-V2.exe
           if-no-files-found: error
           retention-days: 7
 
@@ -137,14 +137,14 @@ jobs:
           DEB=$(find apps/mealpha-pro/release -maxdepth 1 -type f -name "*.deb" -print -quit)
           test -n "$APPIMAGE" || { echo "No Linux AppImage was produced."; exit 1; }
           test -n "$DEB" || { echo "No Linux DEB package was produced."; exit 1; }
-          cp "$APPIMAGE" release-assets/MeAlpha-Pro-Linux-x64.AppImage
-          cp "$DEB" release-assets/MeAlpha-Pro-Linux-x64.deb
+          cp "$APPIMAGE" release-assets/MeAlpha-Pro-V2.AppImage
+          cp "$DEB" release-assets/MeAlpha-Pro-V2.deb
       - uses: actions/upload-artifact@v4
         with:
-          name: MeAlpha-Pro-Linux-x64
+          name: MeAlpha-Pro-V2-Linux
           path: |
-            release-assets/MeAlpha-Pro-Linux-x64.AppImage
-            release-assets/MeAlpha-Pro-Linux-x64.deb
+            release-assets/MeAlpha-Pro-V2.AppImage
+            release-assets/MeAlpha-Pro-V2.deb
           if-no-files-found: error
           retention-days: 7
 
@@ -243,11 +243,11 @@ jobs:
       - name: Prepare stable release filename
         run: |
           mkdir -p release-assets
-          cp apps/mealpha-pro/android/app/build/outputs/apk/release/app-release.apk release-assets/MeAlpha-Pro-Android.apk
+          cp apps/mealpha-pro/android/app/build/outputs/apk/release/app-release.apk release-assets/MeAlpha-Pro-V2.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: MeAlpha-Pro-Android-APK
-          path: release-assets/MeAlpha-Pro-Android.apk
+          name: MeAlpha-Pro-V2-Android
+          path: release-assets/MeAlpha-Pro-V2.apk
           if-no-files-found: error
           retention-days: 7
 
@@ -267,7 +267,7 @@ jobs:
       - name: Generate SHA-256 checksums
         run: |
           cd release-assets
-          sha256sum MeAlpha-Pro-Windows-x64.exe MeAlpha-Pro-Android.apk MeAlpha-Pro-Linux-x64.AppImage MeAlpha-Pro-Linux-x64.deb > SHA256SUMS.txt
+          sha256sum MeAlpha-Pro-V2.exe MeAlpha-Pro-V2.apk MeAlpha-Pro-V2.AppImage MeAlpha-Pro-V2.deb > SHA256SUMS.txt
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -282,15 +282,15 @@ jobs:
 
             Download the Windows installer, Android APK, or Linux packages below.
 
-            - **Windows:** `MeAlpha-Pro-Windows-x64.exe` (Authenticode-signed when a trusted publisher certificate is configured)
-            - **Android:** `MeAlpha-Pro-Android.apk` (signed with the configured Android release key; publication fails if signing secrets are unavailable)
-            - **Linux:** `MeAlpha-Pro-Linux-x64.AppImage` and `MeAlpha-Pro-Linux-x64.deb`
+            - **Windows:** `MeAlpha-Pro-V2.exe` (Authenticode-signed when a trusted publisher certificate is configured)
+            - **Android:** `MeAlpha-Pro-V2.apk` (signed with the configured Android release key; publication fails if signing secrets are unavailable)
+            - **Linux:** `MeAlpha-Pro-V2.AppImage` and `MeAlpha-Pro-V2.deb`
             - **Integrity:** verify downloads with `SHA256SUMS.txt`
 
             See the repository README for setup notes and current feature scope.
           files: |
-            release-assets/MeAlpha-Pro-Windows-x64.exe
-            release-assets/MeAlpha-Pro-Android.apk
-            release-assets/MeAlpha-Pro-Linux-x64.AppImage
-            release-assets/MeAlpha-Pro-Linux-x64.deb
+            release-assets/MeAlpha-Pro-V2.exe
+            release-assets/MeAlpha-Pro-V2.apk
+            release-assets/MeAlpha-Pro-V2.AppImage
+            release-assets/MeAlpha-Pro-V2.deb
             release-assets/SHA256SUMS.txt
