@@ -196,7 +196,7 @@ jobs:
           python3 apps/mealpha-pro/scripts/generate-android-icons.py
       - name: Build installable Android APK
         working-directory: apps/mealpha-pro/android
-        run: chmod +x ./gradlew && ./gradlew assembleDebug
+        run: chmod +x ./gradlew && ./gradlew assembleRelease
       - name: Check Android signing configuration
         id: android-signing
         env:
@@ -205,11 +205,11 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "Required Android signing secrets are missing; refusing to publish an unsigned/debug APK."
+            exit 1
           fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
       - name: Sign Android APK with the official release key when configured
         if: ${{ steps.android-signing.outputs.enabled == 'true' }}
         env:
@@ -219,20 +219,20 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           KEYSTORE_PATH="$RUNNER_TEMP/mealpha-release.jks"
-          APK_IN="apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk"
-          APK_OUT="apps/mealpha-pro/android/app/build/outputs/apk/debug/app-release-signed.apk"
+          APK_IN="apps/mealpha-pro/android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          APK_OUT="apps/mealpha-pro/android/app/build/outputs/apk/release/app-release-signed.apk"
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
           test -x "$APKSIGNER" || { echo "Android apksigner was not found."; exit 1; }
           "$APKSIGNER" sign --ks "$KEYSTORE_PATH" --ks-key-alias "$ANDROID_KEY_ALIAS" --ks-pass "env:ANDROID_KEYSTORE_PASSWORD" --key-pass "env:ANDROID_KEY_PASSWORD" --out "$APK_OUT" "$APK_IN"
           "$APKSIGNER" verify --verbose --print-certs "$APK_OUT"
-          mv "$APK_OUT" "$APK_IN"
+          mv "$APK_OUT" "apps/mealpha-pro/android/app/build/outputs/apk/release/app-release.apk"
           rm -f "$KEYSTORE_PATH"
 
       - name: Prepare stable release filename
         run: |
           mkdir -p release-assets
-          cp apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk release-assets/MeAlpha-Pro-Android.apk
+          cp apps/mealpha-pro/android/app/build/outputs/apk/release/app-release.apk release-assets/MeAlpha-Pro-Android.apk
       - uses: actions/upload-artifact@v4
         with:
           name: MeAlpha-Pro-Android-APK
@@ -271,7 +271,7 @@ jobs:
             Download the Windows installer, Android APK, or Linux packages below.
 
             - **Windows:** `MeAlpha-Pro-Windows-x64.exe` (Authenticode-signed when a trusted publisher certificate is configured)
-            - **Android:** `MeAlpha-Pro-Android.apk` (signed with the official release key when Android signing secrets are configured; otherwise debug-signed for evaluation)
+            - **Android:** `MeAlpha-Pro-Android.apk` (signed with the configured Android release key; publication fails if signing secrets are unavailable)
             - **Linux:** `MeAlpha-Pro-Linux-x64.AppImage` and `MeAlpha-Pro-Linux-x64.deb`
             - **Integrity:** verify downloads with `SHA256SUMS.txt`
 
