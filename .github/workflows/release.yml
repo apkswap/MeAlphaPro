@@ -242,8 +242,8 @@ jobs:
           curl --fail --location --silent --show-error \
             "https://github.com/apkswap/MeAlphaPro/releases/download/v2.0.0/MeAlpha-Pro-Android.apk" \
             --output "$PREVIOUS_APK"
-          PREVIOUS_CERT="$("$APKSIGNER" verify --verbose --print-certs "$PREVIOUS_APK" 2>&1 | awk -F': ' '/certificate SHA-256 digest:/ {print $2; exit}')"
-          CURRENT_CERT="$("$APKSIGNER" verify --verbose --print-certs "$APK_OUT" 2>&1 | awk -F': ' '/certificate SHA-256 digest:/ {print $2; exit}')"
+          PREVIOUS_CERT="$("$APKSIGNER" verify --verbose --print-certs "$PREVIOUS_APK" 2>&1 | awk -F': ' '/certificate SHA-256 digest:/ {print $NF; exit}')"
+          CURRENT_CERT="$("$APKSIGNER" verify --verbose --print-certs "$APK_OUT" 2>&1 | awk -F': ' '/certificate SHA-256 digest:/ {print $NF; exit}')"
           if [ -z "$PREVIOUS_CERT" ] || [ -z "$CURRENT_CERT" ]; then
             echo "::error::Could not extract Android signing certificate fingerprints."
             exit 1
