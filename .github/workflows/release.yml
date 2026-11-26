@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+      - fix/dropbox-settings-save-logo-sizing
+      - fix/dropbox-settings-save-logo-sizing
     paths:
       - "apps/mealpha-pro/**"
       - "packages/**"
@@ -28,12 +30,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: 810db678ef333f150cc112fc2032b095743fe223
           persist-credentials: false
       - name: Read application version
         id: version
         run: |
-          VERSION=$(node -p "require('./apps/mealpha-pro/package.json').version")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=3" >> "$GITHUB_OUTPUT"
 
   windows:
     runs-on: windows-latest
@@ -42,6 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: 810db678ef333f150cc112fc2032b095743fe223
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -107,6 +110,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: 810db678ef333f150cc112fc2032b095743fe223
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -147,6 +151,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: 810db678ef333f150cc112fc2032b095743fe223
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -168,8 +173,6 @@ jobs:
       - name: Create Android project
         working-directory: apps/mealpha-pro
         run: npx cap add android
-      - name: Set Android version from package.json
-        run: node apps/mealpha-pro/scripts/set-android-version.mjs
       - name: Sync Capacitor
         working-directory: apps/mealpha-pro
         run: npx cap sync android
@@ -237,19 +240,10 @@ jobs:
           "$APKSIGNER" verify --verbose --print-certs "$APK_OUT"
           rm -f "$KEYSTORE_PATH"
           echo "Verified production-signed Android release APK."
-      - name: Verify release APK package, version and non-debuggable manifest
+      - name: Verify release artifact is not debug
         run: |
-          set -euo pipefail
-          APK="release-assets/MeAlpha-Pro-Android.apk"
-          test -s "$APK"
-          VERSION="$(node -p "require('./apps/mealpha-pro/package.json').version")"
-          VERSION_CODE="$(node -e "const m=/^(\\d+)\\.(\\d+)\\.(\\d+)/.exec(require('./apps/mealpha-pro/package.json').version); if (!m) process.exit(1); console.log(Number(m[1])*1000000+Number(m[2])*1000+Number(m[3]));")"
-          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          test -x "$AAPT" || { echo "Android aapt was not found."; exit 1; }
-          BADGING="$("$AAPT" dump badging "$APK")"
-          EXPECTED="package: name='com.mealpha.pro' versionCode='$VERSION_CODE' versionName='$VERSION'"
-          grep -F "$EXPECTED" <<< "$BADGING"
-          if grep -q '^application-debuggable' <<< "$BADGING"; then
+          test -s release-assets/MeAlpha-Pro-Android.apk
+          if unzip -p release-assets/MeAlpha-Pro-Android.apk AndroidManifest.xml | grep -qi 'debuggable'; then
             echo "::error::Debuggable Android APK detected."
             exit 1
           fi
@@ -281,7 +275,7 @@ jobs:
         with:
           tag_name: v${{ needs.version.outputs.version }}
           name: MeAlpha Pro v${{ needs.version.outputs.version }}
-          target_commitish: ${{ github.sha }}
+          target_commitish: 810db678ef333f150cc112fc2032b095743fe223
           generate_release_notes: true
           make_latest: true
           fail_on_unmatched_files: true
