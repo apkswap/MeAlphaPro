@@ -48,3 +48,32 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
 ::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: hsl(var(--primary) / .25); border-radius: 999px; }
+
+
+/* Glassy Sidebar V10 — MeAlpha Pro visual system */
+.mealpha-glass-shell {
+  position: relative;
+  isolation: isolate;
+  background-image:
+    radial-gradient(ellipse at 76% 2%, hsl(211 92% 55% / .16), transparent 34%),
+    radial-gradient(ellipse at 12% 82%, hsl(258 78% 58% / .10), transparent 32%),
+    radial-gradient(circle at 1px 1px, hsl(var(--foreground) / .10) 1px, transparent 0);
+  background-size: auto, auto, 34px 34px;
+}
+.mealpha-glass-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 58% 0%, hsl(207 94% 58% / .10), transparent 42%),
+    radial-gradient(ellipse at 92% 72%, hsl(257 78% 58% / .08), transparent 38%);
+}
+.mealpha-glass-shell header {
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mealpha-glass-shell .group\/panel { transition: none; }
+}
