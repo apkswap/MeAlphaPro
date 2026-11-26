@@ -237,6 +237,24 @@ jobs:
           "$APKSIGNER" verify --verbose --print-certs "$APK_OUT"
           rm -f "$KEYSTORE_PATH"
           echo "Verified production-signed Android release APK."
+          # A changed Android signing certificate would prevent existing users from upgrading.
+          PREVIOUS_APK="$RUNNER_TEMP/mealpha-v2.0.0.apk"
+          curl --fail --location --silent --show-error \
+            "https://github.com/apkswap/MeAlphaPro/releases/download/v2.0.0/MeAlpha-Pro-Android.apk" \
+            --output "$PREVIOUS_APK"
+          PREVIOUS_CERT="$("$APKSIGNER" verify --verbose --print-certs "$PREVIOUS_APK" 2>&1 | awk -F': ' '/certificate SHA-256 digest:/ {print $NF; exit}')"
+          CURRENT_CERT="$("$APKSIGNER" verify --verbose --print-certs "$APK_OUT" 2>&1 | awk -F': ' '/certificate SHA-256 digest:/ {print $NF; exit}')"
+          if [ -z "$PREVIOUS_CERT" ] || [ -z "$CURRENT_CERT" ]; then
+            echo "::error::Could not extract Android signing certificate fingerprints."
+            exit 1
+          fi
+          if [ "$PREVIOUS_CERT" != "$CURRENT_CERT" ]; then
+            echo "::error::The configured keystore does not match the published v2.0.0 signing certificate. Refusing an incompatible update."
+            echo "Previous certificate SHA-256: $PREVIOUS_CERT"
+            echo "Configured certificate SHA-256: $CURRENT_CERT"
+            exit 1
+          fi
+          echo "Android signing certificate matches v2.0.0; in-place upgrade compatibility is preserved."
       - name: Verify release APK package, version and non-debuggable manifest
         run: |
           set -euo pipefail
