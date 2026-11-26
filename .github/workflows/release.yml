@@ -4,6 +4,16 @@ on:
   push:
     branches:
       - main
+      - release/2.1.0-fresh-signing-key
+    paths:
+      - "apps/mealpha-pro/**"
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/release.yml"
+  pull_request:
+    branches:
+      - main
     paths:
       - "apps/mealpha-pro/**"
       - "packages/**"
@@ -241,6 +251,7 @@ jobs:
           retention-days: 7
 
   publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
