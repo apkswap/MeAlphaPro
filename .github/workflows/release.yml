@@ -260,6 +260,26 @@ jobs:
       contents: write
     needs: [version, windows, android, linux]
     steps:
+      # Create the v3 tag with the Actions token before creating the Release.
+      # The target commit adds a workflow file, so the Release API call must
+      # see an already-existing tag; this avoids requiring Workflows: write
+      # on the separate RELEASE_TOKEN used by softprops/action-gh-release.
+      - name: Checkout exact release commit
+        uses: actions/checkout@v4
+        with:
+          ref: 810db678ef333f150cc112fc2032b095743fe223
+          fetch-depth: 0
+      - name: Create or verify exact v3 tag
+        env:
+          RELEASE_COMMIT: 810db678ef333f150cc112fc2032b095743fe223
+        run: |
+          if git ls-remote --exit-code --tags origin refs/tags/v3 >/dev/null 2>&1; then
+            git fetch origin refs/tags/v3:refs/tags/v3
+            test "$(git rev-list -n 1 refs/tags/v3)" = "$RELEASE_COMMIT"
+          else
+            git tag -a v3 "$RELEASE_COMMIT" -m "MeAlpha Pro v3"
+            git push origin refs/tags/v3
+          fi
       - name: Download release binaries
         uses: actions/download-artifact@v4
         with:
@@ -278,7 +298,6 @@ jobs:
           token: ${{ secrets.RELEASE_TOKEN }}
           tag_name: v${{ needs.version.outputs.version }}
           name: MeAlpha Pro v${{ needs.version.outputs.version }}
-          target_commitish: 810db678ef333f150cc112fc2032b095743fe223
           generate_release_notes: true
           make_latest: true
           fail_on_unmatched_files: true
