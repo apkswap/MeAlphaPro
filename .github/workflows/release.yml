@@ -175,6 +175,8 @@ jobs:
       - name: Sync Capacitor
         working-directory: apps/mealpha-pro
         run: npx cap sync android
+      - name: Set Android version from package.json
+        run: node apps/mealpha-pro/scripts/set-android-version.mjs
       - name: Configure Android Dropbox deep link
         working-directory: apps/mealpha-pro
         run: |
@@ -239,13 +241,23 @@ jobs:
           "$APKSIGNER" verify --verbose --print-certs "$APK_OUT"
           rm -f "$KEYSTORE_PATH"
           echo "Verified production-signed Android release APK."
-      - name: Verify release artifact is not debug
+      - name: Verify release APK package, version, and build type
         run: |
-          test -s release-assets/MeAlpha-Pro-Android.apk
-          if unzip -p release-assets/MeAlpha-Pro-Android.apk AndroidManifest.xml | grep -qi 'debuggable'; then
+          set -euo pipefail
+          APK="release-assets/MeAlpha-Pro-Android.apk"
+          VERSION="$(node -p "require('./apps/mealpha-pro/package.json').version")"
+          VERSION_CODE="$(node -e "const m=/^(\\d+)\\.(\\d+)\\.(\\d+)/.exec(require('./apps/mealpha-pro/package.json').version); if (!m) process.exit(1); console.log(Number(m[1])*1000000+Number(m[2])*1000+Number(m[3]));")"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -x "$AAPT" || { echo "Android aapt was not found."; exit 1; }
+          test -s "$APK" || { echo "Release APK is missing."; exit 1; }
+          BADGING="$("$AAPT" dump badging "$APK")"
+          EXPECTED="package: name='com.mealpha.pro' versionCode='$VERSION_CODE' versionName='$VERSION'"
+          grep -F "$EXPECTED" <<< "$BADGING"
+          if grep -q '^application-debuggable' <<< "$BADGING"; then
             echo "::error::Debuggable Android APK detected."
             exit 1
           fi
+          echo "Verified package com.mealpha.pro, version $VERSION ($VERSION_CODE), non-debug release APK."
       - uses: actions/upload-artifact@v4
         with:
           name: MeAlpha-Pro-Android-APK
