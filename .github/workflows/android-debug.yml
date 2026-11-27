@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix/dropbox-settings-save-logo-sizing
+      - ui/glass-command-center-review-current
     paths:
       - "apps/mealpha-pro/**"
       - "packages/**"
