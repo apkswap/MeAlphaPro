@@ -17,6 +17,7 @@ on:
       - fix/restore-purple-branding-profile-goals
       - ui/glassy-v10-interactive-review
       - ui/command-center-navigation-refresh
+      - fix/deep-ui-audit-2026-11-28
     paths:
       - "apps/**"
       - "packages/**"
