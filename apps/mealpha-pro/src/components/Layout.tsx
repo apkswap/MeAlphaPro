@@ -29,6 +29,8 @@ export default function Layout() {
   const { t, settings, setLocalSettings, data, save } = useStore();
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const mobileMenuPanelRef = useRef<HTMLElement>(null);
   const [sidebarPinned, setSidebarPinned] = useState(false);
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const sidebarExpanded = sidebarPinned || sidebarHovered;
@@ -75,11 +77,37 @@ export default function Layout() {
   useEffect(() => { setMobileMenu(false); setActivePopover(null); }, [location.pathname]);
   useEffect(() => {
     if (!mobileMenu) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMobileMenu(false);
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.requestAnimationFrame(() => mobileMenuPanelRef.current?.querySelector<HTMLElement>('[data-mobile-menu-close]')?.focus());
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMobileMenu(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const panel = mobileMenuPanelRef.current;
+      if (!panel) return;
+      const focusable = [...panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+        .filter(element => element.getAttribute('aria-hidden') !== 'true');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !panel.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !panel.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
     };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      if (mobileMenuTriggerRef.current?.isConnected) mobileMenuTriggerRef.current.focus();
+      else previousFocus?.focus?.();
+    };
   }, [mobileMenu]);
   const toggleTheme = () => setLocalSettings({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' });
   const toggleLang = () => setLocalSettings({ ...settings, language: settings.language === 'fa' ? 'en' : 'fa' });
@@ -214,7 +242,9 @@ export default function Layout() {
       </div>
     </div>
   ));
-  const currentNav = NAV.find(n => n.to === location.pathname + location.search) ?? NAV.find(n => n.to === location.pathname);
+  const currentNav = NAV.find(n => n.to === location.pathname + location.search)
+    ?? NAV.find(n => n.to.startsWith(location.pathname + '?'))
+    ?? NAV.find(n => n.to === location.pathname);
   const profileLabel = settings.displayName || settings.username || (fa ? 'پروفایل من' : 'My profile');
   const openTaskCount = data?.tasks.filter((task: any) => task.dailyEntryType !== 'journal' && task.status !== 'Done').length ?? 0;
   const goalCount = data?.goals.length ?? 0;
@@ -306,9 +336,16 @@ export default function Layout() {
       <div className="min-w-0 flex-1">
         <header className="app-topbar sticky top-0 z-40 flex h-[calc(68px+env(safe-area-inset-top))] min-w-0 items-center justify-between gap-1 border-b bg-background/85 px-2.5 pt-[env(safe-area-inset-top)] backdrop-blur-2xl sm:h-[76px] sm:px-5 sm:pt-0 md:px-9">
           <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-3">
-            <button type="button" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border/70 bg-card/70 shadow-sm backdrop-blur-xl md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={mobileMenu ? (fa ? 'بستن منو' : 'Close menu') : (fa ? 'بازکردن منو' : 'Open menu')} aria-expanded={mobileMenu} aria-controls="mealpha-mobile-menu" title={mobileMenu ? (fa ? 'بستن منو' : 'Close menu') : (fa ? 'بازکردن منو' : 'Open menu')}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
+            <button type="button" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border/70 bg-card/70 shadow-sm backdrop-blur-xl md:hidden" ref={mobileMenuTriggerRef} onClick={() => setMobileMenu(v => !v)} aria-label={mobileMenu ? (fa ? 'بستن منو' : 'Close menu') : (fa ? 'بازکردن منو' : 'Open menu')} aria-expanded={mobileMenu} aria-controls="mealpha-mobile-menu" title={mobileMenu ? (fa ? 'بستن منو' : 'Close menu') : (fa ? 'بازکردن منو' : 'Open menu')}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
             <div className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-black sm:text-[13px] md:hidden"><img src="/mealpha.svg" alt="" className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-lg shadow-primary/20" />MeAlpha <span className="text-primary">Pro</span></div>
             <div className="hidden min-w-0 truncate text-xs text-muted-foreground lg:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{currentNav ? (fa ? currentNav.labelFa || t(currentNav.k) : currentNav.labelEn || t(currentNav.k)) : t('dashboard')}</span></div>
+          </div>
+          <div className="hidden shrink-0 items-center gap-1 md:flex">
+            <button type="button" onClick={toggleTheme} aria-label={settings.theme === 'light' ? (fa ? 'شب' : 'Night') : (fa ? 'روز' : 'Day')} title={fa ? 'تغییر پوسته' : 'Toggle theme'} className="flex h-9 items-center gap-1.5 rounded-xl border border-border/70 bg-card/70 px-2 text-[11px] font-semibold text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-secondary">
+              {settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              <span className="hidden lg:inline">{settings.theme === 'light' ? (fa ? 'شب' : 'Night') : (fa ? 'روز' : 'Day')}</span>
+            </button>
+            <button type="button" onClick={toggleLang} aria-label={fa ? 'EN' : 'فا'} title={fa ? 'Change language' : 'تغییر زبان'} className="flex h-9 min-w-9 items-center justify-center rounded-xl border border-border/70 bg-card/70 px-2 text-[11px] font-bold text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-secondary">{fa ? 'EN' : 'فا'}</button>
           </div>
           <div className="relative flex shrink-0 items-center gap-1 sm:gap-2">
             <button type="button" onClick={() => window.dispatchEvent(new Event('mealpha:open-global-search'))} aria-label={fa ? 'جستجوی سراسری' : 'Global search'} className="grid h-9 w-9 place-items-center rounded-xl border border-border/70 bg-card/70 text-muted-foreground shadow-sm backdrop-blur-xl transition-colors hover:border-primary/40 hover:bg-secondary sm:h-10 sm:w-10 md:hidden"><Search className="h-3.5 w-3.5" /></button>
@@ -346,7 +383,7 @@ export default function Layout() {
         {mobileMenu && <>
           <button type="button" aria-label={fa ? 'بستن منوی اصلی' : 'Close main menu'} onClick={() => setMobileMenu(false)}
             className="fixed inset-0 z-[60] bg-slate-950/55 backdrop-blur-sm md:hidden" />
-          <section id="mealpha-mobile-menu" role="dialog" aria-modal="true" aria-label={fa ? 'مرکز دسترسی MeAlpha' : 'MeAlpha navigation center'}
+          <section ref={mobileMenuPanelRef} id="mealpha-mobile-menu" role="dialog" aria-modal="true" aria-label={fa ? 'مرکز دسترسی MeAlpha' : 'MeAlpha navigation center'}
             className="mealpha-mobile-menu fixed inset-y-2 start-2 z-[70] flex w-[min(24rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-[28px] border border-border/70 bg-card/95 p-4 shadow-2xl backdrop-blur-2xl md:hidden">
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border/70 pb-4">
               <div className="min-w-0">
@@ -354,7 +391,7 @@ export default function Layout() {
                 <h2 className="mt-1 text-lg font-black">{fa ? 'مرکز دسترسی' : 'Navigation center'}</h2>
                 <p className="mt-1 text-[11px] text-muted-foreground">{fa ? 'همه بخش‌ها و ابزارهای فضای شخصی' : 'Every module in your personal workspace'}</p>
               </div>
-              <button type="button" onClick={() => setMobileMenu(false)} aria-label={fa ? 'بستن' : 'Close'}
+              <button type="button" onClick={() => setMobileMenu(false)} data-mobile-menu-close aria-label={fa ? 'بستن' : 'Close'}
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border bg-background/70 text-muted-foreground transition hover:bg-secondary">
                 <X className="h-4 w-4" />
               </button>
