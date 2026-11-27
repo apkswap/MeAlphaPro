@@ -149,7 +149,7 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
   --mealpha-glass-radius: 1.75rem;
   --mealpha-glass-blur: 24px;
   --mealpha-sidebar-compact: 68px;
-  --mealpha-sidebar-expanded: 278px;
+  --mealpha-sidebar-expanded: 232px;
 }
 
 .mealpha-app-shell {
@@ -210,17 +210,6 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
   background: hsl(204 82% 72% / .23);
 }
 
-.mealpha-contextual-rail {
-  background: linear-gradient(180deg, hsl(0 0% 100% / .98), hsl(214 38% 96% / .96));
-  border-color: hsl(215 28% 82% / .92);
-  box-shadow:
-    inset 0 1px 0 hsl(0 0% 100%),
-    0 12px 34px -15px hsl(220 45% 5% / .32);
-  -webkit-backdrop-filter: blur(20px) saturate(145%);
-  backdrop-filter: blur(20px) saturate(145%);
-  animation: mealpha-rail-enter .22s ease-out both;
-}
-
 .mealpha-app-shell main [class*="rounded-"][class*="border"][class*="bg-card"] {
   border-color: hsl(var(--border) / .78);
   background-color: hsl(var(--card) / .76);
@@ -244,14 +233,8 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
   outline-offset: 2px;
 }
 
-@keyframes mealpha-rail-enter {
-  from { opacity: 0; transform: translateX(5px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .mealpha-sidebar-panel,
-  .mealpha-contextual-rail,
   .mealpha-app-shell main [class*="rounded-"][class*="border"][class*="bg-card"] {
     animation: none !important;
     transition: none !important;
