@@ -624,19 +624,30 @@ for (const viewport of viewports) {
   const notificationsButton = page.getByRole('button', { name: /اعلان‌ها|Notifications/ });
   if (await notificationsButton.count()) {
     await notificationsButton.click();
-    if (!(await page.getByRole('dialog', { name: /مرکز اعلان‌ها|Notification center/ }).count())) {
+    const notificationPanel = page.getByRole('dialog', { name: /مرکز اعلان‌ها|Notification center/ });
+    if (!(await notificationPanel.count())) {
       failures.push(`${viewport.name}: notification bell did not open its panel`);
     }
-    await page.getByRole('button', { name: /بستن اعلان‌ها|Close notifications/ }).click();
+    await page.keyboard.press('Escape');
+    await notificationPanel.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: Escape did not close notification panel`));
+    await notificationsButton.click();
+    await notificationPanel.waitFor({ state: 'visible', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: notification panel did not reopen`));
+    await page.mouse.click(20, 180);
+    await notificationPanel.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: outside click did not close notification panel`));
   } else {
     failures.push(`${viewport.name}: notification bell control missing`);
   }
   const profileButton = page.getByRole('button', { name: /پروفایل کاربری|User profile/ });
   if (await profileButton.count()) {
     await profileButton.click();
-    if (!(await page.getByRole('dialog', { name: /منوی پروفایل|Profile menu/ }).count())) {
+    const profilePanel = page.getByRole('dialog', { name: /منوی پروفایل|Profile menu/ });
+    if (!(await profilePanel.count())) {
       failures.push(`${viewport.name}: profile button did not open its menu`);
     }
+    await page.keyboard.press('Escape');
+    await profilePanel.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: Escape did not close profile panel`));
+    await profileButton.click();
+    await profilePanel.waitFor({ state: 'visible', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: profile panel did not reopen`));
     const profileLink = page.getByRole('link', { name: /مشاهده و ویرایش پروفایل|View and edit profile/ });
     if (await profileLink.count()) {
       await profileLink.click();
