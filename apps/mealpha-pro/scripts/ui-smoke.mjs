@@ -678,6 +678,13 @@ for (const viewport of viewports) {
       const menu = page.getByRole('dialog', { name: /مرکز دسترسی|Navigation center/ });
       if (!(await menu.count())) failures.push(`${viewport.name}: hamburger navigation center did not open`);
       else {
+        await page.waitForFunction(() => {
+          const dialog = document.getElementById('mealpha-mobile-menu');
+          return !!dialog && dialog.contains(document.activeElement);
+        }, { timeout: 3000 }).catch(() => failures.push(`${viewport.name}: mobile navigation did not move focus into the drawer`));
+        if ((await page.evaluate(() => getComputedStyle(document.body).overflow)) !== 'hidden') {
+          failures.push(`${viewport.name}: background page remains scrollable while mobile navigation is open`);
+        }
         const expectedModules = [
           /داشبورد|Dashboard/,
           /اهداف|Goals/,
@@ -701,8 +708,16 @@ for (const viewport of viewports) {
           failures.push(`${viewport.name}: navigation drawer is outside the visible viewport ${JSON.stringify(bounds)}`);
         }
         await menu.screenshot({ path: `ui-${viewport.name}-navigation.png` });
+        await page.keyboard.press('Shift+Tab');
+        if (!(await menu.evaluate(el => el.contains(document.activeElement)))) failures.push(`${viewport.name}: keyboard focus escaped the mobile navigation drawer`);
         await page.keyboard.press('Escape');
         await menu.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Escape did not close mobile navigation drawer`));
+        if ((await page.evaluate(() => getComputedStyle(document.body).overflow)) === 'hidden') {
+          failures.push(`${viewport.name}: background scroll lock was not released after closing navigation`);
+        }
+        if (!(await menuButton.evaluate(el => el === document.activeElement))) {
+          failures.push(`${viewport.name}: focus was not returned to the mobile menu trigger`);
+        }
       }
       
     } else failures.push(`${viewport.name}: hamburger menu button missing`);
