@@ -717,6 +717,12 @@ for (const viewport of viewports) {
         for (const label of expectedModules) {
           if (!(await menu.getByRole('link', { name: label }).count())) failures.push(`${viewport.name}: mobile navigation destination ${label} is missing`);
         }
+        if (viewport.width < 380) {
+          const clippedLabels = await menu.locator('a span.min-w-0').evaluateAll(elements =>
+            elements.filter(element => element.scrollWidth > element.clientWidth + 1).map(element => element.textContent?.trim())
+          );
+          if (clippedLabels.length) failures.push(`${viewport.name}: narrow mobile navigation labels are clipped ${JSON.stringify(clippedLabels)}`);
+        }
         const counters = menu.locator('.grid.grid-cols-3 > div');
         if (await counters.count() !== 3) failures.push(`${viewport.name}: live task/goal/payment counters are missing`);
         const bounds = await menu.evaluate(el => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: r.height, viewport: innerHeight, position: getComputedStyle(el).position }; });
