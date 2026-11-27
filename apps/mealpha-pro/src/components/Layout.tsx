@@ -203,7 +203,7 @@ export default function Layout() {
             title={!sidebarExpanded ? (fa ? 'مدیریت مالی' : 'Financial management') : undefined}
             aria-label={fa ? 'مدیریت مالی' : 'Financial management'}
             aria-expanded={financeOpen}
-            onClick={() => setFinanceOpen(value => !value)}
+            onClick={() => { setSidebarExpanded(true); setFinanceOpen(value => !value); }}
             className={cn(
               'mealpha-sidebar-link flex min-h-11 w-full items-center gap-3 rounded-2xl text-start text-[13px] font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300',
               sidebarExpanded ? 'justify-start px-3' : 'justify-center px-0',
