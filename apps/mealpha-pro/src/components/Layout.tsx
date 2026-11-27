@@ -382,7 +382,7 @@ export default function Layout() {
             aria-hidden={!sidebarExpanded}
             className={cn(
             'mealpha-glass-context-rail absolute end-2 top-3 bottom-3 z-20 flex w-9 flex-col items-center gap-2 rounded-full border border-slate-200/80 bg-white/[.96] py-3 text-slate-700 shadow-[0_8px_28px_-12px_rgba(255,255,255,.55)] transition-[opacity,transform] duration-200',
-            sidebarExpanded ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-1 opacity-0'
+            sidebarExpanded ? 'visible translate-x-0 opacity-100' : 'invisible pointer-events-none translate-x-1 opacity-0'
           )}>
             {contextualRailItems.map(item => {
               const selected = item.to === location.pathname + location.search || item.to === location.pathname;
