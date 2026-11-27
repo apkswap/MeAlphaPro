@@ -735,7 +735,7 @@ for (const viewport of viewports) {
   // Regression: daily checklist and journal both live in Tasks, associated with the selected date.
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
   const journalSection = page.locator('summary').filter({ hasText: /یادداشت و چک‌لیست روزانه|Daily notes & checklist/ });
-  if (await journalSection.count()) await journalSection.click();
+  if (await journalSection.count() && !(await journalSection.evaluate(el => el.parentElement.open))) await journalSection.click();
   const checklistInput = page.getByPlaceholder(/کار جدید برای امروز|Add a task for this day/);
   const journalInput = page.getByPlaceholder(/اتفاقات، افکار یا نکات امروزت را اینجا بنوی|Write down your day, thoughts or notes/);
   const checklistProbe = `Smoke checklist ${viewport.name} ${Date.now()}`;
@@ -768,7 +768,7 @@ for (const viewport of viewports) {
     }, { checklistProbe, journalProbe }, { timeout: 7000 }).catch(() => failures.push(`${viewport.name}: daily checklist/journal were not persisted in their separate stores`));
     await page.reload({ waitUntil: 'networkidle' });
     const sectionAfterReload = page.locator('summary').filter({ hasText: /یادداشت و چک‌لیست روزانه|Daily notes & checklist/ });
-    if (await sectionAfterReload.count()) await sectionAfterReload.click();
+    if (await sectionAfterReload.count() && !(await sectionAfterReload.evaluate(el => el.parentElement.open))) await sectionAfterReload.click();
     if ((await page.getByPlaceholder(/اتفاقات، افکار یا نکات امروزت را اینجا بنوی|Write down your day, thoughts or notes/).inputValue()) !== journalProbe) failures.push(`${viewport.name}: daily journal did not persist after reload`);
     if (!(await page.getByText(checklistProbe, { exact: true }).count())) failures.push(`${viewport.name}: daily checklist did not persist after reload`);
   } else failures.push(`${viewport.name}: daily checklist or journal editor is missing`);
