@@ -451,7 +451,7 @@ export default function Layout() {
                     <h3 id={`mobile-nav-${group.id}`} className="text-[9px] font-black tracking-[.16em] text-muted-foreground">{group.label}</h3>
                     <span className="h-px w-8 bg-border" />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
                     {group.items.map(item => {
                       const badge = mobileBadge(item.to);
                       const selected = item.to.includes('?')
