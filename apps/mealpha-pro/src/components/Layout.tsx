@@ -394,7 +394,6 @@ export default function Layout() {
               ><item.icon className="h-4 w-4" /></NavLink>;
             })}
             <span className="my-1 h-px w-5 bg-slate-300" />
-            <span className="my-1 h-px w-5 bg-slate-300" />
             <NavLink to="/settings" title={fa ? 'تنظیمات' : 'Settings'} aria-label={fa ? 'تنظیمات' : 'Settings'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"><Settings className="h-4 w-4" /></NavLink>
             <span className="mt-auto max-w-full overflow-hidden px-1 text-[8px] font-bold tracking-widest text-slate-400" style={{ writingMode: fa ? 'vertical-rl' : 'vertical-lr' }}>{currentNavLabel}</span>
           </div>
