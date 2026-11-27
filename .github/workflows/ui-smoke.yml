@@ -14,6 +14,7 @@ on:
       - fix/restore-purple-branding-profile-goals
       - fix/dropbox-settings-save-logo-sizing
       - ui/glassy-v10-interactive-review
+      - ui/command-center-navigation-refresh
     paths:
       - "apps/mealpha-pro/**"
       - "docs/favicon.svg"
