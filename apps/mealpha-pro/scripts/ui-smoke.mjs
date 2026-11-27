@@ -162,12 +162,21 @@ for (const viewport of viewports) {
         });
         if (triggerIcon.width > 15 || triggerIcon.height > 15) failures.push(`${viewport.name}: global search trigger icon is not compact ${JSON.stringify(triggerIcon)}`);
         if (viewport.width >= 768) {
-          const financeGroup = page.getByRole('button', { name: /مدیریت مالی|Financial management/ });
-          if (!(await financeGroup.count())) failures.push(`${viewport.name}: finance parent navigation is missing`);
+          const sidebar = page.locator('.mealpha-sidebar-panel');
+          if (!(await sidebar.count())) failures.push(`${viewport.name}: desktop sidebar is missing`);
           else {
-            await financeGroup.click();
-            for (const label of [/تراکنش‌ها|Transactions/, /دارایی‌ها|Assets/, /بدهی‌ها|Liabilities/]) {
-              if (!(await page.getByRole('link', { name: label }).count())) failures.push(`${viewport.name}: finance subtask ${label} is missing`);
+            await sidebar.hover();
+            await page.waitForTimeout(350);
+            const sidebarWidth = await sidebar.evaluate(el => el.getBoundingClientRect().width);
+            if (sidebarWidth > 236) failures.push(`${viewport.name}: expanded desktop sidebar is too wide (${sidebarWidth}px)`);
+            if (await page.locator('.mealpha-contextual-rail').count()) failures.push(`${viewport.name}: unwanted adjacent white contextual rail is still rendered`);
+            const financeGroup = page.getByRole('button', { name: /مدیریت مالی|Financial management/ });
+            if (!(await financeGroup.count())) failures.push(`${viewport.name}: finance parent navigation is missing`);
+            else {
+              await financeGroup.click();
+              for (const label of [/تراکنش‌ها|Transactions/, /دارایی‌ها|Assets/, /بدهی‌ها|Liabilities/]) {
+                if (!(await page.getByRole('link', { name: label }).count())) failures.push(`${viewport.name}: finance subtask ${label} is missing`);
+              }
             }
           }
         }
@@ -666,22 +675,36 @@ for (const viewport of viewports) {
     const menuButton = page.locator('button[aria-controls="mealpha-mobile-menu"]');
     if (await menuButton.count()) {
       await menuButton.click();
-      const menu = page.getByRole('dialog', { name: /منوی اصلی|Main menu/ });
-      if (!(await menu.count())) failures.push(`${viewport.name}: hamburger menu did not open`);
+      const menu = page.getByRole('dialog', { name: /مرکز دسترسی|Navigation center/ });
+      if (!(await menu.count())) failures.push(`${viewport.name}: hamburger navigation center did not open`);
       else {
-        const financeGroup = menu.getByRole('button', { name: /مدیریت مالی|Financial management/ });
-        if (!(await financeGroup.count())) failures.push(`${viewport.name}: mobile finance parent group is missing`);
-        else {
-          await financeGroup.click();
-          for (const label of [/تراکنش‌ها|Transactions/, /دارایی‌ها|Assets/, /بدهی‌ها|Liabilities/]) {
-            if (!(await menu.getByRole('link', { name: label }).count())) failures.push(`${viewport.name}: mobile finance subtask ${label} is missing`);
-          }
+        const expectedModules = [
+          /داشبورد|Dashboard/,
+          /اهداف|Goals/,
+          /کارها|Tasks/,
+          /عادت‌ها|Habits/,
+          /تمرکز|Focus/,
+          /تحلیل|گزارش|بینش|Insights/,
+          /تراکنش‌ها|Transactions/,
+          /دارایی‌ها|Assets/,
+          /بدهی‌ها|Liabilities/,
+          /فضای کار|Workspace/,
+          /تنظیمات|Settings/
+        ];
+        for (const label of expectedModules) {
+          if (!(await menu.getByRole('link', { name: label }).count())) failures.push(`${viewport.name}: mobile navigation destination ${label} is missing`);
         }
+        const counters = menu.locator('.grid.grid-cols-3 > div');
+        if (await counters.count() !== 3) failures.push(`${viewport.name}: live task/goal/payment counters are missing`);
         const bounds = await menu.evaluate(el => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: r.height, viewport: innerHeight, position: getComputedStyle(el).position }; });
-        if (bounds.position !== 'fixed' || bounds.top < 60 || bounds.bottom > bounds.viewport + 1 || bounds.height < 40) {
-          failures.push(`${viewport.name}: scrolled hamburger menu is outside the visible viewport ${JSON.stringify(bounds)}`);
+        if (bounds.position !== 'fixed' || bounds.top < 0 || bounds.bottom > bounds.viewport + 1 || bounds.height < bounds.viewport - 32) {
+          failures.push(`${viewport.name}: navigation drawer is outside the visible viewport ${JSON.stringify(bounds)}`);
         }
-        await menuButton.click();
+        await menu.screenshot({ path: `ui-${viewport.name}-navigation.png` });
+        await page.keyboard.press('Escape');
+        await menu.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Escape did not close mobile navigation drawer`));
+      }
+      
       }
     } else failures.push(`${viewport.name}: hamburger menu button missing`);
     await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
