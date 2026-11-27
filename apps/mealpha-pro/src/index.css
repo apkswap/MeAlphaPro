@@ -258,3 +258,29 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
     scroll-behavior: auto !important;
   }
 }
+
+/* Mobile Glassy V10 shell: compact header, safe areas and a scrollable menu. */
+@media (max-width: 767px) {
+  .mealpha-app-shell {
+    min-height: 100dvh;
+  }
+
+  .mealpha-app-shell .app-topbar {
+    border-color: hsl(var(--border) / .68);
+    background: hsl(var(--background) / .84);
+    box-shadow: 0 10px 30px -26px hsl(var(--foreground) / .5);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    backdrop-filter: blur(24px) saturate(150%);
+  }
+
+  .mealpha-app-shell main {
+    min-height: calc(100dvh - 68px - env(safe-area-inset-top));
+  }
+}
+
+.mealpha-mobile-menu {
+  border-color: hsl(var(--border) / .72);
+  background: hsl(var(--background) / .96);
+  -webkit-backdrop-filter: blur(26px) saturate(148%);
+  backdrop-filter: blur(26px) saturate(148%);
+}
