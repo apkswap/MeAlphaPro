@@ -190,7 +190,7 @@ export default function Layout() {
           </NavLink>
         ))}
         {group.id === 'manage' && <div className="space-y-1">
-          <button type="button" aria-expanded={sidebarExpanded && financeOpen} title={fa ? 'مدیریت مالی' : 'Financial management'} onClick={() => setFinanceOpen(value => !value)}
+          <button type="button" aria-expanded={sidebarExpanded && financeOpen} title={fa ? 'مدیریت مالی' : 'Financial management'} onClick={() => { setSidebarPinned(true); setFinanceOpen(value => !value); }}
             className={cn('group flex min-h-11 w-full items-center gap-3 rounded-2xl text-start text-[13px] font-semibold transition-all duration-200', sidebarExpanded ? 'justify-start px-3' : 'justify-center px-0', financeActive ? 'bg-white/12 text-white ring-1 ring-white/10' : 'text-slate-200/75 hover:bg-white/10 hover:text-white')}>
             <Wallet className="h-[18px] w-[18px] shrink-0" />
             <span className={cn('min-w-0 flex-1 truncate', sidebarExpanded ? 'block' : 'sr-only')}>{fa ? 'مدیریت مالی' : 'Financial management'}</span>
@@ -236,23 +236,23 @@ export default function Layout() {
     <div className="mealpha-app-shell min-h-screen bg-background text-foreground md:flex">
       <aside className="relative z-50 hidden h-screen w-[96px] shrink-0 md:sticky md:top-0 md:block" aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'}>
         <div
-          className={cn('mealpha-sidebar-panel absolute inset-y-4 start-3 z-50 flex flex-col rounded-[30px] border px-2.5 py-3 text-white shadow-2xl transition-[width] duration-300 ease-out', sidebarExpanded ? 'w-[278px]' : 'w-[68px]')}
+          className={cn('mealpha-sidebar-panel absolute inset-y-4 start-3 z-50 flex flex-col rounded-[30px] border py-3 text-white shadow-2xl transition-[width] duration-300 ease-out', sidebarExpanded ? 'w-[278px] px-2.5' : 'w-[68px] px-1.5')}
           onMouseEnter={() => setSidebarHovered(true)}
           onMouseLeave={() => setSidebarHovered(false)}
         >
-          <div className="mb-4 flex min-h-11 items-center gap-1">
-            <NavLink to="/" title="MeAlpha" className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl px-1 py-1 transition-colors hover:bg-white/5">
-              <img src="/mealpha.svg" alt="MeAlpha" className="h-10 w-10 shrink-0 rounded-2xl object-contain" />
+          <div className={cn('mb-4 flex min-h-14 items-center gap-1', sidebarExpanded ? 'justify-between' : 'justify-center')}>
+            <NavLink to="/" title="MeAlpha" className={cn('flex min-w-0 items-center rounded-2xl transition-colors hover:bg-white/5', sidebarExpanded ? 'flex-1 justify-start gap-2 px-1 py-1' : 'h-14 w-14 justify-center')}>
+              <img src="/mealpha.svg" alt="MeAlpha" className="h-14 w-14 shrink-0 rounded-2xl object-contain" />
               {sidebarExpanded && <div className="min-w-0 whitespace-nowrap">
                 <div className="text-[15px] font-black tracking-tight text-white">MeAlpha</div>
                 <div className="mt-0.5 text-[8px] font-bold tracking-[.16em] text-sky-200/60">PERSONAL COMMAND CENTER</div>
               </div>}
             </NavLink>
-            <button type="button" onClick={() => setSidebarPinned(value => !value)} aria-label={sidebarPinned ? (fa ? 'جمع‌کردن نوار کناری' : 'Unpin sidebar') : (fa ? 'ثابت‌کردن نوار کناری' : 'Pin sidebar')} aria-expanded={sidebarExpanded}
+            {sidebarExpanded && <button type="button" onClick={() => setSidebarPinned(value => !value)} aria-label={sidebarPinned ? (fa ? 'جمع‌کردن نوار کناری' : 'Unpin sidebar') : (fa ? 'ثابت‌کردن نوار کناری' : 'Pin sidebar')} aria-expanded={sidebarExpanded}
               title={sidebarPinned ? (fa ? 'جمع‌کردن پنل' : 'Collapse sidebar') : (fa ? 'ثابت‌کردن پنل' : 'Pin sidebar')}
               className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-slate-300/75 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70">
               {sidebarPinned ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-            </button>
+            </button>}
           </div>
 
           <button type="button" onClick={() => window.dispatchEvent(new Event('mealpha:open-global-search'))}
