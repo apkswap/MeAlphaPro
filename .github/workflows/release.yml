@@ -15,10 +15,14 @@ on:
   workflow_dispatch:
     inputs:
       target_sha:
-        description: "Exact commit to build and release"
-        required: true
-        default: "810db678ef333f150cc112fc2032b095743fe223"
+        description: "Optional exact commit to build; defaults to the selected branch HEAD"
+        required: false
         type: string
+      publish_release:
+        description: "Publish/update a GitHub Release (leave disabled for branch build artifacts only)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -35,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.target_sha || '810db678ef333f150cc112fc2032b095743fe223' }}
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - name: Read application version
         id: version
@@ -49,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.target_sha || '810db678ef333f150cc112fc2032b095743fe223' }}
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -115,7 +119,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.target_sha || '810db678ef333f150cc112fc2032b095743fe223' }}
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -156,7 +160,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.target_sha || '810db678ef333f150cc112fc2032b095743fe223' }}
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -310,7 +314,7 @@ jobs:
 
   publish:
     # Publishing a public GitHub Release requires an explicit manual dispatch.
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_release == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -321,7 +325,7 @@ jobs:
       - name: Checkout exact release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.target_sha || '810db678ef333f150cc112fc2032b095743fe223' }}
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - name: Download release binaries
         uses: actions/download-artifact@v4
@@ -338,7 +342,7 @@ jobs:
         with:
           token: ${{ secrets.RELEASE_TOKEN }}
           tag_name: v${{ needs.version.outputs.version }}
-          target_commitish: ${{ inputs.target_sha || '810db678ef333f150cc112fc2032b095743fe223' }}
+          target_commitish: ${{ inputs.target_sha || github.sha }}
           name: MeAlpha Pro v${{ needs.version.outputs.version }}
           generate_release_notes: true
           make_latest: true
