@@ -142,3 +142,120 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
 }
 
 
+
+
+/* MeAlpha Pro — glass command-center design tokens and shared surfaces */
+:root {
+  --glass-radius: 1.65rem;
+  --glass-blur: 22px;
+  --glass-shadow: 226 48% 3%;
+}
+.mealpha-glass-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 76% 0%, hsl(211 92% 55% / .12), transparent 34%),
+    radial-gradient(ellipse at 8% 78%, hsl(258 78% 58% / .08), transparent 30%),
+    hsl(var(--background));
+}
+.mealpha-glass-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 58% 0%, hsl(207 94% 58% / .08), transparent 42%),
+    radial-gradient(ellipse at 96% 72%, hsl(257 78% 58% / .07), transparent 38%);
+}
+.mealpha-glass-sidebar {
+  background:
+    radial-gradient(ellipse at 20% 0%, hsl(202 92% 58% / .18), transparent 36%),
+    linear-gradient(165deg, hsl(222 38% 13% / .98), hsl(226 42% 8% / .985) 56%, hsl(230 46% 6% / .99));
+  border-color: hsl(215 35% 85% / .17);
+  -webkit-backdrop-filter: blur(28px) saturate(155%);
+  backdrop-filter: blur(28px) saturate(155%);
+}
+.mealpha-glass-sidebar__top {
+  background:
+    radial-gradient(ellipse at 12% 0%, hsl(198 95% 62% / .17), transparent 74%),
+    linear-gradient(145deg, hsl(210 55% 22% / .72), hsl(226 46% 13% / .62));
+  border: 1px solid hsl(215 35% 92% / .12);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / .09);
+}
+.mealpha-glass-sidebar__footer {
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / .055), 0 12px 30px hsl(226 48% 2% / .2);
+}
+.mealpha-glass-context-rail {
+  -webkit-backdrop-filter: blur(20px) saturate(155%);
+  backdrop-filter: blur(20px) saturate(155%);
+}
+.mealpha-sidebar-search button {
+  width: 100%;
+  max-width: 100%;
+  justify-content: flex-start;
+  border-color: hsl(215 35% 90% / .14);
+  background: hsl(224 36% 5% / .38);
+  color: hsl(215 25% 82%);
+}
+.mealpha-sidebar-search button:hover {
+  background: hsl(215 35% 90% / .1);
+  border-color: hsl(199 92% 65% / .42);
+  color: white;
+}
+.mealpha-glass-shell .app-topbar {
+  border-color: hsl(var(--border) / .62);
+  background: hsl(var(--background) / .72);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+  backdrop-filter: blur(24px) saturate(145%);
+}
+.mealpha-glass-shell main [class*="rounded-"][class*="border"][class*="bg-card"],
+.mealpha-glass-card,
+.mealpha-glass-metric {
+  border-color: hsl(var(--border) / .72);
+  background: linear-gradient(145deg, hsl(var(--card) / .91), hsl(var(--card) / .72));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(138%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(138%);
+  box-shadow:
+    inset 0 1px 0 hsl(var(--foreground) / .035),
+    0 18px 48px hsl(var(--glass-shadow) / .10);
+}
+.mealpha-glass-card { border-radius: var(--glass-radius); }
+.mealpha-glass-metric { border-radius: 1.25rem; }
+.mealpha-glass-shell main [class*="rounded-"][class*="border"][class*="bg-card"]:hover,
+.mealpha-glass-card:hover,
+.mealpha-glass-metric:hover { border-color: hsl(var(--primary) / .28); }
+.dark .mealpha-glass-shell main [class*="rounded-"][class*="border"][class*="bg-card"],
+.dark .mealpha-glass-card,
+.dark .mealpha-glass-metric {
+  background:
+    radial-gradient(ellipse at 100% 0%, hsl(var(--primary) / .075), transparent 52%),
+    linear-gradient(145deg, hsl(222 29% 14% / .9), hsl(225 32% 9% / .82));
+  border-color: hsl(216 26% 27% / .82);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / .055), 0 20px 52px hsl(226 50% 2% / .22);
+}
+:root:not(.dark) .mealpha-glass-shell main [class*="rounded-"][class*="border"][class*="bg-card"],
+:root:not(.dark) .mealpha-glass-card,
+:root:not(.dark) .mealpha-glass-metric {
+  background: linear-gradient(145deg, hsl(0 0% 100% / .94), hsl(210 32% 98% / .78));
+  border-color: hsl(216 25% 84% / .82);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / .92), 0 16px 42px hsl(218 35% 28% / .075);
+}
+@supports not ((backdrop-filter: blur(1px))) {
+  .mealpha-glass-sidebar { background: hsl(226 40% 8%); }
+  .mealpha-glass-context-rail { background: #fff; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mealpha-glass-shell *,
+  .mealpha-glass-shell *::before,
+  .mealpha-glass-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+@media (max-width: 767px) {
+  .mealpha-glass-shell main { scroll-margin-top: 5rem; }
+}
