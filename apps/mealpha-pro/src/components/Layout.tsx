@@ -258,7 +258,7 @@ export default function Layout() {
           <button type="button" onClick={() => window.dispatchEvent(new Event('mealpha:open-global-search'))}
             aria-label={fa ? 'جستجوی سراسری' : 'Global search'} title={fa ? 'جستجوی سراسری' : 'Global search'}
             className={cn('mealpha-sidebar-search mb-4 flex h-10 w-full shrink-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] text-start text-[11px] text-slate-300/80 transition-all hover:border-sky-200/30 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70', sidebarExpanded ? 'px-3' : 'justify-center px-0')}>
-            <Search className="h-4 w-4 shrink-0" />
+            <Search className="h-3.5 w-3.5 shrink-0" />
             {sidebarExpanded && <><span className="min-w-0 flex-1 truncate">{fa ? 'جستجو در برنامه...' : 'Search workspace...'}</span><kbd className="rounded-md border border-white/10 bg-black/10 px-1.5 py-0.5 text-[9px] text-slate-400">Ctrl K</kbd></>}
           </button>
 
@@ -311,11 +311,11 @@ export default function Layout() {
             </div>
 
             <div className={cn('flex items-center gap-1', sidebarExpanded ? 'justify-between' : 'justify-center')}>
-              <button type="button" onClick={toggleTheme} aria-label={fa ? 'تغییر پوسته' : 'Toggle theme'} title={fa ? 'تغییر پوسته' : 'Toggle theme'} className="flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-xl px-2 text-xs text-slate-300/80 transition-colors hover:bg-white/10 hover:text-white">
+              <button type="button" onClick={toggleTheme} aria-label={fa ? (settings.theme === 'light' ? 'شب' : 'روز') : (settings.theme === 'light' ? 'Night' : 'Day')} title={fa ? 'تغییر پوسته' : 'Toggle theme'} className="flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-xl px-2 text-xs text-slate-300/80 transition-colors hover:bg-white/10 hover:text-white">
                 {settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                 {sidebarExpanded && <span>{settings.theme === 'light' ? (fa ? 'تیره' : 'Dark') : (fa ? 'روشن' : 'Light')}</span>}
               </button>
-              <button type="button" onClick={toggleLang} aria-label={fa ? 'تغییر زبان' : 'Change language'} title={fa ? 'تغییر زبان' : 'Change language'} className="flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-xl px-2 text-xs text-slate-300/80 transition-colors hover:bg-white/10 hover:text-white">
+              <button type="button" onClick={toggleLang} aria-label={fa ? 'EN' : 'فا'} title={fa ? 'تغییر زبان به انگلیسی' : 'Change language to Persian'} className="flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-xl px-2 text-xs text-slate-300/80 transition-colors hover:bg-white/10 hover:text-white">
                 <Languages className="h-4 w-4" />
                 {sidebarExpanded && <span>{fa ? 'EN' : 'فا'}</span>}
               </button>
@@ -348,7 +348,7 @@ export default function Layout() {
             <div className="hidden min-w-0 truncate text-xs text-muted-foreground lg:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{currentNav ? (fa ? currentNav.labelFa || t(currentNav.k) : currentNav.labelEn || t(currentNav.k)) : t('dashboard')}</span></div>
           </div>
           <div className="relative flex items-center gap-2">
-            <button type="button" onClick={() => window.dispatchEvent(new Event('mealpha:open-global-search'))} aria-label={fa ? 'جستجوی سراسری' : 'Global search'} className="grid h-10 w-10 place-items-center rounded-xl border bg-card/70 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary md:hidden"><Search className="h-4 w-4" /></button>
+            <button type="button" onClick={() => window.dispatchEvent(new Event('mealpha:open-global-search'))} aria-label={fa ? 'جستجوی سراسری' : 'Global search'} className="grid h-10 w-10 place-items-center rounded-xl border bg-card/70 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary md:hidden"><Search className="h-3.5 w-3.5" /></button>
             <button type="button" className={cn('relative grid h-10 w-10 place-items-center rounded-xl border bg-card/70 transition-colors hover:bg-secondary', activePopover === 'notifications' && 'border-primary text-primary')} aria-label={fa ? 'اعلان‌ها' : 'Notifications'} aria-expanded={activePopover === 'notifications'} onClick={() => setActivePopover(v => v === 'notifications' ? null : 'notifications')}>
               <Bell className="h-4 w-4" />
               {notifications.length > 0 && <span className="absolute -end-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">{notifications.length}</span>}
