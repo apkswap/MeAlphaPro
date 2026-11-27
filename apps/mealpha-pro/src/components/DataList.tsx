@@ -13,7 +13,7 @@ export type Col = { key: string; label: string; render?: (r: Rec) => ReactNode; 
 
 type Props = { rows: Rec[]; cols: Col[]; entity: Entity; onEdit: (r: Rec) => void; onReorder?: (activeId: string, overId: string) => void | Promise<void>; searchKeys: string[]; toolbar?: ReactNode; pageSize?: number; hierarchical?: boolean };
 
-function SortableDataRow({ row, cols, onEdit, onDelete, hierarchical, draggable }: { row: Rec; cols: Col[]; onEdit: (row: Rec) => void; onDelete: (row: Rec) => void; hierarchical: boolean; draggable: boolean }) {
+function SortableDataRow({ row, cols, onEdit, onDelete, editLabel, deleteLabel, hierarchical, draggable }: { row: Rec; cols: Col[]; onEdit: (row: Rec) => void; onDelete: (row: Rec) => void; editLabel: string; deleteLabel: string; hierarchical: boolean; draggable: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.id, disabled: !draggable });
   return (
     <TableRow ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.55 : 1 }} className={isDragging ? 'relative z-10 bg-primary/5' : undefined}>
@@ -22,8 +22,8 @@ function SortableDataRow({ row, cols, onEdit, onDelete, hierarchical, draggable 
         {column.render ? column.render(row) : row[column.key] ?? '—'}
       </TableCell>)}
       <TableCell><div className="flex gap-1 justify-end">
-        <Button size="icon" variant="ghost" onClick={() => onEdit(row)}><Pencil className="h-4 w-4" /></Button>
-        <Button size="icon" variant="ghost" onClick={() => onDelete(row)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+        <Button size="icon" variant="ghost" aria-label={editLabel} title={editLabel} onClick={() => onEdit(row)}><Pencil className="h-4 w-4" /></Button>
+        <Button size="icon" variant="ghost" aria-label={deleteLabel} title={deleteLabel} onClick={() => onDelete(row)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
       </div></TableCell>
     </TableRow>
   );
@@ -103,7 +103,7 @@ export default function DataList({ rows, cols, entity, onEdit, onReorder, search
           <TableBody>
             {view.length === 0 && <TableRow><TableCell colSpan={cols.length + 1} className="text-center text-muted-foreground py-10">{t('empty')}</TableCell></TableRow>}
             {view.map((r) => (
-              <SortableDataRow key={r.id} row={r} cols={cols} onEdit={onEdit} onDelete={setDel} hierarchical={hierarchical} draggable={Boolean(hierarchical && onReorder && r.parentGoalId)} />
+              <SortableDataRow key={r.id} row={r} cols={cols} onEdit={onEdit} onDelete={setDel} editLabel={t('edit')} deleteLabel={t('delete')} hierarchical={hierarchical} draggable={Boolean(hierarchical && onReorder && r.parentGoalId)} />
             ))}
           </TableBody>
         </Table>
