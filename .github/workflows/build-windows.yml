@@ -16,6 +16,7 @@ on:
       - fix/goals-hierarchy-integrity
       - fix/restore-purple-branding-profile-goals
       - ui/glassy-v10-interactive-review
+      - ui/command-center-navigation-refresh
     paths:
       - "apps/**"
       - "packages/**"
