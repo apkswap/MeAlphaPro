@@ -52,7 +52,9 @@ export default function Habits() {
           return (
             <div key={h.id} className={cn('min-w-0 rounded-xl border bg-card/70 p-2.5 sm:p-3 space-y-2', h.archived && 'opacity-50')}>
               <div className="flex items-start gap-3">
-                <button disabled={busy === h.id} onClick={() => toggle(h)}
+                <button type="button" disabled={busy === h.id} onClick={() => toggle(h)}
+                  aria-label={s.doneToday ? (L === 'fa' ? 'لغو انجام امروز ' + h.name : 'Undo today for ' + h.name) : (L === 'fa' ? 'ثبت انجام امروز ' + h.name : 'Mark done today for ' + h.name)}
+                  title={s.doneToday ? (L === 'fa' ? 'انجام‌شده امروز' : 'Completed today') : (L === 'fa' ? 'ثبت انجام امروز' : 'Mark done today')}
                   className={cn('h-9 w-9 rounded-lg border-2 grid place-items-center transition-all shrink-0', s.doneToday ? 'bg-[hsl(var(--success))] border-transparent text-white' : 'border-border hover:border-primary')}>
                   <Check className="h-5 w-5" />
                 </button>
