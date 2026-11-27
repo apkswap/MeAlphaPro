@@ -88,7 +88,7 @@ export default function Dashboard() {
         </Panel>
       </div>
       <GrowthEngine showMoney={showMoney} compact />
-      <details className="group rounded-2xl border bg-card/50 p-4">
+      <details open className="group rounded-2xl border bg-card/50 p-4">
         <summary className="cursor-pointer list-none flex items-center justify-between gap-3 text-sm font-semibold">
           <span>{fa ? 'یادداشت و چک‌لیست روزانه' : 'Daily notes & checklist'}</span>
           <span className="text-xs text-muted-foreground transition group-open:rotate-180">⌄</span>
