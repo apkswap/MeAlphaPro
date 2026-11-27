@@ -46,7 +46,7 @@ function TaskReminders({ task, language, onSave }: { task: Rec; language: 'fa' |
   const remove = (id: string) => update(reminders.filter((item) => item.id !== id));
   const snooze = (item: Rec) => patch(item.id, { at: new Date(Date.now() + 10 * 60000).toISOString(), enabled: true, lastFiredAt: null });
   return <>
-    <Button type="button" size="icon" variant="ghost" className="relative" title={fa ? 'مدیریت یادآورها' : 'Manage reminders'} aria-label={fa ? 'مدیریت یادآورها' : 'Manage reminders'} onClick={() => setOpen(true)}>
+    <Button type="button" size="icon" variant="ghost" className="relative shrink-0" title={fa ? 'مدیریت یادآورها' : 'Manage reminders'} aria-label={fa ? 'مدیریت یادآورها' : 'Manage reminders'} onClick={() => setOpen(true)}>
       {reminders.some((item) => item.enabled) ? <Bell className="h-4 w-4 text-primary" /> : <AlarmClock className="h-4 w-4 text-muted-foreground" />}
       {reminders.length > 0 && <span className="absolute -end-0.5 -top-0.5 min-w-4 rounded-full bg-primary px-1 text-[9px] leading-4 text-primary-foreground">{reminders.length}</span>}
     </Button>
@@ -97,9 +97,9 @@ export default function Tasks() {
   const saveTask = (task: Rec) => save('tasks', task, task.id);
   const cols: Col[] = [
     { key: 'title', label: t('title'), render: (r) => (
-      <div className="flex min-w-[190px] items-center gap-2">
+      <div className="flex w-full min-w-0 items-start gap-2">
         <Checkbox checked={r.status === 'Done'} onCheckedChange={() => toggle(r)} />
-        <div className={cn('min-w-0', r.status === 'Done' && 'line-through text-muted-foreground')}><div className="font-medium">{r.title}</div>{r.dailyEntryType === 'journal' && <div className="text-[10px] font-semibold text-primary">{L === 'fa' ? 'روزنوشت همان روز' : 'Daily journal'}</div>}{r.goalId && <div className="text-xs text-primary">{data!.goals.find((g) => g.id === r.goalId)?.title}</div>}</div>
+        <div className={cn('min-w-0 flex-1', r.status === 'Done' && 'line-through text-muted-foreground')}><div className="whitespace-normal break-words [overflow-wrap:anywhere] text-start text-sm font-medium leading-5">{r.title}</div>{r.dailyEntryType === 'journal' && <div className="text-[10px] font-semibold text-primary">{L === 'fa' ? 'روزنوشت همان روز' : 'Daily journal'}</div>}{r.goalId && <div className="text-xs text-primary">{data!.goals.find((g) => g.id === r.goalId)?.title}</div>}</div>
         <TaskReminders task={r} language={L} onSave={saveTask} />
       </div>) },
     { key: 'status', label: t('status'), render: (r) => opt(L, r.status) },
