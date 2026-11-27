@@ -182,7 +182,44 @@ jobs:
         working-directory: apps/mealpha-pro
         run: npx cap sync android
       - name: Set Android version from package.json
-        run: node apps/mealpha-pro/scripts/set-android-version.mjs
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          app_dir = Path("apps/mealpha-pro")
+          version = json.loads((app_dir / "package.json").read_text())["version"]
+          match = re.fullmatch(r"(\\d+)\\.(\\d+)\\.(\\d+)", version)
+          if not match:
+              raise SystemExit(f"Unsupported Android version format: {version}")
+
+          major, minor, patch = map(int, match.groups())
+          version_code = major * 1_000_000 + minor * 1_000 + patch
+          gradle_file = app_dir / "android/app/build.gradle"
+          gradle = gradle_file.read_text()
+
+          gradle, code_count = re.subn(
+              r"(\\bversionCode\\s+)\\d+",
+              lambda m: m.group(1) + str(version_code),
+              gradle,
+              count=1,
+          )
+          gradle, name_count = re.subn(
+              r"""(\\bversionName\\s+)[\"'][^\"']*[\"']""",
+              lambda m: m.group(1) + '"' + version + '"',
+              gradle,
+              count=1,
+          )
+          if code_count != 1 or name_count != 1:
+              raise SystemExit(
+                  "Could not safely locate versionCode/versionName in "
+                  f"{gradle_file} (versionCode={code_count}, versionName={name_count})"
+              )
+
+          gradle_file.write_text(gradle)
+          print(f"Configured Android versionName={version}, versionCode={version_code}")
+          PY
       - name: Configure Android Dropbox deep link
         working-directory: apps/mealpha-pro
         run: |
