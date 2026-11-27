@@ -25,8 +25,6 @@ const NAV: { to: string; k: Key; icon: typeof Target; group: 'main' | 'manage' |
   { to: '/settings', k: 'settings', icon: Settings, group: 'system' },
 ];
 
-const MOBILE_NAV = NAV.filter(n => ['/', '/tasks', '/habits', '/transactions', '/settings'].includes(n.to));
-
 export default function Layout() {
   const { t, settings, setLocalSettings, data, save } = useStore();
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
@@ -341,22 +339,22 @@ export default function Layout() {
         <GlobalSearch externalTrigger />
       </aside>
       <div className="min-w-0 flex-1">
-        <header className="app-topbar sticky top-0 z-40 flex h-[76px] min-w-0 items-center justify-between gap-1 border-b bg-background/90 px-3 backdrop-blur-xl sm:gap-3 sm:px-5 md:px-9">
+        <header className="app-topbar sticky top-0 z-40 flex h-[calc(68px+env(safe-area-inset-top))] min-w-0 items-center justify-between gap-1 border-b bg-background/85 px-2.5 pt-[env(safe-area-inset-top)] backdrop-blur-2xl sm:h-[76px] sm:px-5 sm:pt-0 md:px-9">
           <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-3">
-            <button className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={fa ? 'بازکردن منو' : 'Open menu'}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
-            <div className="md:hidden flex shrink-0 items-center gap-1 whitespace-nowrap text-[13px] font-black"><img src="/mealpha.svg" alt="" className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-lg shadow-primary/20" />MeAlpha <span className="text-primary">Pro</span></div>
+            <button type="button" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border/70 bg-card/70 shadow-sm backdrop-blur-xl md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={mobileMenu ? (fa ? 'بستن منو' : 'Close menu') : (fa ? 'بازکردن منو' : 'Open menu')} aria-expanded={mobileMenu} aria-controls="mealpha-mobile-menu" title={mobileMenu ? (fa ? 'بستن منو' : 'Close menu') : (fa ? 'بازکردن منو' : 'Open menu')}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
+            <div className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-black sm:text-[13px] md:hidden"><img src="/mealpha.svg" alt="" className="h-8 w-8 shrink-0 rounded-xl object-contain shadow-lg shadow-primary/20 sm:h-9 sm:w-9" />MeAlpha <span className="text-primary">Pro</span></div>
             <div className="hidden min-w-0 truncate text-xs text-muted-foreground lg:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{currentNav ? (fa ? currentNav.labelFa || t(currentNav.k) : currentNav.labelEn || t(currentNav.k)) : t('dashboard')}</span></div>
           </div>
-          <div className="relative flex items-center gap-2">
-            <button type="button" onClick={() => window.dispatchEvent(new Event('mealpha:open-global-search'))} aria-label={fa ? 'جستجوی سراسری' : 'Global search'} className="grid h-10 w-10 place-items-center rounded-xl border bg-card/70 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary md:hidden"><Search className="h-3.5 w-3.5" /></button>
-            <button type="button" className={cn('relative grid h-10 w-10 place-items-center rounded-xl border bg-card/70 transition-colors hover:bg-secondary', activePopover === 'notifications' && 'border-primary text-primary')} aria-label={fa ? 'اعلان‌ها' : 'Notifications'} aria-expanded={activePopover === 'notifications'} onClick={() => setActivePopover(v => v === 'notifications' ? null : 'notifications')}>
+          <div className="relative flex shrink-0 items-center gap-1 sm:gap-2">
+            <button type="button" onClick={() => window.dispatchEvent(new Event('mealpha:open-global-search'))} aria-label={fa ? 'جستجوی سراسری' : 'Global search'} className="grid h-9 w-9 place-items-center rounded-xl border border-border/70 bg-card/70 text-muted-foreground shadow-sm backdrop-blur-xl transition-colors hover:border-primary/40 hover:bg-secondary sm:h-10 sm:w-10 md:hidden"><Search className="h-3.5 w-3.5" /></button>
+            <button type="button" className={cn('relative grid h-9 w-9 place-items-center rounded-xl border border-border/70 bg-card/70 shadow-sm backdrop-blur-xl transition-colors hover:bg-secondary sm:h-10 sm:w-10', activePopover === 'notifications' && 'border-primary text-primary')} aria-label={fa ? 'اعلان‌ها' : 'Notifications'} aria-haspopup="dialog" aria-controls="mealpha-notification-center" aria-expanded={activePopover === 'notifications'} onClick={() => setActivePopover(v => v === 'notifications' ? null : 'notifications')}>
               <Bell className="h-4 w-4" />
               {notifications.length > 0 && <span className="absolute -end-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">{notifications.length}</span>}
             </button>
-            <button type="button" className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-primary/10 text-sm font-bold text-primary ring-1 ring-primary/15 hover:ring-primary/50" aria-label={fa ? 'پروفایل کاربری' : 'User profile'} aria-expanded={activePopover === 'profile'} onClick={() => setActivePopover(v => v === 'profile' ? null : 'profile')} style={{ backgroundColor: settings.avatarColor || undefined }}>
+            <button type="button" className="grid h-9 w-9 place-items-center overflow-hidden rounded-xl bg-primary/10 text-sm font-bold text-primary shadow-sm ring-1 ring-primary/20 transition hover:ring-primary/50 sm:h-10 sm:w-10" aria-label={fa ? 'پروفایل کاربری' : 'User profile'} aria-haspopup="dialog" aria-controls="mealpha-profile-menu" aria-expanded={activePopover === 'profile'} onClick={() => setActivePopover(v => v === 'profile' ? null : 'profile')} style={{ backgroundColor: settings.avatarColor || undefined }}>
               {settings.avatarDataUrl ? <img src={settings.avatarDataUrl} alt="" className="h-full w-full object-cover" /> : <span className="text-white">{settings.avatarEmoji || profileLabel.slice(0,1).toUpperCase() || 'α'}</span>}
             </button>
-            {activePopover === 'profile' && <div role="dialog" aria-label={fa ? 'منوی پروفایل' : 'Profile menu'} className="absolute end-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border bg-card shadow-2xl">
+            {activePopover === 'profile' && <div id="mealpha-profile-menu" role="dialog" aria-label={fa ? 'منوی پروفایل' : 'Profile menu'} className="absolute end-0 top-full z-[70] mt-2 max-h-[min(70dvh,32rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-2xl border bg-card shadow-2xl">
               <div className="relative h-24 bg-gradient-to-br from-primary/30 via-card to-accent/20">
                 {settings.coverDataUrl && <img src={settings.coverDataUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />}
                 <div className="absolute inset-0 bg-gradient-to-t from-card/90 to-transparent" />
@@ -372,7 +370,7 @@ export default function Layout() {
                 <NavLink to="/settings" onClick={() => setActivePopover(null)} className="block rounded-xl bg-primary/10 px-3 py-2 text-center text-xs font-semibold text-primary hover:bg-primary/15">{fa ? 'مشاهده و ویرایش پروفایل' : 'View and edit profile'}</NavLink>
               </div>
             </div>}
-            {activePopover === 'notifications' && <div role="dialog" aria-label={fa ? 'مرکز اعلان‌ها' : 'Notification center'} className="absolute end-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border bg-card p-3 shadow-2xl">
+            {activePopover === 'notifications' && <div id="mealpha-notification-center" role="dialog" aria-label={fa ? 'مرکز اعلان‌ها' : 'Notification center'} className="absolute end-0 top-full z-[70] mt-2 max-h-[min(70dvh,32rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-2xl border bg-card p-3 shadow-2xl">
               <div className="mb-2 flex items-center justify-between"><div className="font-bold text-sm">{fa ? 'مرکز اعلان‌ها' : 'Notifications'}</div><button type="button" aria-label={fa ? 'بستن اعلان‌ها' : 'Close notifications'} onClick={() => setActivePopover(null)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button></div>
               {notifications.length === 0 ? <div className="rounded-xl border border-dashed p-5 text-center"><Bell className="mx-auto mb-2 h-6 w-6 text-muted-foreground" /><p className="text-sm font-medium">{fa ? 'فعلاً اعلان جدیدی نداری' : 'You are all caught up'}</p><p className="mt-1 text-xs text-muted-foreground">{fa ? 'موعد کارها و پرداخت‌های نزدیک اینجا نمایش داده می‌شود.' : 'Upcoming tasks and payment reminders will appear here.'}</p></div> : <div className="max-h-72 space-y-1 overflow-y-auto">{notifications.map(item => <NavLink key={item.id} to={item.to} onClick={() => setActivePopover(null)} className="flex items-start gap-3 rounded-xl p-3 text-start hover:bg-secondary"><CalendarClock className={cn('mt-0.5 h-4 w-4 shrink-0', item.overdue ? 'text-destructive' : 'text-primary')} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{item.title}</span><span className="mt-0.5 block text-xs text-muted-foreground">{item.detail}</span></span><ChevronLeft className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" /></NavLink>)}</div>}
               <NavLink to="/transactions" onClick={() => setActivePopover(null)} className="mt-2 flex items-center justify-center rounded-xl bg-primary/10 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/15">{fa ? 'مشاهده یادآوری‌های پرداخت' : 'View payment reminders'}</NavLink>
@@ -380,7 +378,7 @@ export default function Layout() {
 
           </div>
         </header>
-        {mobileMenu && <div role="dialog" aria-label={fa ? 'منوی اصلی' : 'Main menu'} className="fixed inset-x-0 top-[68px] z-50 max-h-[calc(100dvh-68px)] overflow-y-auto overscroll-contain border-b bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl md:hidden"><div className="grid grid-cols-2 gap-2">
+        {mobileMenu && <div id="mealpha-mobile-menu" role="dialog" aria-label={fa ? 'منوی اصلی' : 'Main menu'} className="mealpha-mobile-menu fixed inset-x-0 top-[calc(68px+env(safe-area-inset-top))] z-[65] max-h-[calc(100dvh-68px-env(safe-area-inset-top))] overflow-y-auto overscroll-contain border-b p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl md:hidden"><div className="grid grid-cols-2 gap-2">
           {NAV.filter(n => !n.parent).map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({isActive}) => cn('flex items-center gap-2 rounded-xl p-3 text-sm', isActive ? 'bg-primary/10 text-primary' : 'bg-card text-muted-foreground')}><n.icon className="h-4 w-4" />{t(n.k)}</NavLink>)}
           <div className="col-span-2 rounded-xl border bg-card/60 p-2">
             <button type="button" aria-expanded={financeOpen} onClick={() => setFinanceOpen(value => !value)} className="flex w-full items-center gap-2 rounded-lg p-2 text-sm font-semibold">
@@ -396,13 +394,7 @@ export default function Layout() {
             </div>}
           </div>
         </div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}
-        <main className="mx-auto w-full max-w-[1600px] px-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
-        <nav aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'} className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 gap-1 border-t bg-background/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),8px)] shadow-[0_-8px_30px_-20px_hsl(var(--foreground)/0.35)] backdrop-blur-xl md:hidden">
-          {MOBILE_NAV.map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cn('flex min-w-0 min-h-[3.35rem] flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 text-[10px] font-medium transition-colors', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}>
-            <n.icon className="h-[19px] w-[19px] shrink-0" />
-            <span className="max-w-full truncate leading-tight">{t(n.k)}</span>
-          </NavLink>)}
-        </nav>
+        <main className="mx-auto min-h-[calc(100dvh-68px-env(safe-area-inset-top))] w-full max-w-[1600px] px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-6 md:min-h-0 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
       </div>
     </div>
   );
