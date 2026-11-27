@@ -91,21 +91,48 @@ async function createWindow() {
     });
     const checkRenderer = () => {
       if (win.isDestroyed()) return;
-      win.webContents.executeJavaScript(`(() => {
+      win.webContents.executeJavaScript(`(async () => {
         const root = document.querySelector('#root');
         const text = (root?.innerText || '').replace(/\\s+/g, ' ').trim();
         const visible = !!root && root.getBoundingClientRect().width > 0 && root.getBoundingClientRect().height > 0;
         const fallback = text.includes('could not load this screen');
         const splashOnly = !!root?.querySelector('.animate-pulse') && text.length < 20;
         const shell = !!root?.querySelector('header') && !!root?.querySelector('nav');
-        return { ready: visible && shell && !fallback && !splashOnly && text.length >= 35, textLength: text.length, text: text.slice(0, 180), visible, shell, fallback, splashOnly, title: document.title, url: location.href };
+        const desktop = window.mealphaDesktop;
+        const before = desktop?.getFullscreen ? await desktop.getFullscreen() : null;
+        let fullscreen = { supported: Boolean(desktop?.getFullscreen && desktop?.setFullscreen), before, settingsControl: false, toggled: null, restored: null };
+        if (fullscreen.supported) {
+          const settingsLink = document.querySelector('a[href="/settings"]');
+          if (settingsLink) settingsLink.click();
+          await new Promise(resolve => setTimeout(resolve, 900));
+          let control = document.querySelector('[data-testid="fullscreen-toggle"]');
+          fullscreen.settingsControl = Boolean(control);
+          if (control) {
+            for (let i = 0; i < 20 && control.getAttribute('aria-pressed') !== String(before); i++) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+              control = document.querySelector('[data-testid="fullscreen-toggle"]');
+            }
+            control?.click();
+            await new Promise(resolve => setTimeout(resolve, 900));
+            fullscreen.toggled = await desktop.getFullscreen();
+            // Restore through the same trusted preload bridge rather than a second
+            // synthetic React click, which can race the renderer's state update.
+            fullscreen.restored = await desktop.setFullscreen(Boolean(before));
+            await new Promise(resolve => setTimeout(resolve, 300));
+            fullscreen.restored = await desktop.getFullscreen();
+          }
+        }
+        return { ready: visible && shell && !fallback && !splashOnly && text.length >= 35, textLength: text.length, text: text.slice(0, 180), visible, shell, fallback, splashOnly, title: document.title, url: location.href, fullscreen };
       })()`)
         .then((state) => {
-          if (state.ready) {
+          const fullscreenOk = state.fullscreen.supported && state.fullscreen.settingsControl &&
+            state.fullscreen.toggled === !state.fullscreen.before &&
+            state.fullscreen.restored === state.fullscreen.before;
+          if (state.ready && fullscreenOk) {
             console.log('MEALPHA_SMOKE_OK:', JSON.stringify(state));
             app.quit();
           } else if (Date.now() - startedAt > 30000) {
-            console.error('MEALPHA_SMOKE_FAILED: app did not render a usable screen:', JSON.stringify(state));
+            console.error('MEALPHA_SMOKE_FAILED: renderer or fullscreen settings verification failed:', JSON.stringify(state));
             app.exit(1);
           } else {
             setTimeout(checkRenderer, 300);
@@ -121,6 +148,49 @@ async function createWindow() {
   if (app.isPackaged) await win.loadURL('http://localhost:4173');
   else await win.loadURL('http://127.0.0.1:8080');
 }
+
+
+function getTrustedWindow(event) {
+  let senderUrl;
+  try { senderUrl = new URL(event.senderFrame?.url || ''); } catch { throw new Error('Untrusted application frame.'); }
+  const allowedSender = app.isPackaged
+    ? senderUrl.origin === 'http://localhost:4173'
+    : senderUrl.origin === 'http://127.0.0.1:8080';
+  if (!allowedSender) throw new Error('Fullscreen controls can only be used by the MeAlpha application.');
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win || win.isDestroyed()) throw new Error('The MeAlpha application window is unavailable.');
+  return win;
+}
+
+ipcMain.handle('mealpha:fullscreen:get', (event) => getTrustedWindow(event).isFullScreen());
+
+ipcMain.handle('mealpha:fullscreen:set', (event, enabled) => {
+  const win = getTrustedWindow(event);
+  const target = Boolean(enabled);
+  if (win.isFullScreen() === target) return Promise.resolve(target);
+  return new Promise((resolve, reject) => {
+    const eventName = target ? 'enter-full-screen' : 'leave-full-screen';
+    let timeout;
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      win.removeListener(eventName, finish);
+      win.removeListener('closed', finish);
+    };
+    const finish = () => {
+      cleanup();
+      resolve(!win.isDestroyed() && win.isFullScreen());
+    };
+    win.once(eventName, finish);
+    win.once('closed', finish);
+    timeout = setTimeout(finish, 1500);
+    try {
+      win.setFullScreen(target);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+});
 
 ipcMain.handle('mealpha:open-external', async (event, rawUrl) => {
   let senderUrl;

@@ -1,6 +1,58 @@
 import { chromium } from 'playwright';
 
 const browser = await chromium.launch({ headless: true });
+// Upgrade regression: dated checklists migrate to Tasks; journals stay private and local-only.
+const migrationPage = await browser.newPage();
+const smokeDate = new Date().toISOString().slice(0, 10);
+await migrationPage.goto('http://127.0.0.1:8080/favicon.ico');
+await migrationPage.evaluate(async (smokeDate) => {
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('mealpha-pro-local', 4);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      for (const name of ['goals','tasks','habits','habitLogs','transactions','accounts','paymentReminders','customItems','notes','assets','liabilities','appMeta']) {
+        if (!database.objectStoreNames.contains(name)) database.createObjectStore(name, { keyPath: name === 'appMeta' ? 'key' : 'id' });
+      }
+      request.transaction.objectStore('customItems').put({ id: 'legacy-checklist-smoke', kind: 'dashboard-daily-entry', entryType: 'checklist', date: smokeDate, title: 'Legacy checklist migration', done: false });
+      request.transaction.objectStore('tasks').put({ id: 'legacy-task-journal-smoke', dailyEntryType: 'journal', dueDate: smokeDate, title: 'Legacy task journal', notes: 'Legacy task journal migration' });
+      request.transaction.objectStore('notes').put({ id: 'legacy-journal-smoke', kind: 'daily-journal', date: smokeDate, title: 'Daily journal', notes: 'Legacy journal migration' });
+      request.transaction.objectStore('customItems').put({ id: 'legacy-custom-journal-smoke', kind: 'dashboard-daily-entry', entryType: 'journal', date: smokeDate, title: 'Legacy custom journal', notes: 'Legacy custom journal migration' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  db.close();
+}, smokeDate);
+await migrationPage.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+const migrated = await migrationPage.evaluate(async (smokeDate) => {
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('mealpha-pro-local', 6);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const result = await new Promise((resolve, reject) => {
+    const tx = db.transaction(['tasks','notes','customItems','localNotes'], 'readonly');
+    const tasks = tx.objectStore('tasks').getAll(), notes = tx.objectStore('notes').getAll(), workspace = tx.objectStore('customItems').getAll(), localNotes = tx.objectStore('localNotes').getAll();
+    tx.oncomplete = () => resolve({ tasks: tasks.result, notes: notes.result, workspace: workspace.result, localNotes: localNotes.result });
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+  const snapshotModule = await import('/src/lib/localDb.ts');
+  const snapshot = await snapshotModule.getSnapshot();
+  return result.tasks.some(item => item.dailyEntryType === 'checklist' && item.title === 'Legacy checklist migration' && item.dueDate === smokeDate)
+    && !result.tasks.some(item => item.dailyEntryType === 'journal')
+    && result.localNotes.some(item => item.kind === 'daily-journal' && item.content === 'Legacy journal migration' && item.date === smokeDate)
+    && result.localNotes.some(item => item.kind === 'daily-journal' && item.content === 'Legacy task journal migration' && item.date === smokeDate)
+    && result.localNotes.some(item => item.kind === 'daily-journal' && item.content === 'Legacy custom journal migration' && item.date === smokeDate)
+    && !result.notes.some(item => item.id === 'legacy-journal-smoke')
+    && !result.workspace.some(item => item.id === 'legacy-checklist-smoke' || item.id === 'legacy-custom-journal-smoke')
+    && !Object.hasOwn(snapshot.data, 'localNotes')
+    && !snapshot.data.tasks.some(item => item.dailyEntryType === 'journal')
+    && !snapshot.data.notes.some(item => item.kind === 'daily-journal');
+}, smokeDate);
+if (!migrated) throw new Error('v4 daily entries were not migrated to Tasks/local-only journal storage correctly');
+await migrationPage.close();
+
 const failures = [];
 const routes = ['/', '/goals', '/tasks', '/habits', '/focus', '/transactions', '/wealth', '/insights', '/settings', '/workspace'];
 const viewports = [
@@ -9,6 +61,103 @@ const viewports = [
   { name: 'tablet', width: 768, height: 1024 },
   { name: 'desktop', width: 1440, height: 960 }
 ];
+
+const conversionPage = await browser.newPage();
+await conversionPage.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+const searchLogicChecks = await conversionPage.evaluate(async () => {
+  const { normalizeSearchTerm, matchesSearchText } = await import('/src/components/GlobalSearch.tsx');
+  return {
+    arabicPersianLetters: normalizeSearchTerm('كیفیت مالی') === normalizeSearchTerm('کیفیت مالی'),
+    halfSpace: matchesSearchText('هدف‌های مالی', 'هدفهای مالی'),
+    persianDigits: matchesSearchText('حساب ۱۲۳۴۵', 'حساب 12345')
+  };
+});
+if (!searchLogicChecks.arabicPersianLetters || !searchLogicChecks.halfSpace || !searchLogicChecks.persianDigits) {
+  failures.push('Persian/Arabic search normalization regression: ' + JSON.stringify(searchLogicChecks));
+}
+
+const currencyChecks = await conversionPage.evaluate(async () => {
+  const { parseRates, makeConverter, monthFinance, netWorth, todayISO, findings, scores } = await import('/src/lib/analytics.ts');
+  const settings = {
+    currency: 'IRT',
+    exchangeRates: 'USD = IRT 26000\nEUR/USD=1.1\nGBP/EUR=1.2'
+  };
+  const parsed = parseRates(settings.exchangeRates, settings.currency);
+  const converter = makeConverter(settings);
+  const direct = converter.conv(1, 'USD') / 100;
+  const reverse = converter.fromBase(26000, 'USD') / 100;
+  const chained = converter.conv(1, 'GBP') / 100;
+  const missingValue = converter.conv(1, 'CAD');
+  const incompleteMonth = monthFinance([
+    { id: 'missing-rate-income', date: todayISO(), kind: 'Income', amount: 100, currency: 'CAD' }
+  ], settings);
+  const incompleteWealth = netWorth([
+    { id: 'missing-rate-asset', currentValue: 100, currency: 'CAD' }
+  ], [], settings, []);
+  const budgetFinding = findings({
+    goals: [],
+    tasks: [],
+    habits: [],
+    habitLogs: [],
+    transactions: [{ id: 'budget-smoke-expense', date: todayISO(), kind: 'Expense', amount: 500, currency: 'IRT' }]
+  }, { ...settings, monthlyBudget: 400 }, 'en').find(item => item.id.startsWith('budget-'));
+  const missingRateData = {
+    goals: [],
+    tasks: [],
+    habits: [],
+    habitLogs: [],
+    transactions: [{ id: 'missing-rate-expense', date: todayISO(), kind: 'Expense', amount: 500, currency: 'CAD' }]
+  };
+  const missingRateFindings = findings(missingRateData, { ...settings, monthlyBudget: 1 }, 'en');
+  const missingRateFinanceScore = scores(missingRateData, settings).parts.finance;
+  const scoreToday = todayISO();
+  const focusSessions = [{ date: new Date().toISOString(), seconds: 18000 }];
+  const scoreFixture = {
+    goals: [{ id: 'score-goal', targetValue: 100, currentValue: 100 }],
+    tasks: [0, 1, 2].map(index => ({ id: 'score-task-' + index, status: 'Done', dueDate: scoreToday })),
+    habits: [{ id: 'score-habit', frequency: 'Daily', targetPerPeriod: 1, archived: false }],
+    habitLogs: [],
+    transactions: []
+  };
+  const partialScore = scores(scoreFixture, settings, focusSessions);
+  const completeScore = scores({
+    ...scoreFixture,
+    habitLogs: [{ id: 'score-habit-log', habitId: 'score-habit', date: scoreToday }],
+    transactions: [
+      { id: 'score-income', date: scoreToday, kind: 'Income', amount: 1000, currency: 'IRT' },
+      { id: 'score-expense', date: scoreToday, kind: 'Expense', amount: 500, currency: 'IRT' }
+    ]
+  }, settings, focusSessions);
+  return {
+    parsedPair: parsed.some(pair => pair.from === 'USD' && pair.to === 'IRT' && pair.rate === 26000),
+    direct,
+    reverse,
+    chained,
+    missingIsNaN: Number.isNaN(missingValue),
+    missingTracked: converter.missing.has('CAD'),
+    monthIncomplete: incompleteMonth.complete === false && incompleteMonth.missing.includes('CAD'),
+    wealthIncomplete: incompleteWealth.complete === false && incompleteWealth.missing.includes('CAD'),
+    budgetFindingCurrency: budgetFinding?.money?.spent === 500 && budgetFinding.money.budget === 400 && budgetFinding.money.currency === 'IRT',
+    missingRateBudgetSuppressed: !missingRateFindings.some(item => item.id.startsWith('budget-')),
+    missingRateFinanceScoreIsNull: missingRateFinanceScore === null,
+    scoreDomainsMatch: Object.keys(partialScore.parts).join(',') === 'finance,goals,tasks,habits,consistency',
+    partialScoreCoverage: partialScore.coverage === 3 && partialScore.coverageTotal === 5,
+    partialOverallHidden: partialScore.overall === null,
+    consistencyUsesFocusSessions: partialScore.parts.consistency === 100,
+    completeScoreCoverage: completeScore.coverage === 5 && Number.isFinite(completeScore.overall)
+  };
+});
+if (!currencyChecks.parsedPair || currencyChecks.direct !== 26000 || currencyChecks.reverse !== 1 ||
+    currencyChecks.chained !== 34320 || !currencyChecks.missingIsNaN || !currencyChecks.missingTracked ||
+    !currencyChecks.monthIncomplete || !currencyChecks.wealthIncomplete || !currencyChecks.budgetFindingCurrency ||
+    !currencyChecks.missingRateBudgetSuppressed || !currencyChecks.missingRateFinanceScoreIsNull) {
+  failures.push('Currency conversion regression: ' + JSON.stringify(currencyChecks));
+}
+if (!currencyChecks.scoreDomainsMatch || !currencyChecks.partialScoreCoverage || !currencyChecks.partialOverallHidden ||
+    !currencyChecks.consistencyUsesFocusSessions || !currencyChecks.completeScoreCoverage) {
+  failures.push('Five-domain shared Life Score regression: ' + JSON.stringify(currencyChecks));
+}
+await conversionPage.close();
 
 for (const viewport of viewports) {
   const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: 1 });
@@ -36,15 +185,142 @@ for (const viewport of viewports) {
       failures.push(`${viewport.name} ${route}: React runtime error fallback`);
     }
     if (route === '/') {
-      for (const label of ['Life Score', 'Alpha Intelligence']) {
-        if (!(await page.getByText(label, { exact: true }).count())) failures.push(`${viewport.name} dashboard: missing ${label}`);
+      const lifeScore = page.getByText(/Life score|امتیاز رشد/).first();
+      const intelligence = page.getByText(/Alpha Performance Intelligence|هوش عملکردی آلفا/).first();
+      if (!(await lifeScore.count())) failures.push(`${viewport.name} dashboard: Life Score panel missing`);
+      if (!(await intelligence.count())) failures.push(`${viewport.name} dashboard: performance intelligence panel missing`);
+      if (!(await page.getByText(/پوشش داده:.*از [۵5] حوزه|Data coverage:.*of 5 areas/).first().count())) failures.push(`${viewport.name} dashboard: five-domain score coverage label missing`);
+
+      const searchTrigger = page.getByRole('button', { name: /جستجوی سراسری|Global search/ });
+      if (!(await searchTrigger.count())) {
+        failures.push(`${viewport.name}: global search trigger is missing`);
+      } else {
+        const triggerIcon = await searchTrigger.locator('svg').first().evaluate(el => {
+          const box = el.getBoundingClientRect();
+          return { width: box.width, height: box.height };
+        });
+        if (triggerIcon.width > 15 || triggerIcon.height > 15) failures.push(`${viewport.name}: global search trigger icon is not compact ${JSON.stringify(triggerIcon)}`);
+        if (viewport.width >= 768) {
+          const financeGroup = page.getByRole('button', { name: /مدیریت مالی|Financial management/ });
+          if (!(await financeGroup.count())) failures.push(`${viewport.name}: finance parent navigation is missing`);
+          else {
+            await financeGroup.click();
+            for (const label of [/تراکنش‌ها|Transactions/, /دارایی‌ها|Assets/, /بدهی‌ها|Liabilities/]) {
+              if (!(await page.getByRole('link', { name: label }).count())) failures.push(`${viewport.name}: finance subtask ${label} is missing`);
+            }
+          }
+        }
+        await searchTrigger.click();
+        const searchDialog = page.getByRole('dialog', { name: /جستجوی سراسری|Global search/ });
+        const searchInput = page.getByRole('combobox', { name: /عبارت جستجو|Search query/ });
+        await searchDialog.waitFor({ state: 'visible', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: search dialog did not open`));
+        await searchInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: search input is missing`));
+        if (await searchInput.count()) {
+          if (!(await searchInput.evaluate(el => el === document.activeElement))) failures.push(`${viewport.name}: search input did not receive focus`);
+          await searchInput.fill('داشبورد');
+          const dashboardOption = page.getByRole('option', { name: /داشبورد|Dashboard/ }).first();
+          if (!(await dashboardOption.count())) failures.push(`${viewport.name}: page search did not return dashboard`);
+          else {
+            const overlayMetrics = await page.getByTestId('global-search-overlay').evaluate(el => {
+              const r = el.getBoundingClientRect();
+              const style = getComputedStyle(el);
+              return { parent: el.parentElement?.tagName, position: style.position, zIndex: Number(style.zIndex), top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height, viewportWidth: innerWidth, viewportHeight: innerHeight };
+            });
+            const dialogMetrics = await page.getByTestId('global-search-dialog').evaluate(el => {
+              const r = el.getBoundingClientRect();
+              return { top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight };
+            });
+            const optionMetrics = await dashboardOption.evaluate(el => {
+              const r = el.getBoundingClientRect();
+              return { top: r.top, bottom: r.bottom, height: r.height, visible: r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight };
+            });
+            if (overlayMetrics.parent !== 'BODY' || overlayMetrics.position !== 'fixed' || overlayMetrics.zIndex < 9999 ||
+                overlayMetrics.top > 0 || overlayMetrics.left > 0 || overlayMetrics.right < overlayMetrics.viewportWidth - 1 ||
+                overlayMetrics.bottom < overlayMetrics.viewportHeight - 1) {
+              failures.push(`${viewport.name}: search overlay is trapped by an app layout/stacking context ${JSON.stringify(overlayMetrics)}`);
+            }
+            if (dialogMetrics.top < 0 || dialogMetrics.left < 0 || dialogMetrics.right > viewport.width + 1 ||
+                dialogMetrics.bottom > viewport.height + 1 || dialogMetrics.height > viewport.height) {
+              failures.push(`${viewport.name}: search dialog exceeds the visible viewport ${JSON.stringify(dialogMetrics)}`);
+            }
+            if (!optionMetrics.visible) failures.push(`${viewport.name}: search result is clipped or outside the visible dialog ${JSON.stringify(optionMetrics)}`);
+            if ((await page.evaluate(() => getComputedStyle(document.body).overflow)) !== 'hidden') {
+              failures.push(`${viewport.name}: background page remains scrollable while search is open`);
+            }
+          }
+          await page.mouse.click(5, 5);
+          await searchDialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: pointer outside did not close search`));
+          await page.keyboard.press('Control+k');
+          await searchDialog.waitFor({ state: 'visible', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Ctrl+K did not reopen search`));
+          if ((await searchInput.inputValue()) !== '') failures.push(`${viewport.name}: search query was not reset after close`);
+          await searchInput.fill('اهداف');
+          const goalsOption = page.getByRole('option', { name: /اهداف|Goals/ }).first();
+          if (!(await goalsOption.count())) failures.push(`${viewport.name}: Persian page query did not return goals`);
+          else {
+            await goalsOption.click();
+            await page.waitForURL('**/goals', { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: selecting a search result did not navigate`));
+            await searchDialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: search stayed open after navigation`));
+          }
+          await searchTrigger.click();
+          await searchDialog.waitFor({ state: 'visible', timeout: 5000 }).catch(() => undefined);
+          await page.keyboard.press('Escape');
+          await searchDialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Escape did not close search`));
+        }
       }
-      if (!(await page.getByText(/Consistency Engine/).count())) failures.push(`${viewport.name} dashboard: missing Consistency Engine`);
     }
     if (route === '/focus' && !(await page.getByRole('button', { name: /افزودن جلسه|Add session/ }).count())) {
       failures.push(`${viewport.name} focus: manual session control missing`);
     }
+    if (route === '/habits') {
+      const smokeHabitId = `smoke-calendar-${viewport.name}`;
+      await page.evaluate(async id => {
+        const db = await new Promise((resolve, reject) => {
+          const request = indexedDB.open('mealpha-pro-local', 6);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction('habits', 'readwrite');
+          tx.objectStore('habits').put({ id, name: 'Smoke calendar habit', frequency: 'Daily', targetPerPeriod: 1, archived: false });
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+      }, smokeHabitId);
+      await page.reload({ waitUntil: 'networkidle' });
+      const calendar = await page.evaluate(() => {
+        const grids = [...document.querySelectorAll('[class~="grid-cols-7"]')];
+        const grid = grids.find(element => element.querySelectorAll('button[aria-label]').length >= 28);
+        if (!grid) return null;
+        const buttons = [...grid.querySelectorAll('button[aria-label]')];
+        return {
+          columns: getComputedStyle(grid).gridTemplateColumns.split(' ').length,
+          dayCount: buttons.length,
+          minDayWidth: Math.min(...buttons.map(button => button.getBoundingClientRect().width))
+        };
+      });
+      if (!calendar || calendar.columns !== 7 || calendar.dayCount < 28 || calendar.minDayWidth < 24) {
+        failures.push(`${viewport.name} habits: monthly calendar is not compact/readable ${JSON.stringify(calendar)}`);
+      }
+      await page.evaluate(async id => {
+        const db = await new Promise((resolve, reject) => {
+          const request = indexedDB.open('mealpha-pro-local', 6);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction('habits', 'readwrite');
+          tx.objectStore('habits').delete(id);
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+      }, smokeHabitId);
+      await page.reload({ waitUntil: 'networkidle' });
+    }
     if (route === '/insights') {
+      if (!(await page.getByText(/پوشش داده:.*از [۵5]|Data coverage:.*of 5/).first().count())) failures.push(`${viewport.name} insights: five-domain score coverage label missing`);
+      if (!(await page.getByText(/استمرار|Consistency/).first().count())) failures.push(`${viewport.name} insights: consistency domain missing from shared score`);
       for (const [label, pattern] of [['3-month', /3 (mo|ماه)/], ['6-month', /6 (mo|ماه)/], ['12-month', /12 (mo|ماه)/]]) {
         const periodButton = page.getByRole('button', { name: pattern });
         if (!(await periodButton.count())) {
@@ -100,7 +376,7 @@ for (const viewport of viewports) {
   const today = new Date().toISOString().slice(0, 10);
   await page.evaluate(async ({ id, title, dueDate }) => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 3);
+      const request = indexedDB.open('mealpha-pro-local', 6);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -118,12 +394,14 @@ for (const viewport of viewports) {
     db.close();
   }, { id: taskId, title: taskTitle, dueDate: today });
   await page.reload({ waitUntil: 'networkidle' });
+  // Dashboard secondary panels are intentionally collapsed; open them for persistence regression checks.
+  await page.locator('details').evaluateAll(elements => elements.forEach(element => { element.open = true; }));
   const taskRow = page.locator('li').filter({ hasText: taskTitle }).first();
   await taskRow.waitFor({ timeout: 5000 });
   await taskRow.getByRole('checkbox').click();
-  await page.waitForFunction(async ({ id }) => {
+  await page.waitForFunction(async ({ id, title }) => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 3);
+      const request = indexedDB.open('mealpha-pro-local', 6);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -139,7 +417,7 @@ for (const viewport of viewports) {
   }, { id: taskId }, { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: dashboard completion erased task fields or reminders`));
   await page.evaluate(async id => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('mealpha-pro-local', 3);
+      const request = indexedDB.open('mealpha-pro-local', 6);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -151,7 +429,134 @@ for (const viewport of viewports) {
     });
     db.close();
   }, taskId);
-  await page.goto('http://127.0.0.1:8080/settings', { waitUntil: 'networkidle' });
+
+  // Regression: completing a task from the Tasks table must preserve every user-entered field.
+  const listTaskId = `smoke-task-list-${viewport.name}`;
+  const listTaskTitle = `Task list persistence ${viewport.name}`;
+  await page.evaluate(async ({ id, title, dueDate }) => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 6);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readwrite');
+      tx.objectStore('tasks').put({
+        id, title, status: 'Todo', priority: 'High', dueDate,
+        notes: 'Preserve task-list metadata', estimatedMinutes: 75, actualMinutes: 30,
+        goalId: 'smoke-linked-goal',
+        reminders: [{ id: 'task-list-reminder', at: '2030-02-01T09:30:00.000Z', enabled: true, repeat: 'weekly' }]
+      });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    db.close();
+  }, { id: listTaskId, title: listTaskTitle, dueDate: today });
+  await page.goto('http://127.0.0.1:8080/tasks', { waitUntil: 'networkidle' });
+  const listTaskRow = page.locator('tr').filter({ hasText: listTaskTitle }).first();
+  await listTaskRow.waitFor({ timeout: 5000 });
+  await listTaskRow.getByRole('checkbox').click();
+  await page.waitForFunction(async ({ id, title }) => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 6);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const record = await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readonly');
+      const request = tx.objectStore('tasks').get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    return record?.status === 'Done' && record?.title === title
+      && record?.priority === 'High' && record?.notes === 'Preserve task-list metadata'
+      && record?.estimatedMinutes === 75 && record?.actualMinutes === 30
+      && record?.goalId === 'smoke-linked-goal'
+      && record?.reminders?.[0]?.id === 'task-list-reminder'
+      && record?.reminders?.[0]?.repeat === 'weekly';
+  }, { id: listTaskId, title: listTaskTitle }, { timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Tasks page completion erased task fields, goal link or reminder settings`));
+  await page.evaluate(async id => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 6);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readwrite');
+      tx.objectStore('tasks').delete(id);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }, listTaskId);
+
+  // Regression: logging a focus session must update actualMinutes without replacing the task record.
+  const focusTaskId = `smoke-focus-task-${viewport.name}`;
+  const focusTaskTitle = `Focus session persistence ${viewport.name}`;
+  await page.evaluate(async ({ id, title, dueDate }) => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 6);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readwrite');
+      tx.objectStore('tasks').put({
+        id, title, status: 'Todo', priority: 'High', dueDate,
+        notes: 'Preserve focus-linked task metadata', estimatedMinutes: 90, actualMinutes: 30,
+        goalId: 'smoke-focus-linked-goal',
+        reminders: [{ id: 'focus-task-reminder', at: '2030-03-01T09:00:00.000Z', enabled: true, repeat: 'monthly' }]
+      });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    db.close();
+  }, { id: focusTaskId, title: focusTaskTitle, dueDate: today });
+  await page.goto('http://127.0.0.1:8080/focus', { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: /افزودن جلسه|Add session/ }).click();
+  await page.getByRole('combobox').last().click();
+  await page.getByRole('option', { name: focusTaskTitle, exact: true }).click();
+  await page.getByRole('button', { name: /ثبت جلسه|Save session/ }).click();
+  await page.waitForFunction(async ({ id, title }) => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 6);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const record = await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readonly');
+      const request = tx.objectStore('tasks').get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    return record?.title === title && record?.status === 'Todo' && record?.priority === 'High'
+      && record?.dueDate === new Date().toISOString().slice(0, 10)
+      && record?.notes === 'Preserve focus-linked task metadata'
+      && record?.estimatedMinutes === 90 && record?.actualMinutes === 55
+      && record?.goalId === 'smoke-focus-linked-goal'
+      && record?.reminders?.[0]?.id === 'focus-task-reminder'
+      && record?.reminders?.[0]?.repeat === 'monthly';
+  }, { id: focusTaskId, title: focusTaskTitle }, { timeout: 7000 }).catch(() => failures.push(`${viewport.name}: focus session update erased existing task fields`));
+  await page.evaluate(async id => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('mealpha-pro-local', 6);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('tasks', 'readwrite');
+      tx.objectStore('tasks').delete(id);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }, focusTaskId);
+
+    await page.goto('http://127.0.0.1:8080/settings', { waitUntil: 'networkidle' });
   const palettes = [
     { id: 'violet', label: 'بنفش' },
     { id: 'blue', label: 'آبی' },
@@ -192,8 +597,18 @@ for (const viewport of viewports) {
     } else failures.push(`${viewport.name}: dedicated profile save button is missing`);
   } else failures.push(`${viewport.name}: profile name field is missing`);
   if (!(await page.getByText('راهنمای کامل راه‌اندازی Dropbox').count())) failures.push(`${viewport.name}: Dropbox setup guide is missing`);
-  const brandImage = page.locator('img[src="/mealpha-purple-gold.jpg"]').first();
-  if (!(await brandImage.count()) || !(await brandImage.evaluate(img => img.complete && img.naturalWidth > 0))) failures.push(`${viewport.name}: purple-gold brand image failed to load`);
+  const brandImage = page.locator('img[src="/mealpha.svg"]:visible').first();
+  if (!(await brandImage.count())) failures.push(`${viewport.name}: visible brand image is missing`);
+  else {
+    const brandMetrics = await brandImage.evaluate(img => {
+      const box = img.getBoundingClientRect();
+      return { loaded: img.complete && img.naturalWidth > 0, width: box.width, height: box.height, fit: getComputedStyle(img).objectFit };
+    });
+    const expectedLogoSize = viewport.width >= 768 ? 56 : 36;
+    if (!brandMetrics.loaded || brandMetrics.width < expectedLogoSize - 1 || brandMetrics.height < expectedLogoSize - 1 || brandMetrics.fit !== 'contain') {
+      failures.push(`${viewport.name}: brand mark is missing, undersized or cropped ${JSON.stringify(brandMetrics)}`);
+    }
+  }
   await page.goto('http://127.0.0.1:8080/goals', { waitUntil: 'networkidle' });
   const addMainGoal = page.getByRole('button', { name: 'افزودن هدف اصلی' });
   if (await addMainGoal.count()) {
@@ -227,7 +642,78 @@ for (const viewport of viewports) {
       const hierarchyLabelCount = childRowCount ? await childRow.getByText(/زیرهدف|Subgoal/, { exact: true }).count() : 0;
       console.log(`${viewport.name} goal hierarchy after reload: rows=${childRowCount}; labels=${hierarchyLabelCount}; row=${childRowText}`);
       if (!childRowCount) failures.push(`${viewport.name}: subgoal record is missing after reload`);
-      else if (!hierarchyLabelCount) failures.push(`${viewport.name}: child record exists but is not displayed as a subgoal`);
+      else if (!hierarchyLabelCount) failures.push(viewport.name + ': child record exists but is not displayed as a subgoal');
+      // Regression: qualitative subgoals use checklist items instead of target/current numeric values.
+      await page.evaluate(async title => {
+        const db = await new Promise((resolve, reject) => {
+          const request = indexedDB.open('mealpha-pro-local', 6);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction('goals', 'readwrite');
+          const store = tx.objectStore('goals');
+          const request = store.getAll();
+          request.onsuccess = () => {
+            const record = request.result.find(item => item.title === title);
+            if (record) store.put({ ...record, trackingType: 'qualitative', targetValue: 10, currentValue: 3, description: "Legacy checklist item one\nLegacy checklist item two", descriptionItems: undefined });
+          };
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+      }, childName);
+      await page.reload({ waitUntil: 'networkidle' });
+      const editableChild = page.locator('tr').filter({ hasText: childName }).first();
+      const childRowButtons = editableChild.getByRole('button');
+      await childRowButtons.nth(await childRowButtons.count() - 2).click();
+      const childEditDialog = page.getByRole('dialog');
+      if (await childEditDialog.locator('input[type="number"]').count()) {
+        failures.push(viewport.name + ': qualitative goal still shows target/current numeric fields');
+      }
+      const checklistInputs = childEditDialog.getByPlaceholder('موردی که باید انجام شود');
+      if (await checklistInputs.count() !== 2) {
+        failures.push(viewport.name + ': legacy child description was not migrated into two checklist items');
+      } else {
+        await checklistInputs.nth(0).fill('Legacy checklist item one');
+        await checklistInputs.nth(1).fill('Legacy checklist item two');
+        const checklistToggle = checklistInputs.nth(0).locator('xpath=preceding-sibling::input[@type="checkbox"]');
+        if (await checklistToggle.count() !== 1) {
+          failures.push(`${viewport.name}: first checklist item's checkbox could not be located`);
+        } else {
+          await checklistToggle.check();
+          if (!(await checklistToggle.isChecked())) failures.push(`${viewport.name}: first checklist checkbox did not become checked before save`);
+        }
+        await childEditDialog.getByRole('button', { name: 'ذخیره' }).click();
+        // Do not reload before the async IndexedDB save finishes; mobile/tablet can be slower.
+        await childEditDialog.waitFor({ state: 'hidden', timeout: 10000 });
+        await page.reload({ waitUntil: 'networkidle' });
+        const checklistState = await page.evaluate(async title => {
+          const db = await new Promise((resolve, reject) => {
+            const request = indexedDB.open('mealpha-pro-local', 6);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          const records = await new Promise((resolve, reject) => {
+            const tx = db.transaction('goals', 'readonly');
+            const request = tx.objectStore('goals').getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          db.close();
+          const matches = records.filter(item => item.title === title).map(record => ({ id: record.id, parentGoalId: record.parentGoalId, trackingType: record.trackingType, description: record.description, items: record.descriptionItems, targetValue: record.targetValue, currentValue: record.currentValue, updatedAt: record.updatedAt }));
+          const record = matches[0] ?? null;
+          return { selected: record, matches };
+        }, childName);
+        console.log(`${viewport.name} checklist persistence probe: ${JSON.stringify(checklistState)}`);
+        const persistedGoal = checklistState?.selected;
+        if (!persistedGoal || persistedGoal.items?.length !== 2 || !persistedGoal.items[0].done || persistedGoal.items[1].done) {
+          failures.push(viewport.name + ': child checklist completion did not persist after reload');
+        }
+        if (persistedGoal?.targetValue !== 10 || persistedGoal?.currentValue !== 3) {
+          failures.push(viewport.name + ': hiding qualitative numeric fields unexpectedly changed stored legacy values');
+        }
+      }
     } else failures.push(`${viewport.name}: add-subgoal control is missing from goal rows`);
   } else failures.push(`${viewport.name}: add-main-goal control is missing`);
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
@@ -251,6 +737,28 @@ for (const viewport of viewports) {
     if (await profileLink.count()) {
       await profileLink.click();
       await page.waitForURL('**/settings');
+      const coralAccent = page.getByTestId('accent-theme-coral');
+      const violetAccent = page.getByTestId('accent-theme-violet');
+      const saveProfile = page.getByTestId('save-profile-settings');
+      await coralAccent.waitFor({ state: 'visible', timeout: 10000 });
+      await violetAccent.waitFor({ state: 'visible', timeout: 10000 });
+      await saveProfile.waitFor({ state: 'visible', timeout: 10000 });
+      if (await coralAccent.count() && await violetAccent.count() && await saveProfile.count()) {
+        await coralAccent.click();
+        await saveProfile.click();
+        await page.waitForFunction(() => document.documentElement.dataset.colorTheme === 'coral');
+        const coralValue = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim());
+        await violetAccent.click();
+        await saveProfile.click();
+        await page.waitForFunction(() => document.documentElement.dataset.colorTheme === 'violet');
+        const violetValue = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--primary').trim());
+        if (coralValue !== '7 88% 63%' || violetValue === coralValue) failures.push(`${viewport.name}: accent themes are not applied independently`);
+        await coralAccent.click();
+        await saveProfile.click();
+        await page.waitForFunction(() => document.documentElement.dataset.colorTheme === 'coral');
+      } else {
+        failures.push(`${viewport.name}: coral and violet accent options are missing`);
+      }
     } else {
       failures.push(`${viewport.name}: profile menu has no working settings link`);
     }
@@ -258,6 +766,29 @@ for (const viewport of viewports) {
     failures.push(`${viewport.name}: profile control missing`);
   }
   if (isMobile) {
+    await page.goto('http://127.0.0.1:8080/goals', { waitUntil: 'networkidle' });
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const menuButton = page.getByRole('button', { name: /بازکردن منو|Open menu/ });
+    if (await menuButton.count()) {
+      await menuButton.click();
+      const menu = page.getByRole('dialog', { name: /منوی اصلی|Main menu/ });
+      if (!(await menu.count())) failures.push(`${viewport.name}: hamburger menu did not open`);
+      else {
+        const financeGroup = menu.getByRole('button', { name: /مدیریت مالی|Financial management/ });
+        if (!(await financeGroup.count())) failures.push(`${viewport.name}: mobile finance parent group is missing`);
+        else {
+          await financeGroup.click();
+          for (const label of [/تراکنش‌ها|Transactions/, /دارایی‌ها|Assets/, /بدهی‌ها|Liabilities/]) {
+            if (!(await menu.getByRole('link', { name: label }).count())) failures.push(`${viewport.name}: mobile finance subtask ${label} is missing`);
+          }
+        }
+        const bounds = await menu.evaluate(el => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: r.height, viewport: innerHeight, position: getComputedStyle(el).position }; });
+        if (bounds.position !== 'fixed' || bounds.top < 60 || bounds.bottom > bounds.viewport + 1 || bounds.height < 40) {
+          failures.push(`${viewport.name}: scrolled hamburger menu is outside the visible viewport ${JSON.stringify(bounds)}`);
+        }
+        await menuButton.click();
+      }
+    } else failures.push(`${viewport.name}: hamburger menu button missing`);
     await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
     const bottomNav = page.locator('nav[aria-label="ناوبری اصلی"]');
     if (!(await bottomNav.count())) failures.push(`${viewport.name}: mobile bottom navigation missing`);
@@ -281,6 +812,47 @@ for (const viewport of viewports) {
       }
     }
   }
+  // Regression: daily checklist lives in dated Tasks; the journal is private local-only data.
+  await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+  const journalSection = page.locator('summary').filter({ hasText: /یادداشت و چک‌لیست روزانه|Daily notes & checklist/ });
+  if (await journalSection.count()) await journalSection.click();
+  const checklistInput = page.getByPlaceholder(/کار جدید برای امروز|Add a task for this day/);
+  const journalInput = page.getByPlaceholder(/اتفاقات، افکار یا نکات امروزت را اینجا بنوی|Write down your day, thoughts or notes/);
+  const checklistProbe = `Smoke checklist ${viewport.name} ${Date.now()}`;
+  const journalProbe = `Smoke journal ${viewport.name} ${Date.now()}`;
+  if (await checklistInput.count() && await journalInput.count()) {
+    await checklistInput.fill(checklistProbe);
+    await page.getByRole('button', { name: /افزودن|Add/ }).last().click();
+    await journalInput.fill(journalProbe);
+    await page.getByRole('button', { name: /ذخیره یادداشت|Save journal/ }).click();
+    await page.waitForFunction(async ({ checklistProbe, journalProbe }) => {
+      const db = await new Promise((resolve, reject) => {
+        const request = indexedDB.open('mealpha-pro-local', 6);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const result = await new Promise((resolve, reject) => {
+        const tx = db.transaction(['tasks', 'notes', 'customItems', 'localNotes'], 'readonly');
+        const tasksRequest = tx.objectStore('tasks').getAll();
+        const notesRequest = tx.objectStore('notes').getAll();
+        const workspaceRequest = tx.objectStore('customItems').getAll();
+        const localNotesRequest = tx.objectStore('localNotes').getAll();
+        tx.oncomplete = () => resolve({ tasks: tasksRequest.result, notes: notesRequest.result, workspace: workspaceRequest.result, localNotes: localNotesRequest.result });
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+      return result.tasks.some(item => item.title === checklistProbe && item.dailyEntryType === 'checklist' && !!item.dueDate)
+        && !result.tasks.some(item => item.title === journalProbe || item.notes === journalProbe || item.dailyEntryType === 'journal')
+        && result.localNotes.some(item => item.content === journalProbe && item.kind === 'daily-journal' && !!item.date)
+        && !result.workspace.some(item => item.title === checklistProbe || item.notes === journalProbe)
+        && !result.notes.some(item => item.notes === journalProbe);
+    }, { checklistProbe, journalProbe }, { timeout: 7000 }).catch(() => failures.push(`${viewport.name}: daily checklist was not saved as a dated Task or journal was not kept local-only`));
+    await page.reload({ waitUntil: 'networkidle' });
+    const sectionAfterReload = page.locator('summary').filter({ hasText: /یادداشت و چک‌لیست روزانه|Daily notes & checklist/ });
+    if (await sectionAfterReload.count()) await sectionAfterReload.click();
+    if ((await page.getByPlaceholder(/اتفاقات، افکار یا نکات امروزت را اینجا بنوی|Write down your day, thoughts or notes/).inputValue()) !== journalProbe) failures.push(`${viewport.name}: daily journal did not persist after reload`);
+    if (!(await page.getByText(checklistProbe, { exact: true }).count())) failures.push(`${viewport.name}: daily checklist did not persist after reload`);
+  } else failures.push(`${viewport.name}: daily checklist or journal editor is missing`);
   await page.close();
 }
 await browser.close();
@@ -288,4 +860,4 @@ if (failures.length) {
   console.error('UI smoke test failures:\n' + failures.join('\n'));
   process.exit(1);
 }
-console.log('UI smoke tests passed: 10 routes at 320px, 390px, 768px and 1440px; no runtime errors or page-level horizontal overflow; language and theme switches verified.');
+console.log('UI smoke tests passed: 10 routes at 320px, 390px, 768px and 1440px; no runtime errors or page-level horizontal overflow; language, appearance and accent-color switches verified.');

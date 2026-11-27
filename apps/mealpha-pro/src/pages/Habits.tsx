@@ -19,10 +19,11 @@ const FIELDS: Field[] = [
 export function useHabitToggle() {
   const { data, save, remove } = useStore();
   const [busy, setBusy] = useState<string | null>(null);
-  const toggle = async (h: Rec) => {
+  const toggle = async (h: Rec, date = todayISO()) => {
+    if (date > todayISO()) return;
     setBusy(h.id);
-    const log = data!.habitLogs.find((l) => l.habitId === h.id && l.date === todayISO());
-    if (log) await remove('habitLogs', log.id); else await save('habitLogs', { habitId: h.id, date: todayISO() });
+    const log = data!.habitLogs.find((l) => l.habitId === h.id && l.date === date);
+    if (log) await remove('habitLogs', log.id); else await save('habitLogs', { habitId: h.id, date });
     setBusy(null);
   };
   return { toggle, busy };
@@ -49,10 +50,10 @@ export default function Habits() {
         {data!.habits.map((h) => {
           const s = habitStats(h, data!.habitLogs);
           return (
-            <div key={h.id} className={cn('rounded-2xl border bg-card/70 p-5 space-y-4', h.archived && 'opacity-50')}>
+            <div key={h.id} className={cn('min-w-0 rounded-xl border bg-card/70 p-2.5 sm:p-3 space-y-2', h.archived && 'opacity-50')}>
               <div className="flex items-start gap-3">
                 <button disabled={busy === h.id} onClick={() => toggle(h)}
-                  className={cn('h-11 w-11 rounded-xl border-2 grid place-items-center transition-all shrink-0', s.doneToday ? 'bg-[hsl(var(--success))] border-transparent text-white' : 'border-border hover:border-primary')}>
+                  className={cn('h-9 w-9 rounded-lg border-2 grid place-items-center transition-all shrink-0', s.doneToday ? 'bg-[hsl(var(--success))] border-transparent text-white' : 'border-border hover:border-primary')}>
                   <Check className="h-5 w-5" />
                 </button>
                 <div className="flex-1 min-w-0">
@@ -62,7 +63,7 @@ export default function Habits() {
                 <Button size="icon" variant="ghost" onClick={() => { setEdit(h); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                 <Button size="icon" variant="ghost" onClick={() => setDel(h)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
               </div>
-              <div className="flex gap-4 text-sm">
+              <div className="flex flex-wrap gap-3 text-xs">
                 <span className="flex items-center gap-1"><Flame className="h-4 w-4 text-[hsl(var(--warning))]" />{t('streak')}: <b>{fmtNum(L, s.current)}</b></span>
                 <span className="text-muted-foreground">{t('best')}: {fmtNum(L, s.best)}</span>
               </div>
@@ -71,8 +72,8 @@ export default function Habits() {
                 <span className="text-xs font-semibold">{monthLabel}</span>
                 <button type="button" className="rounded-lg border px-2 py-1 text-xs" onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}>›</button>
               </div>
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-muted-foreground">{(L === 'fa' ? ['ش','ی','د','س','چ','پ','ج'] : ['S','M','T','W','T','F','S']).map((x,i) => <span key={i}>{x}</span>)}</div>
-              <div className="grid grid-cols-7 gap-1">{days.map((date) => { const key = isoOf(date); const done = s.dates.has(key); const inMonth = date.getMonth() === calendarMonth.getMonth(); const future = key > todayISO(); return <div key={key} title={key} className={cn('aspect-square rounded-md grid place-items-center text-[10px]', !inMonth && 'opacity-30', done ? 'bg-emerald-500 text-white' : future ? 'bg-muted/50 text-muted-foreground' : 'bg-rose-500/80 text-white')}>{new Intl.DateTimeFormat(L === 'fa' ? 'fa-IR-u-ca-persian' : 'en-US', { day: 'numeric' }).format(date)}</div>; })}</div>
+              <div className="grid grid-cols-7 gap-1 text-center text-[9px] text-muted-foreground">{(L === 'fa' ? ['ش','ی','د','س','چ','پ','ج'] : ['S','M','T','W','T','F','S']).map((x,i) => <span key={i}>{x}</span>)}</div>
+              <div className="grid grid-cols-7 gap-1">{days.map((date) => { const key = isoOf(date); const done = s.dates.has(key); const inMonth = date.getMonth() === calendarMonth.getMonth(); const future = key > todayISO(); const dayLabel = new Intl.DateTimeFormat(L === 'fa' ? 'fa-IR-u-ca-persian' : 'en-US', { day: 'numeric' }).format(date); return <button type="button" key={key} title={key} aria-label={key + ': ' + (done ? (L === 'fa' ? 'انجام‌شده' : 'Completed') : (L === 'fa' ? 'انجام‌نشده' : 'Not completed'))} aria-pressed={done} disabled={future || busy === h.id} onClick={() => toggle(h, key)} className={cn('aspect-square min-h-7 min-w-0 rounded-md grid place-items-center text-[9px] leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed', !inMonth && 'opacity-30', done ? 'bg-emerald-500 text-white hover:bg-emerald-600' : future ? 'bg-muted/50 text-muted-foreground' : 'bg-rose-500/80 text-white hover:bg-rose-600')}>{dayLabel}</button>; })}</div>
             </div>
           );
         })}

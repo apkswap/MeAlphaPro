@@ -1,1 +1,69 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8b7cff"/><stop offset="1" stop-color="#49d9d0"/></linearGradient></defs><rect width="64" height="64" rx="17" fill="#0b1020"/><path d="M13 45V19h7l12 15 12-15h7v26h-8V31L32 42 21 31v14z" fill="url(#g)"/><circle cx="51" cy="13" r="4" fill="#49d9d0"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">MeAlpha Pro</title>
+  <desc id="desc">A refined gold M monogram with a rising arrow and violet growth bars on a deep plum field.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#21103f"/>
+      <stop offset=".52" stop-color="#110a25"/>
+      <stop offset="1" stop-color="#080612"/>
+    </linearGradient>
+    <radialGradient id="ambient" cx="50%" cy="42%" r="66%">
+      <stop stop-color="#6425a8" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#6425a8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fff4bd"/>
+      <stop offset=".2" stop-color="#ffd86a"/>
+      <stop offset=".52" stop-color="#e9a52f"/>
+      <stop offset=".78" stop-color="#bd7620"/>
+      <stop offset="1" stop-color="#ffe7a0"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#d69aff"/>
+      <stop offset=".48" stop-color="#9b55e8"/>
+      <stop offset="1" stop-color="#5422a8"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f7d98b" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#9e6be8" stop-opacity=".25"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <filter id="markShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+      <feOffset dy="9" result="offset"/>
+      <feComponentTransfer in="offset" result="shadow"><feFuncA type="linear" slope=".42"/></feComponentTransfer>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="tile"><rect x="12" y="12" width="488" height="488" rx="112"/></clipPath>
+  </defs>
+
+  <rect x="12" y="12" width="488" height="488" rx="112" fill="url(#background)"/>
+  <g clip-path="url(#tile)">
+    <ellipse cx="260" cy="230" rx="250" ry="235" fill="url(#ambient)"/>
+    <circle cx="255" cy="250" r="170" fill="#8d52d4" opacity=".12" filter="url(#softGlow)"/>
+
+    <g opacity=".92">
+      <rect x="306" y="286" width="42" height="102" rx="11" fill="url(#violet)"/>
+      <rect x="360" y="226" width="42" height="162" rx="11" fill="url(#violet)"/>
+      <rect x="414" y="166" width="42" height="222" rx="11" fill="url(#violet)"/>
+    </g>
+
+    <path d="M94 356 157 174 Q164 154 180 178 L256 292 332 178 Q348 154 355 174 L418 356"
+      fill="none" stroke="#5a3519" stroke-width="54" stroke-linecap="round" stroke-linejoin="round" opacity=".48" transform="translate(0 9)"/>
+    <path d="M94 356 157 174 Q164 154 180 178 L256 292 332 178 Q348 154 355 174 L418 356"
+      fill="none" stroke="url(#gold)" stroke-width="42" stroke-linecap="round" stroke-linejoin="round" filter="url(#markShadow)"/>
+    <path d="M94 356 157 174 Q164 154 180 178 L256 292 332 178 Q348 154 355 174 L418 356"
+      fill="none" stroke="#fff4c7" stroke-opacity=".52" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <path d="M82 404 C164 383 246 333 323 257 C355 226 383 192 414 148"
+      fill="none" stroke="#6d431d" stroke-width="19" stroke-linecap="round" opacity=".58"/>
+    <path d="M82 396 C164 375 246 325 323 249 C355 218 383 184 414 140"
+      fill="none" stroke="url(#gold)" stroke-width="11" stroke-linecap="round"/>
+    <path d="M387 143 430 116 425 166 412 151 399 169Z" fill="url(#gold)" stroke="#fff1b5" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+
+  <rect x="12" y="12" width="488" height="488" rx="112" fill="none" stroke="url(#edge)" stroke-width="3"/>
+  <rect x="19" y="19" width="474" height="474" rx="106" fill="none" stroke="#ffffff" stroke-opacity=".055" stroke-width="2"/>
+</svg>

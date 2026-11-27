@@ -1,0 +1,50 @@
+name: MeAlpha Pro Preview Builds
+
+on:
+  push:
+    branches:
+      - fix/dropbox-settings-save-logo-sizing
+    paths:
+      - "apps/mealpha-pro/**"
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/preview-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mealpha-preview-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    name: Windows x64 installer
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install brand asset generator dependency
+        run: npm install --no-save --no-audit --no-fund sharp
+      - name: Prepare Windows icon
+        shell: pwsh
+        run: ./apps/mealpha-pro/scripts/prepare-windows-icon.ps1
+      - name: Build Windows installer
+        run: npm run desktop:build --workspace apps/mealpha-pro
+      - name: Publish Windows installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MeAlpha-Pro-Windows-x64
+          path: apps/mealpha-pro/release/*.exe
+          if-no-files-found: error
+          retention-days: 14

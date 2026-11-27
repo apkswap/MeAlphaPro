@@ -1,22 +1,69 @@
 /** Local-first persistence. The app never needs a network connection to read or write data. */
-export const ENTITIES = ['goals', 'tasks', 'habits', 'habitLogs', 'transactions', 'accounts', 'paymentReminders', 'customItems', 'assets', 'liabilities'] as const;
+export const ENTITIES = ['goals', 'tasks', 'habits', 'habitLogs', 'transactions', 'accounts', 'paymentReminders', 'customItems', 'notes', 'assets', 'liabilities'] as const;
 export type Entity = (typeof ENTITIES)[number];
 export type Rec = Record<string, any>;
-export type AppSettings = { language: 'fa' | 'en'; calendar: string; currency: string; exchangeRates: string; monthlyBudget: number | null; displayName?: string; username?: string; bio?: string; avatarDataUrl?: string; coverDataUrl?: string; avatarEmoji?: string; avatarColor?: string; theme?: 'light' | 'dark'; colorTheme?: 'orange' | 'green' | 'blue' | 'violet' | 'cyan' | 'pink'; dropboxAppKey?: string; dropboxAccessToken?: string; dropboxRefreshToken?: string; dropboxExpiresAt?: number; dropboxAccountName?: string };
+export type AppSettings = { language: 'fa' | 'en'; calendar: string; currency: string; exchangeRates: string; monthlyBudget: number | null; displayName?: string; username?: string; bio?: string; avatarDataUrl?: string; coverDataUrl?: string; avatarEmoji?: string; avatarColor?: string; theme?: 'light' | 'dark'; colorTheme?: 'orange' | 'green' | 'blue' | 'violet' | 'cyan' | 'pink' | 'coral'; dropboxAppKey?: string; dropboxAccessToken?: string; dropboxRefreshToken?: string; dropboxExpiresAt?: number; dropboxAccountName?: string };
 export type Snapshot = { version: 1; exportedAt: string; settingsUpdatedAt: number; data: Record<Entity, Rec[]>; settings: AppSettings; tombstones: Record<string, number> };
 
 const DB_NAME = 'mealpha-pro-local';
-const DB_VERSION = 3;
-const STORES = [...ENTITIES, 'appMeta'] as const;
+const DB_VERSION = 6;
+const STORES = [...ENTITIES, 'localNotes', 'appMeta'] as const;
 let dbPromise: Promise<IDBDatabase> | undefined;
 
 function openDb(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result;
+      const tx = request.transaction!;
       for (const name of STORES) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: name === 'appMeta' ? 'key' : 'id' });
+
+      // Daily checklists migrate into dated Tasks; daily journals move to the private localNotes store in version 6.
+      if (event.oldVersion < 5) {
+        const tasks = tx.objectStore('tasks');
+        const migrateCursor = (storeName: string, predicate: (value: Rec) => boolean, map: (value: Rec) => Rec) => {
+          const cursorRequest = tx.objectStore(storeName).openCursor();
+          cursorRequest.onsuccess = () => {
+            const cursor = cursorRequest.result;
+            if (!cursor) return;
+            const value = cursor.value as Rec;
+            if (predicate(value)) { tasks.put(map(value)); cursor.delete(); }
+            cursor.continue();
+          };
+        };
+        if (db.objectStoreNames.contains('customItems')) migrateCursor(
+          'customItems',
+          (value) => value.kind === 'dashboard-daily-entry' && value.entryType === 'checklist',
+          (value) => ({ ...value, id: 'daily-checklist-' + value.id, dueDate: value.date || value.dueDate, dailyEntryType: 'checklist', status: value.done ? 'Done' : 'Todo', priority: 'Medium' }),
+        );
+      }
+      // Version 6: journal entries are private local-only records, never part of Dropbox snapshots.
+      if (event.oldVersion < 6) {
+        const localNotes = tx.objectStore('localNotes');
+        const moveCursor = (storeName: string, predicate: (value: Rec) => boolean, map: (value: Rec) => Rec) => {
+          const cursorRequest = tx.objectStore(storeName).openCursor();
+          cursorRequest.onsuccess = () => {
+            const cursor = cursorRequest.result;
+            if (!cursor) return;
+            const value = cursor.value as Rec;
+            if (predicate(value)) { localNotes.put(map(value)); cursor.delete(); }
+            cursor.continue();
+          };
+        };
+        moveCursor('customItems', (value) => value.kind === 'dashboard-daily-entry' && value.entryType === 'journal', (value) => ({
+          ...value, id: 'local-' + value.id, date: value.date || value.dueDate || new Date().toISOString().slice(0, 10),
+          title: value.title || 'Daily journal', content: value.content || value.notes || '', kind: 'daily-journal',
+        }));
+        moveCursor('tasks', (value) => value.dailyEntryType === 'journal', (value) => ({
+          ...value, id: 'local-' + value.id, date: value.dueDate || value.date || new Date().toISOString().slice(0, 10),
+          title: value.title || 'Daily journal', content: value.notes || value.content || '', kind: 'daily-journal',
+        }));
+        moveCursor('notes', (value) => value.kind === 'daily-journal' || (value.kind === 'dashboard-daily-entry' && value.entryType === 'journal'), (value) => ({
+          ...value, id: 'local-' + value.id, date: value.date || value.dueDate || new Date().toISOString().slice(0, 10),
+          title: value.title || 'Daily journal', content: value.content || value.notes || '', kind: 'daily-journal',
+        }));
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => {
@@ -54,13 +101,14 @@ async function writeMeta(key: string, value: unknown) {
 
 export async function loadAll() {
   const db = await openDb();
-  const tx = db.transaction([...ENTITIES, 'appMeta'], 'readonly');
+  const tx = db.transaction([...ENTITIES, 'localNotes', 'appMeta'], 'readonly');
   const recordRequests = ENTITIES.map((name) => req(tx.objectStore(name).getAll()));
+  const localNotesRequest = req(tx.objectStore('localNotes').getAll());
   const settingsRequest = req(tx.objectStore('appMeta').get('settings'));
-  const [records, settingsRow] = await Promise.all([Promise.all(recordRequests), settingsRequest]);
+  const [records, localNotes, settingsRow] = await Promise.all([Promise.all(recordRequests), localNotesRequest, settingsRequest]);
   const data: Record<string, Rec[]> = {};
   ENTITIES.forEach((name, index) => { data[name] = records[index]; });
-  return { ...data, settings: (settingsRow?.value ?? null) as AppSettings | null } as Record<Entity, Rec[]> & { settings: AppSettings | null };
+  return { ...data, localNotes, settings: (settingsRow?.value ?? null) as AppSettings | null } as Record<Entity, Rec[]> & { localNotes: Rec[]; settings: AppSettings | null };
 }
 
 export async function saveRecord(entity: Entity, record: Rec, id?: string) {
@@ -80,6 +128,26 @@ export async function saveRecord(entity: Entity, record: Rec, id?: string) {
   return recordId;
 }
 
+export async function saveRecords(entity: Entity, records: Rec[]) {
+  if (!records.length) return;
+  const db = await openDb();
+  const now = Date.now();
+  const tx = db.transaction([entity, 'appMeta'], 'readwrite');
+  const store = tx.objectStore(entity);
+  const meta = tx.objectStore('appMeta');
+  const tombstoneRequest = meta.get('tombstones');
+  tombstoneRequest.onsuccess = () => {
+    const tombstones = { ...((tombstoneRequest.result?.value ?? {}) as Record<string, number>) };
+    records.forEach((record) => {
+      const id = String(record.id || '');
+      if (!id) return;
+      delete tombstones[entity + ':' + id];
+      store.put({ ...record, updatedAt: now });
+    });
+    meta.put({ key: 'tombstones', value: tombstones });
+  };
+  await transactionDone(tx);
+}
 export async function deleteRecord(entity: Entity, id: string) {
   const db = await openDb();
   const tx = db.transaction([entity, 'appMeta'], 'readwrite');
@@ -92,6 +160,19 @@ export async function deleteRecord(entity: Entity, id: string) {
     tombstones[`${entity}:${id}`] = Date.now();
     meta.put({ key: 'tombstones', value: tombstones });
   };
+  await transactionDone(tx);
+}
+
+export async function saveLocalNote(record: Rec, id?: string) {
+  const db = await openDb(); const now = Date.now(); const recordId = id ?? record.id ?? crypto.randomUUID();
+  const tx = db.transaction('localNotes', 'readwrite');
+  tx.objectStore('localNotes').put({ ...record, id: recordId, updatedAt: now });
+  await transactionDone(tx);
+  return recordId;
+}
+export async function deleteLocalNote(id: string) {
+  const db = await openDb(); const tx = db.transaction('localNotes', 'readwrite');
+  tx.objectStore('localNotes').delete(id);
   await transactionDone(tx);
 }
 

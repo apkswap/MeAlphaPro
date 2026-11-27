@@ -12,10 +12,16 @@ on:
       - feat/hierarchical-goals-task-reminders
       - fix/goals-hierarchy-integrity
       - fix/restore-purple-branding-profile-goals
+      - fix/dropbox-settings-save-logo-sizing
     paths:
-      - "apps/mealpha-pro/src/**"
-      - "apps/mealpha-pro/scripts/ui-smoke.mjs"
+      - "apps/mealpha-pro/**"
+      - "docs/favicon.svg"
       - ".github/workflows/ui-smoke.yml"
+      - ".github/workflows/build-windows.yml"
+      - ".github/workflows/build-android.yml"
+      - ".github/workflows/android-debug.yml"
+      - ".github/workflows/release.yml"
+      - ".github/workflows/ui-verification.yml"
       - "package.json"
       - "package-lock.json"
 

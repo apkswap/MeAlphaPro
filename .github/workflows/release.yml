@@ -1,9 +1,11 @@
 name: Release MeAlpha Pro
+# Android artifacts are production Release builds and require the official signing keystore.
 
 on:
   push:
     branches:
       - main
+      - fix/dropbox-settings-save-logo-sizing
     paths:
       - "apps/mealpha-pro/**"
       - "packages/**"
@@ -11,6 +13,16 @@ on:
       - "package-lock.json"
       - ".github/workflows/release.yml"
   workflow_dispatch:
+    inputs:
+      target_sha:
+        description: "Optional exact commit to build; defaults to the selected branch HEAD"
+        required: false
+        type: string
+      publish_release:
+        description: "Publish/update a GitHub Release (leave disabled for branch build artifacts only)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -27,12 +39,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - name: Read application version
         id: version
         run: |
-          VERSION=$(node -p "require('./apps/mealpha-pro/package.json').version")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=3" >> "$GITHUB_OUTPUT"
 
   windows:
     runs-on: windows-latest
@@ -41,12 +53,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "22.14.0"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Install vector icon renderer
+        run: npm install --no-save --no-audit --no-fund sharp
       - name: Prepare Windows icon
         shell: pwsh
         run: ./apps/mealpha-pro/scripts/prepare-windows-icon.ps1
@@ -104,6 +119,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -144,6 +160,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -158,6 +175,8 @@ jobs:
           echo "Android SDK available at $ANDROID_HOME"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Install vector icon renderer
+        run: npm install --no-save --no-audit --no-fund sharp
       - name: Build web application
         run: npm run build --workspace apps/mealpha-pro
       - name: Create Android project
@@ -166,6 +185,45 @@ jobs:
       - name: Sync Capacitor
         working-directory: apps/mealpha-pro
         run: npx cap sync android
+      - name: Set Android version from package.json
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          app_dir = Path("apps/mealpha-pro")
+          version = json.loads((app_dir / "package.json").read_text())["version"]
+          match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
+          if not match:
+              raise SystemExit(f"Unsupported Android version format: {version}")
+
+          major, minor, patch = map(int, match.groups())
+          version_code = major * 1_000_000 + minor * 1_000 + patch
+          gradle_file = app_dir / "android/app/build.gradle"
+          gradle = gradle_file.read_text()
+
+          gradle, code_count = re.subn(
+              r"(\bversionCode\s+)\d+",
+              lambda m: m.group(1) + str(version_code),
+              gradle,
+              count=1,
+          )
+          gradle, name_count = re.subn(
+              r"""(\bversionName\s+)[\"'][^\"']*[\"']""",
+              lambda m: m.group(1) + '"' + version + '"',
+              gradle,
+              count=1,
+          )
+          if code_count != 1 or name_count != 1:
+              raise SystemExit(
+                  "Could not safely locate versionCode/versionName in "
+                  f"{gradle_file} (versionCode={code_count}, versionName={name_count})"
+              )
+
+          gradle_file.write_text(gradle)
+          print(f"Configured Android versionName={version}, versionCode={version_code}")
+          PY
       - name: Configure Android Dropbox deep link
         working-directory: apps/mealpha-pro
         run: |
@@ -194,45 +252,59 @@ jobs:
         run: |
           python3 -m pip install --user --break-system-packages Pillow
           python3 apps/mealpha-pro/scripts/generate-android-icons.py
-      - name: Build installable Android APK
+      - name: Require official Android release signing credentials
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required secret: $name. Release APKs are never built or published with a debug key."
+              exit 1
+            fi
+          done
+      - name: Build Android release APK
         working-directory: apps/mealpha-pro/android
-        run: chmod +x ./gradlew && ./gradlew assembleDebug
-      - name: Check Android signing configuration
-        id: android-signing
+        run: chmod +x ./gradlew && ./gradlew --no-daemon clean assembleRelease
+      - name: Sign and verify Android release APK
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Sign Android APK with the official release key when configured
-        if: ${{ steps.android-signing.outputs.enabled == 'true' }}
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
+          set -euo pipefail
           KEYSTORE_PATH="$RUNNER_TEMP/mealpha-release.jks"
-          APK_IN="apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk"
-          APK_OUT="apps/mealpha-pro/android/app/build/outputs/apk/debug/app-release-signed.apk"
+          APK_IN="apps/mealpha-pro/android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          APK_OUT="release-assets/MeAlpha-Pro-Android.apk"
+          mkdir -p release-assets
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
           test -x "$APKSIGNER" || { echo "Android apksigner was not found."; exit 1; }
+          test -s "$APK_IN" || { echo "Release APK was not produced."; exit 1; }
           "$APKSIGNER" sign --ks "$KEYSTORE_PATH" --ks-key-alias "$ANDROID_KEY_ALIAS" --ks-pass "env:ANDROID_KEYSTORE_PASSWORD" --key-pass "env:ANDROID_KEY_PASSWORD" --out "$APK_OUT" "$APK_IN"
           "$APKSIGNER" verify --verbose --print-certs "$APK_OUT"
-          mv "$APK_OUT" "$APK_IN"
           rm -f "$KEYSTORE_PATH"
-
-      - name: Prepare stable release filename
+          echo "Verified production-signed Android release APK."
+      - name: Verify release APK package, version, and build type
         run: |
-          mkdir -p release-assets
-          cp apps/mealpha-pro/android/app/build/outputs/apk/debug/app-debug.apk release-assets/MeAlpha-Pro-Android.apk
+          set -euo pipefail
+          APK="release-assets/MeAlpha-Pro-Android.apk"
+          VERSION="$(node -p "require('./apps/mealpha-pro/package.json').version")"
+          VERSION_CODE="$(node -e "const m=/^(\\d+)\\.(\\d+)\\.(\\d+)/.exec(require('./apps/mealpha-pro/package.json').version); if (!m) process.exit(1); console.log(Number(m[1])*1000000+Number(m[2])*1000+Number(m[3]));")"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -x "$AAPT" || { echo "Android aapt was not found."; exit 1; }
+          test -s "$APK" || { echo "Release APK is missing."; exit 1; }
+          BADGING="$("$AAPT" dump badging "$APK")"
+          EXPECTED="package: name='com.mealpha.pro' versionCode='$VERSION_CODE' versionName='$VERSION'"
+          grep -F "$EXPECTED" <<< "$BADGING"
+          if grep -q '^application-debuggable' <<< "$BADGING"; then
+            echo "::error::Debuggable Android APK detected."
+            exit 1
+          fi
+          echo "Verified package com.mealpha.pro, version $VERSION ($VERSION_CODE), non-debug release APK."
       - uses: actions/upload-artifact@v4
         with:
           name: MeAlpha-Pro-Android-APK
@@ -241,11 +313,20 @@ jobs:
           retention-days: 7
 
   publish:
+    # Publishing a public GitHub Release requires an explicit manual dispatch.
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_release == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
     needs: [version, windows, android, linux]
     steps:
+      # The release action creates v3 through GitHub's Releases API.
+      # This avoids a git push of a ref containing workflow-file changes.
+      - name: Checkout exact release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha || github.sha }}
+          persist-credentials: false
       - name: Download release binaries
         uses: actions/download-artifact@v4
         with:
@@ -259,9 +340,10 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.RELEASE_TOKEN }}
           tag_name: v${{ needs.version.outputs.version }}
+          target_commitish: ${{ inputs.target_sha || github.sha }}
           name: MeAlpha Pro v${{ needs.version.outputs.version }}
-          target_commitish: ${{ github.sha }}
           generate_release_notes: true
           make_latest: true
           fail_on_unmatched_files: true
@@ -271,7 +353,7 @@ jobs:
             Download the Windows installer, Android APK, or Linux packages below.
 
             - **Windows:** `MeAlpha-Pro-Windows-x64.exe` (Authenticode-signed when a trusted publisher certificate is configured)
-            - **Android:** `MeAlpha-Pro-Android.apk` (signed with the official release key when Android signing secrets are configured; otherwise debug-signed for evaluation)
+            - **Android:** `MeAlpha-Pro-Android.apk` (production Release build, signed with the official Android release keystore; publishing fails if signing credentials are missing)
             - **Linux:** `MeAlpha-Pro-Linux-x64.AppImage` and `MeAlpha-Pro-Linux-x64.deb`
             - **Integrity:** verify downloads with `SHA256SUMS.txt`
 

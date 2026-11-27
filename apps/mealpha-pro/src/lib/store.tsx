@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Lang, Key, tr } from './i18n';
-import { AppSettings, deleteRecord, Entity, loadAll, Rec, saveRecord, saveSettings as persistSettings } from './localDb';
+import { AppSettings, deleteRecord, Entity, loadAll, Rec, saveRecord, saveRecords, saveLocalNote as persistLocalNote, deleteLocalNote as persistDeleteLocalNote, saveSettings as persistSettings } from './localDb';
 
 export type { Rec, Entity };
 export type Settings = AppSettings;
@@ -10,12 +10,15 @@ type Ctx = {
   data: Data | null; settings: Settings; t: (k: Key) => string;
   reload: () => Promise<void>;
   save: (entity: Entity, record: Rec, id?: string) => Promise<boolean>;
+  saveMany: (entity: Entity, records: Rec[]) => Promise<boolean>;
+  saveLocalNote: (record: Rec, id?: string) => Promise<boolean>;
+  removeLocalNote: (id: string) => Promise<void>;
   remove: (entity: Entity, id: string) => Promise<void>;
   setLocalSettings: (s: Settings) => Promise<boolean>;
 };
 const C = createContext<Ctx>(null as unknown as Ctx);
 export const useStore = () => useContext(C);
-const DEFAULTS: Settings = { language: 'fa', calendar: 'jalali', currency: 'IRT', exchangeRates: '', monthlyBudget: null, displayName: '', username: '', bio: '', avatarEmoji: 'α', avatarColor: '#8b5cf6', theme: 'dark', colorTheme: 'violet' };
+const DEFAULTS: Settings = { language: 'fa', calendar: 'jalali', currency: 'IRT', exchangeRates: '', monthlyBudget: null, displayName: '', username: '', bio: '', avatarEmoji: 'α', avatarColor: '#8b5cf6', theme: 'dark', colorTheme: 'blue' };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<Data | null>(null);
@@ -27,7 +30,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       timedOut = true;
       setData({
         goals: [], tasks: [], habits: [], habitLogs: [], transactions: [],
-        accounts: [], paymentReminders: [], customItems: [], assets: [],
+        accounts: [], paymentReminders: [], customItems: [], notes: [], localNotes: [], assets: [],
         liabilities: [], settings: null,
       } as Data);
       toast.error('Local storage is taking too long. MeAlpha opened in temporary view; your existing data has not been deleted.');
@@ -40,7 +43,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       console.error('Failed to initialize the local database:', error);
       setData({
         goals: [], tasks: [], habits: [], habitLogs: [], transactions: [],
-        accounts: [], paymentReminders: [], customItems: [], assets: [],
+        accounts: [], paymentReminders: [], customItems: [], notes: [], localNotes: [], assets: [],
         liabilities: [], settings: null,
       } as Data);
       if (!timedOut) toast.error('Local storage is unavailable. MeAlpha opened in temporary view mode; changes may not be saved.');
@@ -60,6 +63,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try { await saveRecord(entity, record, id); await reload(); return true; }
     catch (error) { console.error(error); toast.error(t('error')); return false; }
   };
+  const saveLocalNote = async (record: Rec, id?: string): Promise<boolean> => {
+    try { await persistLocalNote(record, id); await reload(); return true; }
+    catch (error) { console.error(error); toast.error(t('error')); return false; }
+  };
+  const removeLocalNote = async (id: string) => {
+    try { await persistDeleteLocalNote(id); await reload(); }
+    catch (error) { console.error(error); toast.error(t('error')); }
+  };
+  const saveMany = async (entity: Entity, records: Rec[]): Promise<boolean> => {
+    try { await saveRecords(entity, records); await reload(); return true; }
+    catch (error) { console.error(error); toast.error(t('error')); return false; }
+  };
   const remove = async (entity: Entity, id: string) => {
     try { await deleteRecord(entity, id); toast.success(t('deleted')); await reload(); }
     catch (error) { console.error(error); toast.error(t('error')); }
@@ -75,5 +90,5 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return false;
     }
   }, [t]);
-  return <C.Provider value={{ data, settings, t, reload, save, remove, setLocalSettings }}>{children}</C.Provider>;
+  return <C.Provider value={{ data, settings, t, reload, save, saveMany, saveLocalNote, removeLocalNote, remove, setLocalSettings }}>{children}</C.Provider>;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Download, Upload, CheckCircle2, Camera, Cloud } from 'lucide-react';
+import { Loader2, Download, Upload, CheckCircle2, Camera, Cloud, Plus, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
@@ -13,27 +13,61 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+import { parseRates } from '../lib/analytics';
 
 const AVATARS = ['α', '🌟', '🚀', '🦊', '🐼', '🐺', '🦁', '🦉', '🎯', '💎', '🌙', '🔥'];
 const COLORS = ['#168be5', '#00b8d4', '#1261a0', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
 const MAX_BACKUP_BYTES = 50 * 1024 * 1024;
-const THEMES = [{ id: 'violet', fa: 'بنفش', en: 'Violet', color: '#8b5cf6' }, { id: 'blue', fa: 'آبی', en: 'Blue', color: '#279be8' }, { id: 'green', fa: 'سبز', en: 'Green', color: '#2aa876' }, { id: 'cyan', fa: 'فیروزه‌ای', en: 'Cyan', color: '#06b6d4' }, { id: 'orange', fa: 'نارنجی', en: 'Orange', color: '#f28a35' }, { id: 'pink', fa: 'صورتی', en: 'Pink', color: '#ec4899' }] as const;
+type CurrencyRateDraft = { from: string; to: string; rate: string };
+const toRateDrafts = (value: string, baseCurrency: string): CurrencyRateDraft[] =>
+  parseRates(value, baseCurrency).map((pair) => ({ ...pair, rate: String(pair.rate) }));
+const THEMES = [{ id: 'coral', fa: 'مرجانی', en: 'Coral', color: '#F36B5B' }, { id: 'violet', fa: 'بنفش', en: 'Violet', color: '#8b5cf6' }, { id: 'blue', fa: 'آبی', en: 'Blue', color: '#279be8' }, { id: 'green', fa: 'سبز', en: 'Green', color: '#2aa876' }, { id: 'cyan', fa: 'فیروزه‌ای', en: 'Cyan', color: '#06b6d4' }, { id: 'orange', fa: 'نارنجی', en: 'Orange', color: '#f28a35' }, { id: 'pink', fa: 'صورتی', en: 'Pink', color: '#ec4899' }] as const;
 
 export default function SettingsPage() {
   const { t, settings, setLocalSettings } = useStore();
   const [s, setS] = useState<Settings>(settings);
+  const [currencyPairs, setCurrencyPairs] = useState<CurrencyRateDraft[]>(() => toRateDrafts(settings.exchangeRates, settings.currency));
   useEffect(() => setS(settings), [settings]);
+  useEffect(() => setCurrencyPairs(toRateDrafts(settings.exchangeRates, settings.currency)), [settings.exchangeRates, settings.currency]);
   const [busy, setBusy] = useState(false);
   const [dropboxBusy, setDropboxBusy] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreenBusy, setFullscreenBusy] = useState(false);
+  const desktopFullscreenAvailable = typeof window !== 'undefined' &&
+    typeof window.mealphaDesktop?.getFullscreen === 'function' &&
+    typeof window.mealphaDesktop?.setFullscreen === 'function';
+  useEffect(() => {
+    const desktop = window.mealphaDesktop;
+    if (!desktop?.getFullscreen) return;
+    let active = true;
+    void desktop.getFullscreen()
+      .then((value) => { if (active) setFullscreen(Boolean(value)); })
+      .catch((error) => console.warn('Could not read desktop fullscreen state:', error));
+    return () => { active = false; };
+  }, []);
+
   const importInputRef = useRef<HTMLInputElement>(null);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS((p) => ({ ...p, [k]: v }));
 
   const submit = async () => {
     if (!s.currency.trim()) return toast.error(t('currency'));
+    const invalidPair = currencyPairs.find((pair) => {
+      const rateText = pair.rate.trim();
+      const rate = rateText === '' ? NaN : Number(rateText);
+      return !/^[A-Z]{3,8}$/.test(pair.from.trim().toUpperCase()) ||
+        !/^[A-Z]{3,8}$/.test(pair.to.trim().toUpperCase()) ||
+        pair.from.trim().toUpperCase() === pair.to.trim().toUpperCase() ||
+        rateText === '' || !Number.isFinite(rate) || rate <= 0;
+    });
+    if (invalidPair) return toast.error(fa ? 'کد دو ارز باید معتبر و متفاوت باشد و نرخ بیشتر از صفر باشد.' : 'Enter valid, different currency codes and a rate greater than zero.');
+    const pairKeys = currencyPairs.map((pair) => [pair.from.trim().toUpperCase(), pair.to.trim().toUpperCase()].sort().join(':'));
+    if (new Set(pairKeys).size !== pairKeys.length) return toast.error(fa ? 'برای هر جفت ارز فقط یک نرخ ثبت کنید.' : 'Only one rate may be entered for each currency pair.');
+    const exchangeRates = currencyPairs.map((pair) => `${pair.from.trim().toUpperCase()}/${pair.to.trim().toUpperCase()}=${pair.rate}`).join('\n');
     setBusy(true);
     try {
-      const saved = await setLocalSettings({ ...s, currency: s.currency.trim().toUpperCase() });
-      if (saved) toast.success(t('saved'));
+      const next = { ...s, currency: s.currency.trim().toUpperCase(), exchangeRates };
+      const saved = await setLocalSettings(next);
+      if (saved) { setS(next); toast.success(t('saved')); }
     } catch { toast.error(t('error')); }
     finally { setBusy(false); }
   };
@@ -56,6 +90,41 @@ export default function SettingsPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+
+
+  const toggleFullscreen = async () => {
+    const desktop = window.mealphaDesktop;
+    if (!desktop?.setFullscreen || fullscreenBusy) return;
+    setFullscreenBusy(true);
+    try {
+      const next = await desktop.setFullscreen(!fullscreen);
+      setFullscreen(Boolean(next));
+    } catch (error) {
+      console.error('Fullscreen toggle failed:', error);
+      toast.error(settings.language === 'fa' ? 'تغییر حالت تمام‌صفحه انجام نشد.' : 'Could not change fullscreen mode.');
+    } finally {
+      setFullscreenBusy(false);
+    }
+  };
+
+  const saveDropboxSettings = async () => {
+    setDropboxBusy(true);
+    try {
+      const next = { ...settings, ...s, dropboxAppKey: (s.dropboxAppKey || '').trim() };
+      const ok = await setLocalSettings(next);
+      if (!ok) throw new Error(fa ? 'ذخیره تنظیمات Dropbox ناموفق بود.' : 'Dropbox settings save failed.');
+      const persisted = await loadAll();
+      if ((persisted.settings as Settings | null)?.dropboxAppKey !== next.dropboxAppKey) {
+        throw new Error(fa ? 'ذخیره App Key تأیید نشد.' : 'Dropbox App Key persistence could not be verified.');
+      }
+      setS(next);
+      toast.success(fa ? 'تنظیمات Dropbox ذخیره و بررسی شد.' : 'Dropbox settings saved and verified.');
+    } catch (error) {
+      console.error('Dropbox settings save failed:', error);
+      toast.error(error instanceof Error ? error.message : t('error'));
+    } finally { setDropboxBusy(false); }
   };
 
   const uploadImage = (file: File | undefined, field: 'avatarDataUrl' | 'coverDataUrl') => {
@@ -188,11 +257,11 @@ export default function SettingsPage() {
         dropboxAccountName: account?.name?.display_name || ''
       };
       const saved = await setLocalSettings(nextSettings);
-      if (!saved) {
-        sessionStorage.removeItem('mealpha.dropbox.appKey');
-        sessionStorage.removeItem('mealpha.dropbox.verifier');
-        sessionStorage.removeItem('mealpha.dropbox.state');
-        return;
+      if (!saved) throw new Error(fa ? 'ذخیره اطلاعات اتصال Dropbox ناموفق بود.' : 'Could not persist Dropbox connection.');
+      const persisted = await loadAll();
+      const stored = persisted.settings as Settings | null;
+      if (stored?.dropboxRefreshToken !== nextSettings.dropboxRefreshToken || stored?.dropboxAppKey !== appKey) {
+        throw new Error(fa ? 'ذخیره اتصال Dropbox تأیید نشد.' : 'Dropbox connection persistence could not be verified.');
       }
       setS(nextSettings);
       sessionStorage.removeItem('mealpha.dropbox.appKey');
@@ -225,8 +294,12 @@ export default function SettingsPage() {
         const token = await response.json();
         if (!response.ok) throw new Error(token.error_description || token.error || 'Dropbox token refresh failed');
         accessToken = token.access_token;
-        const refreshed = { ...settings, ...s, dropboxAccessToken: accessToken, dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000 };
-        setS(refreshed); setLocalSettings(refreshed);
+        const refreshed = { ...settings, ...s, dropboxAppKey: appKey, dropboxAccessToken: accessToken, dropboxExpiresAt: Date.now() + Number(token.expires_in || 14400) * 1000 };
+        const refreshedSaved = await setLocalSettings(refreshed);
+        if (!refreshedSaved) throw new Error(fa ? 'ذخیره توکن تازه‌شده Dropbox ناموفق بود.' : 'Could not save the refreshed Dropbox token.');
+        const persisted = await loadAll();
+        if ((persisted.settings as Settings | null)?.dropboxAccessToken !== accessToken) throw new Error(fa ? 'ذخیره توکن Dropbox تأیید نشد.' : 'Dropbox token persistence could not be verified.');
+        setS(refreshed);
       }
       const path = '/mealpha-pro-sync.json';
       const legacyPath = '/Apps/MeAlphaPro/mealpha-pro-sync.json';
@@ -318,7 +391,7 @@ export default function SettingsPage() {
 
   const fa = settings.language === 'fa';
   return (
-    <div className="max-w-3xl space-y-5">
+    <div className="mx-auto w-full min-w-0 max-w-5xl space-y-5">
       <PageHeader title={t('settings')} />
       <Panel title={fa ? 'هویت کاربری' : 'User identity'}>
         <div className="relative mb-5 h-36 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/20 via-card to-accent/15">
@@ -345,7 +418,7 @@ export default function SettingsPage() {
           </div>
         </div>
         <div className="mt-5 flex justify-end border-t pt-4">
-          <Button type="button" onClick={saveProfile} disabled={busy}>
+          <Button type="button" data-testid="save-profile-settings" onClick={saveProfile} disabled={busy}>
             {busy && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
             {fa ? 'ذخیره پروفایل' : 'Save profile'}
           </Button>
@@ -365,8 +438,25 @@ export default function SettingsPage() {
       </Panel>
       <Panel title={fa ? 'ظاهر و شخصی‌سازی' : 'Appearance & personalization'}>
         <div className="space-y-4">
-          <div><div className="flex items-center justify-between gap-2"><Label>{fa ? 'رنگ اصلی برنامه' : 'Accent color'}</Label><span className="text-[10px] text-muted-foreground">{fa ? 'در هر دو حالت روز و شب حفظ می‌شود' : 'Persists in both light and dark mode'}</span></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">{THEMES.map((theme) => <button key={theme.id} type="button" aria-pressed={s.colorTheme === theme.id} onClick={() => set('colorTheme', theme.id as Settings['colorTheme'])} className={`flex items-center gap-3 rounded-xl border p-3 text-start transition-all ${s.colorTheme === theme.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border hover:border-primary/50'}`}><span className="h-7 w-7 shrink-0 rounded-full shadow-sm" style={{ background: theme.color }} /><span className="text-sm font-medium">{fa ? theme.fa : theme.en}</span>{s.colorTheme === theme.id && <CheckCircle2 className="ms-auto h-4 w-4 text-primary" />}</button>)}</div></div>
+          <div><div className="flex items-center justify-between gap-2"><Label>{fa ? 'رنگ اصلی برنامه' : 'Accent color'}</Label><span className="text-[10px] text-muted-foreground">{fa ? 'در هر دو حالت روز و شب حفظ می‌شود' : 'Persists in both light and dark mode'}</span></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">{THEMES.map((theme) => <button key={theme.id} type="button" aria-pressed={s.colorTheme === theme.id} data-testid={`accent-theme-${theme.id}`} onClick={() => set('colorTheme', theme.id as Settings['colorTheme'])} className={`flex items-center gap-3 rounded-xl border p-3 text-start transition-all ${s.colorTheme === theme.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border hover:border-primary/50'}`}><span className="h-7 w-7 shrink-0 rounded-full shadow-sm" style={{ background: theme.color }} /><span className="text-sm font-medium">{fa ? theme.fa : theme.en}</span>{s.colorTheme === theme.id && <CheckCircle2 className="ms-auto h-4 w-4 text-primary" />}</button>)}</div></div>
           <div className="space-y-1.5"><Label>{fa ? 'حالت نمایش' : 'Appearance mode'}</Label><Select value={s.theme || 'dark'} onValueChange={(v) => set('theme', v as Settings['theme'])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="dark">{fa ? 'تیره' : 'Dark'}</SelectItem><SelectItem value="light">{fa ? 'روشن' : 'Light'}</SelectItem></SelectContent></Select></div>
+          {desktopFullscreenAvailable && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-background/50 p-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                  {fullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold">{fa ? 'حالت تمام‌صفحه' : 'Fullscreen mode'}</div>
+                  <p className="text-xs text-muted-foreground">{fa ? 'نمایش برنامه در تمام فضای صفحه ویندوز' : 'Use the full available Windows desktop area'}</p>
+                </div>
+              </div>
+              <Button type="button" data-testid="fullscreen-toggle" aria-pressed={fullscreen} variant={fullscreen ? 'secondary' : 'outline'} onClick={() => void toggleFullscreen()} disabled={fullscreenBusy}>
+                {fullscreenBusy && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                {fullscreen ? (fa ? 'خروج از تمام‌صفحه' : 'Exit fullscreen') : (fa ? 'فعال‌کردن تمام‌صفحه' : 'Enter fullscreen')}
+              </Button>
+            </div>
+          )}
         </div>
       </Panel>
       <Panel title={fa ? 'تنظیمات عمومی' : 'General settings'}>
@@ -375,7 +465,18 @@ export default function SettingsPage() {
           <div className="space-y-1.5"><Label>{t('calendar')}</Label><Select value={s.calendar} onValueChange={(v) => set('calendar', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="jalali">{t('jalali')}</SelectItem><SelectItem value="gregorian">{t('gregorian')}</SelectItem></SelectContent></Select></div>
           <div className="space-y-1.5"><Label>{t('reportCurrency')}</Label><Input value={s.currency} onChange={(e) => set('currency', e.target.value)} placeholder="IRT, IRR, USD, EUR…" /></div>
           <div className="space-y-1.5"><Label>{t('monthlyBudget')}</Label><Input type="number" value={s.monthlyBudget ?? ''} onChange={(e) => set('monthlyBudget', e.target.value === '' ? null : Number(e.target.value))} /></div>
-          <div className="space-y-1.5 sm:col-span-2"><Label>{t('rates')}</Label><Textarea dir="ltr" rows={4} value={s.exchangeRates} onChange={(e) => set('exchangeRates', e.target.value)} placeholder={'USD=600000\\nEUR=650000'} className="font-mono" /><p className="text-xs text-muted-foreground">{t('ratesHelp')}</p></div>
+          <div className="space-y-3 sm:col-span-2">
+            <div className="flex items-center justify-between gap-3"><Label>{fa ? 'تعریف نرخ تبدیل ارز' : 'Currency exchange rates'}</Label><Button type="button" size="sm" variant="outline" onClick={() => setCurrencyPairs((rows) => [...rows, { from: 'USD', to: s.currency || 'IRT', rate: '1' }])}><Plus className="me-1 h-4 w-4" />{fa ? 'افزودن نرخ' : 'Add rate'}</Button></div>
+            {currencyPairs.length === 0 && <p className="rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground">{fa ? 'هنوز نرخی ثبت نشده است. برای شروع «افزودن نرخ» را بزنید.' : 'No exchange rates yet. Select Add rate to create one.'}</p>}
+            {currencyPairs.map((pair, index) => <div key={index} className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2 rounded-xl border bg-card/50 p-3">
+              <div className="min-w-0 space-y-1"><Label className="text-[10px]">{fa ? 'ارز مبدا' : 'From'}</Label><Input dir="ltr" maxLength={8} value={pair.from} onChange={(e) => setCurrencyPairs((rows) => rows.map((row, i) => i === index ? { ...row, from: e.target.value.toUpperCase() } : row))} placeholder="USD" /></div>
+              <span className="pb-2 text-muted-foreground">=</span>
+              <div className="min-w-0 space-y-1"><Label className="text-[10px]">{fa ? 'ارز مقصد' : 'To'}</Label><Input dir="ltr" maxLength={8} value={pair.to} onChange={(e) => setCurrencyPairs((rows) => rows.map((row, i) => i === index ? { ...row, to: e.target.value.toUpperCase() } : row))} placeholder="IRR" /></div>
+              <div className="min-w-0 space-y-1"><Label className="text-[10px]">{fa ? 'مقدار معادل' : 'Equivalent'}</Label><Input dir="ltr" type="number" min="0" step="any" value={pair.rate} onChange={(e) => setCurrencyPairs((rows) => rows.map((row, i) => i === index ? { ...row, rate: e.target.value } : row))} placeholder="110000" /></div>
+              <Button type="button" size="icon" variant="ghost" aria-label={fa ? 'حذف نرخ' : 'Remove rate'} onClick={() => setCurrencyPairs((rows) => rows.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+            </div>)}
+            <p className="text-xs text-muted-foreground">{fa ? 'مثال: USD = IRT 26000 یعنی هر ۱ دلار برابر ۲۶٬۰۰۰ واحد IRT است. در فرم بالا ارز مبدا USD، ارز مقصد IRT و مقدار معادل 26000 را وارد کنید. نرخ معکوس و تبدیل‌های زنجیره‌ای خودکار محاسبه می‌شوند.' : 'Example: USD = IRT 26000 means 1 USD = 26,000 IRT. Enter From USD, To IRT and Equivalent 26000 above. Inverse and cross-rates are calculated automatically.'}</p>
+          </div>
         </div>
         <Button className="mt-6" onClick={submit} disabled={busy}>{busy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{t('save')}</Button>
       </Panel>
@@ -403,6 +504,7 @@ export default function SettingsPage() {
           </details>
           <div className="grid sm:grid-cols-[1fr_auto] gap-2 items-end">
             <div className="space-y-1.5"><Label>Dropbox App Key</Label><Input dir="ltr" value={s.dropboxAppKey || ''} onChange={e => set('dropboxAppKey', e.target.value.trim())} placeholder="Enter your Dropbox app key" /></div>
+            <Button type="button" variant="outline" onClick={saveDropboxSettings} disabled={dropboxBusy}>{fa ? 'ذخیره App Key' : 'Save App Key'}</Button>
             <Button type="button" variant="outline" onClick={connectDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{s.dropboxRefreshToken ? (fa ? 'اتصال مجدد' : 'Reconnect') : (fa ? 'اتصال Dropbox' : 'Connect Dropbox')}</Button>
           </div>
           {s.dropboxRefreshToken && <div className="flex items-center justify-between gap-3 text-xs text-emerald-500"><span>{fa ? 'متصل' : 'Connected'}{s.dropboxAccountName ? ' · ' + s.dropboxAccountName : ''}</span><Button type="button" size="sm" onClick={syncDropbox} disabled={dropboxBusy}>{dropboxBusy && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{fa ? 'همگام‌سازی اکنون' : 'Sync now'}</Button></div>}
