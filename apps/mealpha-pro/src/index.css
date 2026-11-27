@@ -204,6 +204,31 @@ html, body, * { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / .25
   border-color: hsl(199 92% 65% / .42);
   color: white;
 }
+
+.mealpha-glass-sidebar:not(.mealpha-sidebar-expanded) .mealpha-sidebar-search button {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  height: 40px;
+  justify-content: center;
+  padding-inline: 0;
+  gap: 0;
+}
+.mealpha-glass-sidebar:not(.mealpha-sidebar-expanded) .mealpha-sidebar-search button > span,
+.mealpha-glass-sidebar:not(.mealpha-sidebar-expanded) .mealpha-sidebar-search button > kbd {
+  display: none;
+}
+.mealpha-glass-sidebar.mealpha-sidebar-expanded .mealpha-sidebar-search button {
+  width: 100%;
+  max-width: 100%;
+}
+.mealpha-glass-sidebar .mealpha-sidebar-search {
+  flex: 0 0 3rem;
+}
+.mealpha-glass-sidebar .mealpha-sidebar-search button svg {
+  flex: 0 0 auto;
+}
+
 .mealpha-glass-shell .app-topbar {
   border-color: hsl(var(--border) / .62);
   background: hsl(var(--background) / .72);
