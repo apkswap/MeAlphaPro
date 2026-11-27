@@ -73,6 +73,14 @@ export default function Layout() {
     };
   }, []);
   useEffect(() => { setMobileMenu(false); setActivePopover(null); }, [location.pathname]);
+  useEffect(() => {
+    if (!mobileMenu) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileMenu(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [mobileMenu]);
   const toggleTheme = () => setLocalSettings({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' });
   const toggleLang = () => setLocalSettings({ ...settings, language: settings.language === 'fa' ? 'en' : 'fa' });
   const fa = settings.language === 'fa';
@@ -210,31 +218,30 @@ export default function Layout() {
   const profileLabel = settings.displayName || settings.username || (fa ? 'پروفایل من' : 'My profile');
   const openTaskCount = data?.tasks.filter((task: any) => task.dailyEntryType !== 'journal' && task.status !== 'Done').length ?? 0;
   const goalCount = data?.goals.length ?? 0;
-  const contextualItems = financeActive
-    ? [
-        { to: '/transactions', icon: Receipt, labelFa: 'تراکنش‌ها', labelEn: 'Transactions' },
-        { to: '/wealth?tab=assets', icon: Landmark, labelFa: 'دارایی‌ها', labelEn: 'Assets' },
-        { to: '/wealth?tab=liabilities', icon: Wallet, labelFa: 'بدهی‌ها', labelEn: 'Liabilities' },
-        { to: '/insights', icon: Sparkles, labelFa: 'گزارش‌ها', labelEn: 'Reports' },
-      ]
-    : location.pathname === '/workspace' || location.pathname === '/settings'
-      ? [
-          { to: '/workspace', icon: Layers3, labelFa: 'فضای کار', labelEn: 'Workspace' },
-          { to: '/settings', icon: Settings, labelFa: 'تنظیمات', labelEn: 'Settings' },
-          { to: '/', icon: LayoutDashboard, labelFa: 'داشبورد', labelEn: 'Dashboard' },
-        ]
-      : [
-          { to: '/goals', icon: Target, labelFa: 'اهداف', labelEn: 'Goals' },
-          { to: '/tasks', icon: ListChecks, labelFa: 'کارها', labelEn: 'Tasks' },
-          { to: '/habits', icon: Repeat, labelFa: 'عادت‌ها', labelEn: 'Habits' },
-          { to: '/focus', icon: Timer, labelFa: 'تمرکز', labelEn: 'Focus' },
-        ];
-  const contextualTitle = financeActive ? (fa ? 'مالی' : 'FINANCE') : location.pathname === '/workspace' || location.pathname === '/settings' ? (fa ? 'سیستم' : 'SYSTEM') : (fa ? 'زندگی' : 'LIFE');
+
+  const activeHabitCount = data?.habits.filter((habit: any) => !habit.archived).length ?? 0;
+  const pendingPaymentCount = data?.paymentReminders.filter((reminder: any) => reminder.status !== 'Paid').length ?? 0;
+  const mobileGroups = [
+    { id: 'overview', label: fa ? 'نمای کلی' : 'OVERVIEW', items: NAV.filter(n => n.group === 'main') },
+    { id: 'life', label: fa ? 'مدیریت زندگی' : 'LIFE MANAGEMENT', items: NAV.filter(n => n.group === 'manage' && !n.parent && n.to !== '/insights') },
+    { id: 'intelligence', label: fa ? 'هوشمندی و تحلیل' : 'INTELLIGENCE', items: NAV.filter(n => n.to === '/insights') },
+    { id: 'finance', label: fa ? 'مدیریت مالی' : 'FINANCE', items: NAV.filter(n => n.parent === 'finance') },
+    { id: 'system', label: fa ? 'فضای کار و سیستم' : 'WORKSPACE & SYSTEM', items: NAV.filter(n => n.group === 'system') },
+  ];
+  const mobileBadge = (to: string) => {
+    if (to === '/tasks') return openTaskCount;
+    if (to === '/goals') return goalCount;
+    if (to === '/habits') return activeHabitCount;
+    if (to === '/transactions') return pendingPaymentCount;
+    if (to === '/wealth?tab=assets') return data?.assets.length ?? 0;
+    if (to === '/wealth?tab=liabilities') return data?.liabilities.length ?? 0;
+    return 0;
+  };
   return (
     <div className="mealpha-app-shell min-h-screen bg-background text-foreground md:flex">
-      <aside className="relative z-50 hidden h-screen w-[96px] shrink-0 md:sticky md:top-0 md:block" aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'}>
+      <aside className="relative z-50 hidden h-screen w-[88px] shrink-0 md:sticky md:top-0 md:block" aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'}>
         <div
-          className={cn('mealpha-sidebar-panel absolute inset-y-4 start-3 z-50 flex flex-col rounded-[30px] border py-3 text-white shadow-2xl transition-[width] duration-300 ease-out', sidebarExpanded ? 'w-[278px] px-2.5' : 'w-[68px] px-1.5')}
+          className={cn('mealpha-sidebar-panel absolute inset-y-4 start-3 z-50 flex flex-col rounded-[30px] border py-3 text-white shadow-2xl transition-[width] duration-300 ease-out', sidebarExpanded ? 'w-[232px] px-2.5' : 'w-[68px] px-1.5')}
           onMouseEnter={() => setSidebarHovered(true)}
           onMouseLeave={() => setSidebarHovered(false)}
         >
@@ -292,18 +299,7 @@ export default function Layout() {
 
           </div>
 
-          {sidebarExpanded && <div className="mealpha-contextual-rail absolute inset-y-12 end-[-48px] z-[60] flex w-10 flex-col items-center gap-2 rounded-full border py-3 shadow-xl">
-            <span className="h-1.5 w-1.5 rounded-full bg-sky-500/80" />
-            {contextualItems.map(item => {
-              const active = location.pathname + location.search === item.to || location.pathname === item.to;
-              return <NavLink key={item.to} to={item.to} title={fa ? item.labelFa : item.labelEn}
-                aria-label={fa ? item.labelFa : item.labelEn}
-                className={cn('grid h-8 w-8 place-items-center rounded-full transition-all duration-200', active ? 'bg-sky-100 text-slate-900 shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900')}>
-                <item.icon className="h-4 w-4" />
-              </NavLink>;
-            })}
-            <span className="mt-auto text-[8px] font-black tracking-[.16em] text-slate-400" style={{ writingMode: 'vertical-rl' }}>{contextualTitle}</span>
-          </div>}
+
         </div>
         <GlobalSearch externalTrigger />
       </aside>
@@ -347,22 +343,89 @@ export default function Layout() {
 
           </div>
         </header>
-        {mobileMenu && <div id="mealpha-mobile-menu" role="dialog" aria-label={fa ? 'منوی اصلی' : 'Main menu'} className="mealpha-mobile-menu fixed inset-x-0 top-[calc(68px+env(safe-area-inset-top))] z-[65] max-h-[calc(100dvh-68px-env(safe-area-inset-top))] overflow-y-auto overscroll-contain border-b p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl md:hidden"><div className="grid grid-cols-2 gap-2">
-          {NAV.filter(n => !n.parent).map(n => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({isActive}) => cn('flex items-center gap-2 rounded-xl p-3 text-sm', isActive ? 'bg-primary/10 text-primary' : 'bg-card text-muted-foreground')}><n.icon className="h-4 w-4" />{t(n.k)}</NavLink>)}
-          <div className="col-span-2 rounded-xl border bg-card/60 p-2">
-            <button type="button" aria-expanded={financeOpen} onClick={() => setFinanceOpen(value => !value)} className="flex w-full items-center gap-2 rounded-lg p-2 text-sm font-semibold">
-              <Wallet className="h-4 w-4 text-primary" /><span className="flex-1 text-start">{fa ? 'مدیریت مالی' : 'Financial management'}</span><ChevronDown className={cn('h-4 w-4 transition-transform', financeOpen && 'rotate-180')} />
-            </button>
-            {financeOpen && <div className="mt-2 grid grid-cols-3 gap-2">
-              {NAV.filter(n => n.parent === 'finance').map(n => {
-                const selected = n.to === '/transactions' ? location.pathname === '/transactions' : location.pathname === '/wealth' && location.search === n.to.slice('/wealth'.length);
-                return <NavLink key={n.to} to={n.to} className={cn('flex min-w-0 flex-col items-center gap-1 rounded-lg bg-background p-2 text-center text-xs', selected ? 'text-primary ring-1 ring-primary/30' : 'text-muted-foreground')}>
-                  <n.icon className="h-4 w-4" /><span className="truncate">{fa ? n.labelFa : n.labelEn}</span>
-                </NavLink>;
-              })}
-            </div>}
-          </div>
-        </div><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}{fa ? 'تغییر تم' : 'Toggle theme'}</Button><Button variant="outline" size="sm" onClick={toggleLang}><Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}</Button></div></div>}
+        {mobileMenu && <>
+          <button type="button" aria-label={fa ? 'بستن منوی اصلی' : 'Close main menu'} onClick={() => setMobileMenu(false)}
+            className="fixed inset-0 z-[60] bg-slate-950/55 backdrop-blur-sm md:hidden" />
+          <section id="mealpha-mobile-menu" role="dialog" aria-modal="true" aria-label={fa ? 'مرکز دسترسی MeAlpha' : 'MeAlpha navigation center'}
+            className="mealpha-mobile-menu fixed inset-y-2 start-2 z-[70] flex w-[min(24rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-[28px] border border-border/70 bg-card/95 p-4 shadow-2xl backdrop-blur-2xl md:hidden">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border/70 pb-4">
+              <div className="min-w-0">
+                <div className="text-[9px] font-black tracking-[.2em] text-primary">MEALPHA / NAVIGATOR</div>
+                <h2 className="mt-1 text-lg font-black">{fa ? 'مرکز دسترسی' : 'Navigation center'}</h2>
+                <p className="mt-1 text-[11px] text-muted-foreground">{fa ? 'همه بخش‌ها و ابزارهای فضای شخصی' : 'Every module in your personal workspace'}</p>
+              </div>
+              <button type="button" onClick={() => setMobileMenu(false)} aria-label={fa ? 'بستن' : 'Close'}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border bg-background/70 text-muted-foreground transition hover:bg-secondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-3 grid shrink-0 grid-cols-3 gap-2">
+              <div className="rounded-2xl border bg-background/70 p-2.5">
+                <div className="text-lg font-black tabular-nums">{openTaskCount}</div>
+                <div className="mt-0.5 truncate text-[10px] text-muted-foreground">{fa ? 'کار باز' : 'Open tasks'}</div>
+              </div>
+              <div className="rounded-2xl border bg-background/70 p-2.5">
+                <div className="text-lg font-black tabular-nums">{goalCount}</div>
+                <div className="mt-0.5 truncate text-[10px] text-muted-foreground">{fa ? 'هدف' : 'Goals'}</div>
+              </div>
+              <div className="rounded-2xl border bg-background/70 p-2.5">
+                <div className="text-lg font-black tabular-nums">{pendingPaymentCount}</div>
+                <div className="mt-0.5 truncate text-[10px] text-muted-foreground">{fa ? 'پرداخت باز' : 'Open payments'}</div>
+              </div>
+            </div>
+
+            <div className="mt-3 grid shrink-0 grid-cols-2 gap-2">
+              <button type="button" onClick={() => { setMobileMenu(false); window.dispatchEvent(new Event('mealpha:open-global-search')); }}
+                className="flex h-10 items-center justify-center gap-2 rounded-xl border bg-background/70 text-xs font-semibold text-foreground transition hover:border-primary/40 hover:bg-primary/5">
+                <Search className="h-4 w-4 text-primary" />{fa ? 'جستجوی همه‌جا' : 'Search everything'}
+              </button>
+              <NavLink to="/focus" onClick={() => setMobileMenu(false)}
+                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-primary-foreground shadow-lg shadow-primary/15">
+                <Timer className="h-4 w-4" />{fa ? 'شروع تمرکز' : 'Start focus'}
+              </NavLink>
+            </div>
+
+            <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pe-1">
+              {mobileGroups.filter(group => group.items.length > 0).map(group => (
+                <section key={group.id} aria-labelledby={`mobile-nav-${group.id}`}>
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 id={`mobile-nav-${group.id}`} className="text-[9px] font-black tracking-[.16em] text-muted-foreground">{group.label}</h3>
+                    <span className="h-px w-8 bg-border" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {group.items.map(item => {
+                      const badge = mobileBadge(item.to);
+                      const selected = item.to.includes('?')
+                        ? location.pathname + location.search === item.to
+                        : location.pathname === item.to;
+                      const label = item.parent ? (fa ? item.labelFa : item.labelEn) : t(item.k);
+                      return <NavLink key={item.to} to={item.to} onClick={() => setMobileMenu(false)}
+                        className={cn('flex min-h-12 min-w-0 items-center gap-2 rounded-2xl border px-3 py-2 text-start transition-all',
+                          selected ? 'border-primary/35 bg-primary/10 text-primary shadow-sm' : 'border-border/70 bg-background/65 text-foreground hover:border-primary/25 hover:bg-primary/5')}>
+                        <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-xl', selected ? 'bg-primary/15' : 'bg-muted/80')}>
+                          <item.icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[11px] font-semibold">{label}</span>
+                        {badge > 0 && <span className="min-w-5 rounded-full bg-primary/10 px-1.5 py-0.5 text-center text-[9px] font-black tabular-nums text-primary">{badge}</span>}
+                      </NavLink>;
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+
+            <div className="mt-3 grid shrink-0 grid-cols-2 gap-2 border-t border-border/70 pt-3">
+              <Button variant="outline" size="sm" className="h-10 rounded-xl" onClick={toggleTheme}>
+                {settings.theme === 'light' ? <Moon className="me-2 h-4 w-4" /> : <Sun className="me-2 h-4 w-4" />}
+                {fa ? 'تغییر تم' : 'Change theme'}
+              </Button>
+              <Button variant="outline" size="sm" className="h-10 rounded-xl" onClick={toggleLang}>
+                <Languages className="me-2 h-4 w-4" />{fa ? 'English' : 'فارسی'}
+              </Button>
+            </div>
+          </section>
+        </>}
         <main className="mx-auto min-h-[calc(100dvh-68px-env(safe-area-inset-top))] w-full max-w-[1600px] px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-6 md:min-h-0 md:px-8 md:pb-10 md:pt-8"><Outlet /></main>
       </div>
     </div>
