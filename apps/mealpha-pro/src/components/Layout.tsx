@@ -347,6 +347,22 @@ export default function Layout() {
               <span className={cn('min-w-0 truncate font-semibold', dropboxConnected ? 'text-emerald-200' : 'text-slate-400')}>{dropboxConnected ? (fa ? 'Dropbox متصل' : 'Dropbox linked') : (fa ? 'Dropbox متصل نیست' : 'Dropbox not connected')}</span>
               {dropboxConnected && settings.dropboxAccountName && <span className="ms-auto max-w-20 truncate text-[9px] text-slate-400">{settings.dropboxAccountName}</span>}
             </div>}
+            {!sidebarExpanded && <div className="flex items-center justify-center gap-1 py-1">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                aria-label={settings.theme === 'light' ? (fa ? 'شب' : 'Night') : (fa ? 'روز' : 'Day')}
+                title={settings.theme === 'light' ? (fa ? 'حالت تاریک' : 'Dark theme') : (fa ? 'حالت روشن' : 'Light theme')}
+                className="grid h-8 w-8 place-items-center rounded-full text-slate-300/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              >{settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
+              <button
+                type="button"
+                onClick={toggleLang}
+                aria-label={fa ? 'EN' : 'فا'}
+                title={fa ? 'English' : 'فارسی'}
+                className="grid h-8 w-8 place-items-center rounded-full text-slate-300/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              ><Languages className="h-4 w-4" /></button>
+            </div>}
             <NavLink to="/settings" title={profileLabel} className={cn(
               'flex min-h-10 items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-white/10',
               sidebarExpanded ? 'justify-start' : 'justify-center'
