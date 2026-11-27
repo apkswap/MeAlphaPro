@@ -33,7 +33,8 @@ export default function Layout() {
   const mobileMenuPanelRef = useRef<HTMLElement>(null);
   const [sidebarPinned, setSidebarPinned] = useState(false);
   const [sidebarHovered, setSidebarHovered] = useState(false);
-  const sidebarExpanded = sidebarPinned || sidebarHovered;
+  const [sidebarFocused, setSidebarFocused] = useState(false);
+  const sidebarExpanded = sidebarPinned || sidebarHovered || sidebarFocused;
   const [financeOpen, setFinanceOpen] = useState(false);
   const [activePopover, setActivePopover] = useState<'notifications' | 'profile' | null>(null);
   const headerActionsRef = useRef<HTMLDivElement>(null);
@@ -290,6 +291,10 @@ export default function Layout() {
           className={cn('mealpha-sidebar-panel absolute inset-y-4 start-3 z-50 flex flex-col rounded-[30px] border py-3 text-white shadow-2xl transition-[width] duration-300 ease-out', sidebarExpanded ? 'w-[232px] px-2.5' : 'w-[68px] px-1.5')}
           onMouseEnter={() => setSidebarHovered(true)}
           onMouseLeave={() => setSidebarHovered(false)}
+          onFocusCapture={() => setSidebarFocused(true)}
+          onBlurCapture={event => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSidebarFocused(false);
+          }}
         >
           <div className={cn('mb-4 flex min-h-14 items-center gap-1', sidebarExpanded ? 'justify-between' : 'justify-center')}>
             <NavLink to="/" title="MeAlpha" className={cn('flex min-w-0 items-center rounded-2xl transition-colors hover:bg-white/5', sidebarExpanded ? 'flex-1 justify-start gap-2 px-1 py-1' : 'h-14 w-14 min-w-14 shrink-0 justify-center')}>
