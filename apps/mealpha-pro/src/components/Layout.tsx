@@ -229,6 +229,8 @@ export default function Layout() {
       </div>
     </div>
   ));
+  const currentNav = NAV.find(n => n.to === location.pathname + location.search) ?? NAV.find(n => n.to === location.pathname);
+  const currentNavLabel = currentNav ? (fa ? currentNav.labelFa || t(currentNav.k) : currentNav.labelEn || t(currentNav.k)) : t('dashboard');
   const profileLabel = settings.displayName || settings.username || (fa ? 'پروفایل من' : 'My profile');
   const contextualRailItems: { to: string; icon: typeof Target; label: string }[] =
     location.pathname === '/transactions' || location.pathname === '/wealth'
