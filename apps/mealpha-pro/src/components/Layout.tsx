@@ -302,7 +302,7 @@ export default function Layout() {
             <div className="flex min-h-11 items-center justify-between gap-2">
               <NavLink to="/" className={cn('flex min-w-0 items-center gap-3', sidebarExpanded ? 'flex-1' : 'mx-auto')}>
                 <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[18px] bg-gradient-to-br from-sky-300 via-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 ring-1 ring-white/25">
-                  <img src="/mealpha.svg" alt="MeAlpha" className="h-8 w-8 object-contain" />
+                  <img src="/mealpha.svg" alt="MeAlpha" className="h-14 w-14 object-contain" />
                 </span>
                 {sidebarExpanded && <span className="min-w-0 whitespace-nowrap">
                   <span className="block text-[15px] font-black tracking-tight text-white">MeAlpha</span>
