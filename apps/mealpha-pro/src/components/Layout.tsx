@@ -287,7 +287,7 @@ export default function Layout() {
     <div className="mealpha-glass-shell min-h-screen bg-background text-foreground md:flex">
       <aside
         aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'}
-        className="relative z-50 hidden w-[88px] shrink-0 md:sticky md:top-0 md:block md:h-screen"
+        className="relative z-50 hidden w-[96px] shrink-0 md:sticky md:top-0 md:block md:h-screen"
       >
         <div
           dir={fa ? 'rtl' : 'ltr'}
@@ -295,13 +295,13 @@ export default function Layout() {
           onMouseLeave={() => { if (!sidebarPinned) setSidebarExpanded(false); }}
           className={cn(
             'mealpha-glass-sidebar absolute inset-y-4 start-3 z-50 flex flex-col overflow-hidden rounded-[30px] border border-white/15 px-2 py-3 text-white shadow-[0_20px_72px_-24px_rgba(0,0,0,.82)] backdrop-blur-2xl transition-[width,box-shadow] duration-300 ease-out',
-            sidebarExpanded ? 'w-[310px]' : 'w-[68px]'
+            sidebarExpanded ? 'w-[310px] mealpha-sidebar-expanded' : 'w-[76px]'
           )}
         >
           <div className="mealpha-glass-sidebar__top mb-3 shrink-0 rounded-[23px] p-2">
             <div className="flex min-h-11 items-center justify-between gap-2">
               <NavLink to="/" className={cn('flex min-w-0 items-center gap-3', sidebarExpanded ? 'flex-1' : 'mx-auto')}>
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[15px] bg-gradient-to-br from-sky-300 via-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 ring-1 ring-white/25">
+                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[18px] bg-gradient-to-br from-sky-300 via-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 ring-1 ring-white/25">
                   <img src="/mealpha.svg" alt="MeAlpha" className="h-8 w-8 object-contain" />
                 </span>
                 {sidebarExpanded && <span className="min-w-0 whitespace-nowrap">
@@ -329,10 +329,7 @@ export default function Layout() {
             >{fa ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</button>}
           </div>
 
-          {desktopViewport && <div className={cn(
-            'mealpha-sidebar-search mb-3 overflow-hidden px-1 transition-all duration-200',
-            sidebarExpanded ? 'visible max-h-12 opacity-100' : 'invisible pointer-events-none max-h-0 opacity-0'
-          )}><GlobalSearch /></div>}
+          {desktopViewport && <div className="mealpha-sidebar-search mb-3 h-12 overflow-hidden px-1"><GlobalSearch /></div>}
 
           <nav aria-label={fa ? 'بخش‌های برنامه' : 'Application sections'} className={cn(
             'min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-0.5 pt-1 transition-[padding] duration-200',
