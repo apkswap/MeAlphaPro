@@ -70,7 +70,9 @@ const COLLECTIONS: { key: string; route: string; kindFa: string; kindEn: string;
   { key: 'liabilities', route: '/wealth', kindFa: 'بدهی', kindEn: 'Liability', fields: ['name', 'description', 'category', 'currency', 'amount', 'dueDate'] },
 ];
 
-export default function GlobalSearch() {
+type GlobalSearchProps = { externalTrigger?: boolean };
+
+export default function GlobalSearch({ externalTrigger = false }: GlobalSearchProps) {
   const { data, settings } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -92,6 +94,17 @@ export default function GlobalSearch() {
     setActiveIndex(0);
     setOpen(true);
   };
+
+  useEffect(() => {
+    if (!externalTrigger) return;
+    const onExternalOpen = () => {
+      setQuery('');
+      setActiveIndex(0);
+      setOpen(true);
+    };
+    window.addEventListener('mealpha:open-global-search', onExternalOpen);
+    return () => window.removeEventListener('mealpha:open-global-search', onExternalOpen);
+  }, [externalTrigger]);
 
   useEffect(() => {
     closeSearch();
@@ -184,6 +197,7 @@ export default function GlobalSearch() {
 
   return (
     <>
+      {!externalTrigger && (
       <button ref={triggerRef} type="button" onClick={openSearch}
         className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-xl border bg-card/70 px-2 text-start text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary sm:w-60 sm:justify-start sm:px-3"
         aria-label={fa ? 'جستجوی سراسری' : 'Global search'} aria-haspopup="dialog" aria-expanded={open}>
@@ -191,6 +205,7 @@ export default function GlobalSearch() {
         <span className="hidden min-w-0 flex-1 truncate text-xs sm:block">{fa ? 'جستجو در برنامه...' : 'Search your workspace...'}</span>
         <kbd className="hidden rounded border px-1.5 py-0.5 text-[9px] sm:inline">Ctrl K</kbd>
       </button>
+      )}
       {open && createPortal(
         <div data-testid="global-search-overlay"
           className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-black/65 p-3 backdrop-blur-md sm:p-6"
