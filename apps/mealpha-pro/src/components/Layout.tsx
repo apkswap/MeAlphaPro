@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Wallet, ChevronDown, Sparkles, Settings, Languages, Layers3, Sun, Moon, Bell, Cloud, Menu, X, ChevronLeft, CalendarClock } from 'lucide-react';
+import { LayoutDashboard, Target, ListChecks, Repeat, Timer, Receipt, Landmark, Wallet, ChevronDown, Sparkles, Settings, Languages, Layers3, Sun, Moon, Bell, Cloud, Menu, X, ChevronLeft, ChevronRight, UserRound, CalendarClock } from 'lucide-react';
 import { Button } from '@project/components/ui/button';
 import { cn } from '@project/components/lib/utils';
 import { useStore } from '../lib/store';
@@ -31,6 +31,9 @@ export default function Layout() {
   const { t, settings, setLocalSettings, data, save } = useStore();
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [sidebarPinned, setSidebarPinned] = useState(false);
+  const [desktopViewport, setDesktopViewport] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches);
   const [financeOpen, setFinanceOpen] = useState(false);
   const [activePopover, setActivePopover] = useState<'notifications' | 'profile' | null>(null);
   const firedTaskReminders = useRef(new Set<string>());
@@ -72,6 +75,13 @@ export default function Layout() {
     };
   }, []);
   useEffect(() => { setMobileMenu(false); setActivePopover(null); }, [location.pathname]);
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    const updateViewport = () => setDesktopViewport(media.matches);
+    updateViewport();
+    media.addEventListener('change', updateViewport);
+    return () => media.removeEventListener('change', updateViewport);
+  }, []);
   const toggleTheme = () => setLocalSettings({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' });
   const toggleLang = () => setLocalSettings({ ...settings, language: settings.language === 'fa' ? 'en' : 'fa' });
   const fa = settings.language === 'fa';
@@ -168,29 +178,50 @@ export default function Layout() {
     { id: 'system', label: fa ? 'فضای کار' : 'WORKSPACE' },
   ] as const;
   const navLink = ({ isActive }: { isActive: boolean }) => cn(
-    'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200',
-    isActive ? 'bg-gradient-to-r from-primary via-primary to-primary/85 text-primary-foreground shadow-xl shadow-primary/25 ring-1 ring-white/15' : 'text-muted-foreground hover:bg-primary/[.07] hover:text-foreground'
+    'mealpha-sidebar-link flex min-h-11 items-center gap-3 rounded-2xl text-[13px] font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300',
+    sidebarExpanded ? 'justify-start px-3' : 'justify-center px-0',
+    isActive
+      ? 'bg-white text-slate-950 shadow-[0_8px_26px_-12px_rgba(56,189,248,.65)] ring-1 ring-white/80'
+      : 'text-slate-200/75 hover:bg-white/10 hover:text-white'
   );
   const navItems = () => groups.map(group => (
-    <div key={group.id} className="mb-5">
-      <div className="px-3 pb-2 text-[9px] font-bold tracking-[.16em] text-muted-foreground/70">{group.label}</div>
+    <div key={group.id} className="mb-4">
+      <div className={cn(
+        'overflow-hidden whitespace-nowrap px-3 pb-2 text-[9px] font-bold tracking-[.16em] text-sky-200/65 transition-all duration-200',
+        sidebarExpanded ? 'h-5 opacity-100' : 'h-0 opacity-0'
+      )}>{group.label}</div>
       <div className="space-y-1">
         {NAV.filter(n => n.group === group.id && !n.parent).map(n => (
-          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={navLink}>
-            <n.icon className="h-[17px] w-[17px] shrink-0" /><span className="truncate">{t(n.k)}</span>
+          <NavLink key={n.to} to={n.to} end={n.to === '/'} title={!sidebarExpanded ? t(n.k) : undefined} aria-label={t(n.k)} className={navLink}>
+            <n.icon className="h-[18px] w-[18px] shrink-0" />
+            <span className={cn('min-w-0 truncate whitespace-nowrap transition-all duration-200', sidebarExpanded ? 'max-w-[190px] opacity-100' : 'max-w-0 opacity-0')}>{t(n.k)}</span>
           </NavLink>
         ))}
         {group.id === 'manage' && <div className="space-y-1">
-          <button type="button" aria-expanded={financeOpen} onClick={() => setFinanceOpen(value => !value)}
-            className={cn('group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start text-[13px] font-medium transition-all duration-200', financeActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}>
-            <Wallet className="h-[17px] w-[17px] shrink-0" /><span className="flex-1 truncate">{fa ? 'مدیریت مالی' : 'Financial management'}</span>
-            <ChevronDown className={cn('h-4 w-4 transition-transform', financeOpen && 'rotate-180')} />
+          <button
+            type="button"
+            title={!sidebarExpanded ? (fa ? 'مدیریت مالی' : 'Financial management') : undefined}
+            aria-label={fa ? 'مدیریت مالی' : 'Financial management'}
+            aria-expanded={financeOpen}
+            onClick={() => setFinanceOpen(value => !value)}
+            className={cn(
+              'mealpha-sidebar-link flex min-h-11 w-full items-center gap-3 rounded-2xl text-start text-[13px] font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300',
+              sidebarExpanded ? 'justify-start px-3' : 'justify-center px-0',
+              financeActive ? 'bg-white/15 text-white ring-1 ring-white/15' : 'text-slate-200/75 hover:bg-white/10 hover:text-white'
+            )}
+          >
+            <Wallet className="h-[18px] w-[18px] shrink-0 text-sky-200" />
+            <span className={cn('min-w-0 flex-1 truncate whitespace-nowrap transition-opacity duration-200', sidebarExpanded ? 'opacity-100' : 'hidden')}>{fa ? 'مدیریت مالی' : 'Financial management'}</span>
+            {sidebarExpanded && <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform', financeOpen && 'rotate-180')} />}
           </button>
-          {financeOpen && <div className="ms-4 space-y-1 border-s border-border ps-3">
+          {financeOpen && sidebarExpanded && <div className="ms-4 space-y-1 border-s border-white/15 ps-3">
             {NAV.filter(n => n.parent === 'finance').map(n => {
               const selected = n.to === '/transactions' ? location.pathname === '/transactions' : location.pathname === '/wealth' && location.search === n.to.slice('/wealth'.length);
-              return <NavLink key={n.to} to={n.to} className={cn('flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors', selected ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}>
-                <n.icon className="h-3.5 w-3.5 shrink-0" /><span>{fa ? n.labelFa : n.labelEn}</span>
+              return <NavLink key={n.to} to={n.to} className={cn(
+                'flex min-h-9 items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition-all duration-200',
+                selected ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-300/75 hover:bg-white/10 hover:text-white'
+              )}>
+                <n.icon className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{fa ? n.labelFa : n.labelEn}</span>
               </NavLink>;
             })}
           </div>}
@@ -198,27 +229,165 @@ export default function Layout() {
       </div>
     </div>
   ));
-  const currentNav = NAV.find(n => n.to === location.pathname + location.search) ?? NAV.find(n => n.to === location.pathname);
   const profileLabel = settings.displayName || settings.username || (fa ? 'پروفایل من' : 'My profile');
+  const contextualRailItems: { to: string; icon: typeof Target; label: string }[] =
+    location.pathname === '/transactions' || location.pathname === '/wealth'
+      ? [
+          { to: '/transactions', icon: Receipt, label: fa ? 'تراکنش‌ها' : 'Transactions' },
+          { to: '/wealth?tab=assets', icon: Landmark, label: fa ? 'دارایی‌ها' : 'Assets' },
+          { to: '/wealth?tab=liabilities', icon: Wallet, label: fa ? 'بدهی‌ها' : 'Liabilities' },
+          { to: '/insights', icon: Sparkles, label: fa ? 'تحلیل‌ها' : 'Insights' },
+        ]
+      : location.pathname === '/tasks'
+        ? [
+            { to: '/focus', icon: Timer, label: fa ? 'تمرکز' : 'Focus' },
+            { to: '/habits', icon: Repeat, label: fa ? 'عادت‌ها' : 'Habits' },
+            { to: '/goals', icon: Target, label: fa ? 'اهداف' : 'Goals' },
+          ]
+        : location.pathname === '/goals'
+          ? [
+              { to: '/tasks', icon: ListChecks, label: fa ? 'کارها' : 'Tasks' },
+              { to: '/insights', icon: Sparkles, label: fa ? 'تحلیل‌ها' : 'Insights' },
+              { to: '/workspace', icon: Layers3, label: fa ? 'فضای کار' : 'Workspace' },
+            ]
+          : location.pathname === '/habits'
+            ? [
+                { to: '/focus', icon: Timer, label: fa ? 'تمرکز' : 'Focus' },
+                { to: '/tasks', icon: ListChecks, label: fa ? 'کارها' : 'Tasks' },
+                { to: '/goals', icon: Target, label: fa ? 'اهداف' : 'Goals' },
+              ]
+            : location.pathname === '/focus'
+              ? [
+                  { to: '/tasks', icon: ListChecks, label: fa ? 'کارها' : 'Tasks' },
+                  { to: '/habits', icon: Repeat, label: fa ? 'عادت‌ها' : 'Habits' },
+                  { to: '/workspace', icon: Layers3, label: fa ? 'فضای کار' : 'Workspace' },
+                ]
+              : location.pathname === '/insights'
+                ? [
+                    { to: '/transactions', icon: Receipt, label: fa ? 'مالی' : 'Finance' },
+                    { to: '/goals', icon: Target, label: fa ? 'اهداف' : 'Goals' },
+                    { to: '/tasks', icon: ListChecks, label: fa ? 'کارها' : 'Tasks' },
+                  ]
+                : location.pathname === '/workspace'
+                  ? [
+                      { to: '/goals', icon: Target, label: fa ? 'اهداف' : 'Goals' },
+                      { to: '/tasks', icon: ListChecks, label: fa ? 'کارها' : 'Tasks' },
+                      { to: '/insights', icon: Sparkles, label: fa ? 'تحلیل‌ها' : 'Insights' },
+                    ]
+                  : [
+                      { to: '/goals', icon: Target, label: fa ? 'اهداف' : 'Goals' },
+                      { to: '/tasks', icon: ListChecks, label: fa ? 'کارها' : 'Tasks' },
+                      { to: '/transactions', icon: Receipt, label: fa ? 'مالی' : 'Finance' },
+                      { to: '/insights', icon: Sparkles, label: fa ? 'تحلیل‌ها' : 'Insights' },
+                    ];
+
   return (
-    <div className="min-h-screen bg-background text-foreground md:flex">
-      <aside className="app-sidebar hidden md:sticky md:top-4 md:my-4 md:ms-4 md:flex md:h-[calc(100dvh-2rem)] md:w-[264px] md:shrink-0 md:flex-col md:rounded-[1.75rem] md:border md:border-white/10 md:bg-sidebar-background/85 md:px-4 md:py-6 md:shadow-2xl md:shadow-primary/10 md:backdrop-blur-2xl">
-        <NavLink to="/" className="mb-9 flex items-center gap-3 rounded-2xl px-2 py-2 transition-colors hover:bg-white/[.03]">
-          <img src="/mealpha.svg" alt="MeAlpha Pro" className="h-14 w-14 shrink-0 rounded-[1.35rem] object-contain shadow-xl shadow-primary/25 ring-1 ring-amber-300/20" />
-          <div><div className="text-[15px] font-black tracking-tight">MeAlpha <span className="text-primary">Pro</span></div><div className="mt-0.5 text-[9px] font-semibold tracking-[.18em] text-muted-foreground">PERSONAL COMMAND CENTER</div></div>
-        </NavLink>
-        <nav className="min-h-0 flex-1 overflow-y-auto">{navItems()}</nav>
-        <div className="mt-4 rounded-2xl border bg-card/70 p-3">
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold"><span className={cn('h-2 w-2 rounded-full', online ? 'bg-emerald-500' : 'bg-amber-500')} />{online ? (fa ? 'اینترنت متصل' : 'Internet connected') : (fa ? 'بدون اینترنت' : 'Offline')}</div>
-          <div className="mb-3 flex min-w-0 items-center gap-2 text-[11px]" role="status" aria-live="polite">
-            <Cloud className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className={cn('h-2 w-2 shrink-0 rounded-full', dropboxConnected ? 'bg-emerald-500' : 'bg-muted-foreground/50')} />
-            <span className={cn('truncate font-semibold', dropboxConnected ? 'text-[hsl(var(--success))]' : 'text-muted-foreground')}>{dropboxConnected ? (fa ? 'حساب Dropbox متصل' : 'Dropbox account linked') : (fa ? 'Dropbox متصل نیست' : 'Dropbox not connected')}</span>
-            {dropboxConnected && settings.dropboxAccountName && <span className="ms-auto max-w-20 truncate text-[9px] text-muted-foreground">{settings.dropboxAccountName}</span>}
+    <div className="mealpha-glass-shell min-h-screen bg-background text-foreground md:flex">
+      <aside
+        aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'}
+        className="relative z-50 hidden w-[88px] shrink-0 md:sticky md:top-0 md:block md:h-screen"
+      >
+        <div
+          dir={fa ? 'rtl' : 'ltr'}
+          onMouseEnter={() => setSidebarExpanded(true)}
+          onMouseLeave={() => { if (!sidebarPinned) setSidebarExpanded(false); }}
+          className={cn(
+            'mealpha-glass-sidebar absolute inset-y-4 start-3 z-50 flex flex-col overflow-hidden rounded-[30px] border border-white/15 px-2 py-3 text-white shadow-[0_20px_72px_-24px_rgba(0,0,0,.82)] backdrop-blur-2xl transition-[width,box-shadow] duration-300 ease-out',
+            sidebarExpanded ? 'w-[310px]' : 'w-[68px]'
+          )}
+        >
+          <div className="mealpha-glass-sidebar__top mb-3 shrink-0 rounded-[23px] p-2">
+            <div className="flex min-h-11 items-center justify-between gap-2">
+              <NavLink to="/" className={cn('flex min-w-0 items-center gap-3', sidebarExpanded ? 'flex-1' : 'mx-auto')}>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[15px] bg-gradient-to-br from-sky-300 via-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 ring-1 ring-white/25">
+                  <img src="/mealpha.svg" alt="MeAlpha" className="h-8 w-8 object-contain" />
+                </span>
+                {sidebarExpanded && <span className="min-w-0 whitespace-nowrap">
+                  <span className="block text-[15px] font-black tracking-tight text-white">MeAlpha</span>
+                  <span className="mt-0.5 block text-[8px] font-bold tracking-[.15em] text-sky-100/65">PERSONAL COMMAND CENTER</span>
+                </span>}
+              </NavLink>
+              {sidebarExpanded && <button
+                type="button"
+                aria-label={sidebarPinned ? (fa ? 'جمع‌کردن نوار کناری' : 'Collapse sidebar') : (fa ? 'ثابت‌کردن نوار کناری' : 'Pin sidebar open')}
+                aria-pressed={sidebarPinned}
+                title={sidebarPinned ? (fa ? 'جمع‌کردن' : 'Collapse') : (fa ? 'ثابت نگه‌داشتن' : 'Keep expanded')}
+                onClick={() => {
+                  if (sidebarPinned) { setSidebarPinned(false); setSidebarExpanded(false); }
+                  else { setSidebarPinned(true); setSidebarExpanded(true); }
+                }}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-slate-200/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              >{fa ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button>}
+            </div>
+            {!sidebarExpanded && <button
+              type="button"
+              aria-label={fa ? 'بازکردن نوار کناری' : 'Expand sidebar'}
+              onClick={() => { setSidebarPinned(true); setSidebarExpanded(true); }}
+              className="mx-auto mt-2 grid h-7 w-7 place-items-center rounded-full text-slate-300/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+            >{fa ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</button>}
           </div>
-          <div className="flex items-center justify-between gap-2">
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={toggleTheme}>{settings.theme === 'light' ? <Moon className="me-1 h-4 w-4" /> : <Sun className="me-1 h-4 w-4" />}{settings.theme === 'light' ? (fa ? 'شب' : 'Night') : (fa ? 'روز' : 'Day')}</Button>
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={toggleLang}><Languages className="me-1 h-4 w-4" />{fa ? 'EN' : 'فا'}</Button>
+
+          {desktopViewport && <div className={cn(
+            'mealpha-sidebar-search mb-3 overflow-hidden px-1 transition-all duration-200',
+            sidebarExpanded ? 'visible max-h-12 opacity-100' : 'invisible pointer-events-none max-h-0 opacity-0'
+          )}><GlobalSearch /></div>}
+
+          <nav aria-label={fa ? 'بخش‌های برنامه' : 'Application sections'} className={cn(
+            'min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-0.5 pt-1 transition-[padding] duration-200',
+            sidebarExpanded ? 'pe-11' : 'pe-0'
+          )}>{navItems()}</nav>
+
+          <div className="mealpha-glass-sidebar__footer mt-3 shrink-0 rounded-[22px] border border-white/10 bg-white/[0.055] p-2">
+            <div className={cn('flex min-h-8 items-center gap-2 text-[10px] font-semibold text-slate-200/80', sidebarExpanded ? 'px-2' : 'justify-center')}>
+              <span className={cn('h-2 w-2 shrink-0 rounded-full', online ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.65)]' : 'bg-amber-400')} />
+              {sidebarExpanded && <span className="truncate">{online ? (fa ? 'اینترنت متصل' : 'Internet connected') : (fa ? 'بدون اینترنت' : 'Offline')}</span>}
+            </div>
+            {sidebarExpanded && <div className="flex min-w-0 items-center gap-2 px-2 text-[10px]" role="status" aria-live="polite">
+              <Cloud className="h-3.5 w-3.5 shrink-0 text-sky-200/75" />
+              <span className={cn('h-2 w-2 shrink-0 rounded-full', dropboxConnected ? 'bg-emerald-400' : 'bg-slate-500')} />
+              <span className={cn('min-w-0 truncate font-semibold', dropboxConnected ? 'text-emerald-200' : 'text-slate-400')}>{dropboxConnected ? (fa ? 'Dropbox متصل' : 'Dropbox linked') : (fa ? 'Dropbox متصل نیست' : 'Dropbox not connected')}</span>
+              {dropboxConnected && settings.dropboxAccountName && <span className="ms-auto max-w-20 truncate text-[9px] text-slate-400">{settings.dropboxAccountName}</span>}
+            </div>}
+            <NavLink to="/settings" title={profileLabel} className={cn(
+              'flex min-h-10 items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-white/10',
+              sidebarExpanded ? 'justify-start' : 'justify-center'
+            )}>
+              <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-sky-500/20 text-xs font-bold text-white ring-1 ring-white/20" style={{ backgroundColor: settings.avatarColor || undefined }}>
+                {settings.avatarDataUrl ? <img src={settings.avatarDataUrl} alt="" className="h-full w-full object-cover" /> : settings.avatarEmoji || profileLabel.slice(0, 1).toUpperCase() || 'α'}
+              </span>
+              {sidebarExpanded && <span className="min-w-0 flex-1">
+                <span className="block truncate text-[11px] font-bold text-white">{profileLabel}</span>
+                <span className="block truncate text-[9px] text-slate-400">{settings.username ? '@' + settings.username : (fa ? 'حساب کاربری' : 'Account')}</span>
+              </span>}
+              {sidebarExpanded && <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" />}
+            </NavLink>
+          </div>
+
+          <div className={cn(
+            'mealpha-glass-context-rail absolute end-2 top-3 bottom-3 z-20 flex w-9 flex-col items-center gap-2 rounded-full border border-slate-200/80 bg-white/[.96] py-3 text-slate-700 shadow-[0_8px_28px_-12px_rgba(255,255,255,.55)] transition-[opacity,transform] duration-200',
+            sidebarExpanded ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-1 opacity-0'
+          )}>
+            {contextualRailItems.map(item => {
+              const selected = item.to === location.pathname + location.search || item.to === location.pathname;
+              return <NavLink key={item.to} to={item.to} title={item.label} aria-label={item.label}
+                className={cn(
+                  'grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
+                  selected ? 'bg-sky-100 text-sky-700 shadow-sm' : 'text-slate-600 hover:bg-slate-200'
+                )}
+              ><item.icon className="h-4 w-4" /></NavLink>;
+            })}
+            <span className="my-1 h-px w-5 bg-slate-300" />
+            <button type="button" onClick={toggleTheme} title={settings.theme === 'light' ? (fa ? 'حالت تاریک' : 'Dark theme') : (fa ? 'حالت روشن' : 'Light theme')}
+              aria-label={fa ? 'تغییر پوسته' : 'Toggle theme'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+              {settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </button>
+            <button type="button" onClick={toggleLang} title={fa ? 'English' : 'فارسی'}
+              aria-label={fa ? 'تغییر زبان' : 'Change language'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+              <Languages className="h-4 w-4" />
+            </button>
+            <span className="my-1 h-px w-5 bg-slate-300" />
+            <NavLink to="/settings" title={fa ? 'تنظیمات' : 'Settings'} aria-label={fa ? 'تنظیمات' : 'Settings'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"><Settings className="h-4 w-4" /></NavLink>
+            <span className="mt-auto max-w-full overflow-hidden px-1 text-[8px] font-bold tracking-widest text-slate-400" style={{ writingMode: fa ? 'vertical-rl' : 'vertical-lr' }}>{currentNavLabel}</span>
           </div>
         </div>
       </aside>
@@ -226,11 +395,11 @@ export default function Layout() {
         <header className="app-topbar sticky top-0 z-40 flex h-[76px] min-w-0 items-center justify-between gap-1 border-b bg-background/90 px-3 backdrop-blur-xl sm:gap-3 sm:px-5 md:px-9">
           <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-3">
             <button className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border md:hidden" onClick={() => setMobileMenu(v => !v)} aria-label={fa ? 'بازکردن منو' : 'Open menu'}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
-            <div className="md:hidden flex shrink-0 items-center gap-1 whitespace-nowrap text-[13px] font-black"><img src="/mealpha.svg" alt="" className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-lg shadow-primary/20" />MeAlpha <span className="text-primary">Pro</span></div>
+            <div className="md:hidden flex shrink-0 items-center gap-1 whitespace-nowrap text-[13px] font-black"><img src="/mealpha.svg" alt="" className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-lg shadow-primary/20" />MeAlpha</div>
             <div className="hidden min-w-0 truncate text-xs text-muted-foreground lg:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{currentNav ? (fa ? currentNav.labelFa || t(currentNav.k) : currentNav.labelEn || t(currentNav.k)) : t('dashboard')}</span></div>
           </div>
           <div className="relative flex items-center gap-2">
-            <GlobalSearch />
+            {!desktopViewport && <GlobalSearch />}
             <button type="button" className={cn('relative grid h-10 w-10 place-items-center rounded-xl border bg-card/70 transition-colors hover:bg-secondary', activePopover === 'notifications' && 'border-primary text-primary')} aria-label={fa ? 'اعلان‌ها' : 'Notifications'} aria-expanded={activePopover === 'notifications'} onClick={() => setActivePopover(v => v === 'notifications' ? null : 'notifications')}>
               <Bell className="h-4 w-4" />
               {notifications.length > 0 && <span className="absolute -end-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">{notifications.length}</span>}
