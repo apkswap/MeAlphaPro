@@ -362,7 +362,7 @@ for (const viewport of viewports) {
     db.close();
   }, { id: taskId, title: taskTitle, dueDate: today });
   await page.reload({ waitUntil: 'networkidle' });
-  // Dashboard secondary panels are intentionally collapsed; open them for persistence regression checks.
+  // Open any dashboard sections needed for persistence regression checks.
   await page.locator('details').evaluateAll(elements => elements.forEach(element => { element.open = true; }));
   const taskRow = page.locator('li').filter({ hasText: taskTitle }).first();
   await taskRow.waitFor({ timeout: 5000 });
