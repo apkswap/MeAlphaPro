@@ -262,26 +262,7 @@ export default function Layout() {
 
           <nav aria-label={fa ? 'بخش‌های برنامه' : 'App sections'} className="mealpha-sidebar-nav min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-0.5 pt-1">
             {navItems()}
-            {sidebarExpanded && <>
-              <div className="mb-2 mt-5 px-3 text-[9px] font-bold tracking-[.16em] text-sky-200/60">{fa ? 'دسترسی سریع' : 'QUICK ACCESS'}</div>
-              <div className="space-y-1">
-                {[
-                  { to: '/goals', icon: Target, labelFa: 'اهداف', labelEn: 'Goals' },
-                  { to: '/tasks', icon: ListChecks, labelFa: 'کارها', labelEn: 'Tasks' },
-                  { to: '/focus', icon: Timer, labelFa: 'جلسه تمرکز', labelEn: 'Focus session' },
-                  { to: '/insights', icon: Sparkles, labelFa: 'تحلیل عملکرد', labelEn: 'Performance insights' },
-                  { to: '/workspace', icon: Layers3, labelFa: 'استودیوها', labelEn: 'Studios' },
-                ].map(item => (
-                  <NavLink key={item.to} to={item.to} title={fa ? item.labelFa : item.labelEn}
-                    className={({ isActive }) => cn('flex min-h-10 items-center gap-3 rounded-2xl px-3 text-[12px] font-medium transition-all duration-200', isActive ? 'bg-white/12 text-white ring-1 ring-white/10' : 'text-slate-300/70 hover:bg-white/10 hover:text-white')}>
-                    <item.icon className="h-4 w-4 shrink-0" />
-                    <span className="min-w-0 flex-1 truncate">{fa ? item.labelFa : item.labelEn}</span>
-                    {item.to === '/tasks' && openTaskCount > 0 && <span className="rounded-full bg-sky-300/15 px-1.5 py-0.5 text-[9px] text-sky-100">{openTaskCount}</span>}
-                    {item.to === '/goals' && goalCount > 0 && <span className="rounded-full bg-indigo-300/15 px-1.5 py-0.5 text-[9px] text-indigo-100">{goalCount}</span>}
-                  </NavLink>
-                ))}
-              </div>
-            </>}
+
           </nav>
 
           <div className="mt-3 shrink-0 space-y-2 border-t border-white/10 pt-3">
@@ -308,19 +289,7 @@ export default function Layout() {
               </span>}
             </div>
 
-            <div className={cn('flex items-center gap-1', sidebarExpanded ? 'justify-between' : 'justify-center')}>
-              <button type="button" onClick={toggleTheme} aria-label={fa ? (settings.theme === 'light' ? 'شب' : 'روز') : (settings.theme === 'light' ? 'Night' : 'Day')} title={fa ? 'تغییر پوسته' : 'Toggle theme'} className="flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-xl px-2 text-xs text-slate-300/80 transition-colors hover:bg-white/10 hover:text-white">
-                {settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                {sidebarExpanded && <span>{settings.theme === 'light' ? (fa ? 'تیره' : 'Dark') : (fa ? 'روشن' : 'Light')}</span>}
-              </button>
-              <button type="button" onClick={toggleLang} aria-label={fa ? 'EN' : 'فا'} title={fa ? 'تغییر زبان به انگلیسی' : 'Change language to Persian'} className="flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-xl px-2 text-xs text-slate-300/80 transition-colors hover:bg-white/10 hover:text-white">
-                <Languages className="h-4 w-4" />
-                {sidebarExpanded && <span>{fa ? 'EN' : 'فا'}</span>}
-              </button>
-              <NavLink to="/settings" aria-label={fa ? 'تنظیمات' : 'Settings'} title={fa ? 'تنظیمات' : 'Settings'} className="grid h-9 w-9 place-items-center rounded-xl text-slate-300/80 transition-colors hover:bg-white/10 hover:text-white">
-                <Settings className="h-4 w-4" />
-              </NavLink>
-            </div>
+
           </div>
 
           {sidebarExpanded && <div className="mealpha-contextual-rail absolute inset-y-12 end-[-48px] z-[60] flex w-10 flex-col items-center gap-2 rounded-full border py-3 shadow-xl">
