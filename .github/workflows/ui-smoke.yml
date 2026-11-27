@@ -15,6 +15,7 @@ on:
       - fix/dropbox-settings-save-logo-sizing
       - ui/glassy-v10-interactive-review
       - ui/command-center-navigation-refresh
+      - fix/deep-ui-audit-2026-11-28
     paths:
       - "apps/mealpha-pro/**"
       - "docs/favicon.svg"
