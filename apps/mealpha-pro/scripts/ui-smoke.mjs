@@ -684,11 +684,11 @@ for (const viewport of viewports) {
           /کارها|Tasks/,
           /عادت‌ها|Habits/,
           /تمرکز|Focus/,
-          /تحلیل|گزارش|بینش|Insights/,
+          /هوش عملکرد|Insights/,
           /تراکنش‌ها|Transactions/,
           /دارایی‌ها|Assets/,
           /بدهی‌ها|Liabilities/,
-          /فضای کار|Workspace/,
+          /فضای شخصی|My workspace/,
           /تنظیمات|Settings/
         ];
         for (const label of expectedModules) {
