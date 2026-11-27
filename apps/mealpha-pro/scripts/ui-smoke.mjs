@@ -681,7 +681,7 @@ for (const viewport of viewports) {
         await page.waitForFunction(() => {
           const dialog = document.getElementById('mealpha-mobile-menu');
           return !!dialog && dialog.contains(document.activeElement);
-        }, { timeout: 3000 }).catch(() => failures.push(`${viewport.name}: mobile navigation did not move focus into the drawer`));
+        }, undefined, { timeout: 3000 }).catch(() => failures.push(`${viewport.name}: mobile navigation did not move focus into the drawer`));
         if ((await page.evaluate(() => getComputedStyle(document.body).overflow)) !== 'hidden') {
           failures.push(`${viewport.name}: background page remains scrollable while mobile navigation is open`);
         }
