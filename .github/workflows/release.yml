@@ -310,7 +310,7 @@ jobs:
 
   publish:
     # Publishing a public GitHub Release requires an explicit manual dispatch.
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/fix/dropbox-settings-save-logo-sizing')
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -336,7 +336,7 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.RELEASE_TOKEN }}
           tag_name: v${{ needs.version.outputs.version }}
           target_commitish: ${{ inputs.target_sha || '810db678ef333f150cc112fc2032b095743fe223' }}
           name: MeAlpha Pro v${{ needs.version.outputs.version }}
