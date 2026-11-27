@@ -347,7 +347,7 @@ export default function Layout() {
               <span className={cn('min-w-0 truncate font-semibold', dropboxConnected ? 'text-emerald-200' : 'text-slate-400')}>{dropboxConnected ? (fa ? 'Dropbox متصل' : 'Dropbox linked') : (fa ? 'Dropbox متصل نیست' : 'Dropbox not connected')}</span>
               {dropboxConnected && settings.dropboxAccountName && <span className="ms-auto max-w-20 truncate text-[9px] text-slate-400">{settings.dropboxAccountName}</span>}
             </div>}
-            {!sidebarExpanded && <div className="flex items-center justify-center gap-1 py-1">
+            <div className="flex items-center justify-center gap-1 py-1">
               <button
                 type="button"
                 onClick={toggleTheme}
@@ -362,7 +362,7 @@ export default function Layout() {
                 title={fa ? 'English' : 'فارسی'}
                 className="grid h-8 w-8 place-items-center rounded-full text-slate-300/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
               ><Languages className="h-4 w-4" /></button>
-            </div>}
+            </div>
             <NavLink to="/settings" title={profileLabel} className={cn(
               'flex min-h-10 items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-white/10',
               sidebarExpanded ? 'justify-start' : 'justify-center'
@@ -394,14 +394,6 @@ export default function Layout() {
               ><item.icon className="h-4 w-4" /></NavLink>;
             })}
             <span className="my-1 h-px w-5 bg-slate-300" />
-            <button type="button" onClick={toggleTheme} title={settings.theme === 'light' ? (fa ? 'حالت تاریک' : 'Dark theme') : (fa ? 'حالت روشن' : 'Light theme')}
-              aria-label={settings.theme === 'light' ? (fa ? 'شب' : 'Night') : (fa ? 'روز' : 'Day')} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
-              {settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            </button>
-            <button type="button" onClick={toggleLang} title={fa ? 'English' : 'فارسی'}
-              aria-label={fa ? 'EN' : 'فا'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
-              <Languages className="h-4 w-4" />
-            </button>
             <span className="my-1 h-px w-5 bg-slate-300" />
             <NavLink to="/settings" title={fa ? 'تنظیمات' : 'Settings'} aria-label={fa ? 'تنظیمات' : 'Settings'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"><Settings className="h-4 w-4" /></NavLink>
             <span className="mt-auto max-w-full overflow-hidden px-1 text-[8px] font-bold tracking-widest text-slate-400" style={{ writingMode: fa ? 'vertical-rl' : 'vertical-lr' }}>{currentNavLabel}</span>
