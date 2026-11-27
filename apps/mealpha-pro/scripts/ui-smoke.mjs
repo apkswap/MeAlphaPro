@@ -705,7 +705,6 @@ for (const viewport of viewports) {
         await menu.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => failures.push(`${viewport.name}: Escape did not close mobile navigation drawer`));
       }
       
-      }
     } else failures.push(`${viewport.name}: hamburger menu button missing`);
     await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
     const legacyBottomNav = page.locator('nav[aria-label="ناوبری اصلی"]:visible, nav[aria-label="Primary navigation"]:visible').filter({ has: page.locator('a') });
