@@ -177,6 +177,11 @@ for (const viewport of viewports) {
               for (const label of [/تراکنش‌ها|Transactions/, /دارایی‌ها|Assets/, /بدهی‌ها|Liabilities/]) {
                 if (!(await page.getByRole('link', { name: label }).count())) failures.push(`${viewport.name}: finance subtask ${label} is missing`);
               }
+              await page.mouse.move(viewport.width - 20, viewport.height - 20);
+              await sidebar.locator('a').first().focus();
+              await page.waitForFunction(() => document.querySelector('.mealpha-sidebar-panel')?.getBoundingClientRect().width > 200, undefined, { timeout: 3000 }).catch(() => failures.push(`${viewport.name}: keyboard focus did not expand desktop navigation`));
+              await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
+              await page.waitForFunction(() => document.querySelector('.mealpha-sidebar-panel')?.getBoundingClientRect().width < 100, undefined, { timeout: 3000 }).catch(() => failures.push(`${viewport.name}: desktop navigation did not collapse after focus left`));
             }
           }
         }
