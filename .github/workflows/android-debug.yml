@@ -19,6 +19,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: mealpha-android-debug-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   android-debug:
     runs-on: ubuntu-latest
