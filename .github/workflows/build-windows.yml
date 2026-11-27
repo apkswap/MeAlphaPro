@@ -15,6 +15,7 @@ on:
       - feat/hierarchical-goals-task-reminders
       - fix/goals-hierarchy-integrity
       - fix/restore-purple-branding-profile-goals
+      - ui/glassy-v10-interactive-review
     paths:
       - "apps/**"
       - "packages/**"

@@ -13,6 +13,7 @@ on:
       - fix/goals-hierarchy-integrity
       - fix/restore-purple-branding-profile-goals
       - fix/dropbox-settings-save-logo-sizing
+      - ui/glassy-v10-interactive-review
     paths:
       - "apps/mealpha-pro/**"
       - "docs/favicon.svg"
