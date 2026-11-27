@@ -393,11 +393,11 @@ export default function Layout() {
             })}
             <span className="my-1 h-px w-5 bg-slate-300" />
             <button type="button" onClick={toggleTheme} title={settings.theme === 'light' ? (fa ? 'حالت تاریک' : 'Dark theme') : (fa ? 'حالت روشن' : 'Light theme')}
-              aria-label={fa ? 'تغییر پوسته' : 'Toggle theme'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+              aria-label={settings.theme === 'light' ? (fa ? 'شب' : 'Night') : (fa ? 'روز' : 'Day')} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
               {settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
             </button>
             <button type="button" onClick={toggleLang} title={fa ? 'English' : 'فارسی'}
-              aria-label={fa ? 'تغییر زبان' : 'Change language'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+              aria-label={fa ? 'EN' : 'فا'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
               <Languages className="h-4 w-4" />
             </button>
             <span className="my-1 h-px w-5 bg-slate-300" />
