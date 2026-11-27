@@ -663,7 +663,7 @@ for (const viewport of viewports) {
   if (isMobile) {
     await page.goto('http://127.0.0.1:8080/goals', { waitUntil: 'networkidle' });
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    const menuButton = page.getByRole('button', { name: /بازکردن منو|Open menu/ });
+    const menuButton = page.locator('button[aria-controls="mealpha-mobile-menu"]');
     if (await menuButton.count()) {
       await menuButton.click();
       const menu = page.getByRole('dialog', { name: /منوی اصلی|Main menu/ });
@@ -685,27 +685,15 @@ for (const viewport of viewports) {
       }
     } else failures.push(`${viewport.name}: hamburger menu button missing`);
     await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
-    const bottomNav = page.locator('nav[aria-label="ناوبری اصلی"]');
-    if (!(await bottomNav.count())) failures.push(`${viewport.name}: mobile bottom navigation missing`);
-    else {
-      const layout = await bottomNav.evaluate(el => {
-        const nav = el.getBoundingClientRect();
-        const links = [...el.querySelectorAll('a')].map(a => {
-          const r = a.getBoundingClientRect();
-          return { top: r.top, bottom: r.bottom, width: r.width };
-        });
-        return { navTop: nav.top, navBottom: nav.bottom, viewportHeight: innerHeight, links };
-      });
-      if (layout.links.length !== 5 || layout.links.some(link => link.width < 42)) {
-        failures.push(`${viewport.name}: mobile navigation items are missing or too narrow ${JSON.stringify(layout)}`);
-      }
-      if (layout.links.length && Math.max(...layout.links.map(link => link.top)) - Math.min(...layout.links.map(link => link.top)) > 3) {
-        failures.push(`${viewport.name}: mobile navigation items are stacked instead of aligned in one row ${JSON.stringify(layout)}`);
-      }
-      if (layout.navBottom < layout.viewportHeight - 2 || layout.navTop < layout.viewportHeight - 130) {
-        failures.push(`${viewport.name}: mobile navigation is not anchored to the bottom safe area ${JSON.stringify(layout)}`);
+    const legacyBottomNav = page.locator('nav[aria-label="ناوبری اصلی"]:visible, nav[aria-label="Primary navigation"]:visible').filter({ has: page.locator('a') });
+    if (await legacyBottomNav.count()) failures.push(`${viewport.name}: legacy fixed bottom taskbar is still visible`);
+    for (const actionName of [/جستجوی سراسری|Global search/, /اعلان‌ها|Notifications/, /پروفایل کاربری|User profile/]) {
+      if (!(await page.getByRole('button', { name: actionName }).isVisible().catch(() => false))) {
+        failures.push(`${viewport.name}: mobile header action ${actionName} is not visible`);
       }
     }
+    const mobileMainPadding = await page.locator('main').evaluate(el => parseFloat(getComputedStyle(el).paddingBottom));
+    if (mobileMainPadding > 48) failures.push(`${viewport.name}: excess bottom spacing remains after removing taskbar (padding=${mobileMainPadding}px)`);
   }
   // Regression: daily checklist and journal both live in Tasks, associated with the selected date.
   await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
