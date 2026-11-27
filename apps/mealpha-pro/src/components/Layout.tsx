@@ -36,6 +36,7 @@ export default function Layout() {
   const sidebarExpanded = sidebarPinned || sidebarHovered;
   const [financeOpen, setFinanceOpen] = useState(false);
   const [activePopover, setActivePopover] = useState<'notifications' | 'profile' | null>(null);
+  const headerActionsRef = useRef<HTMLDivElement>(null);
   const firedTaskReminders = useRef(new Set<string>());
   const location = useLocation();
   useEffect(() => {
@@ -75,6 +76,21 @@ export default function Layout() {
     };
   }, []);
   useEffect(() => { setMobileMenu(false); setActivePopover(null); }, [location.pathname]);
+  useEffect(() => {
+    if (!activePopover) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!headerActionsRef.current?.contains(event.target as Node)) setActivePopover(null);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setActivePopover(null);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [activePopover]);
   useEffect(() => {
     if (!mobileMenu) return;
     const previousFocus = document.activeElement as HTMLElement | null;
@@ -347,7 +363,7 @@ export default function Layout() {
             </button>
             <button type="button" onClick={toggleLang} aria-label={fa ? 'EN' : 'فا'} title={fa ? 'Change language' : 'تغییر زبان'} className="flex h-9 min-w-9 items-center justify-center rounded-xl border border-border/70 bg-card/70 px-2 text-[11px] font-bold text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-secondary">{fa ? 'EN' : 'فا'}</button>
           </div>
-          <div className="relative flex shrink-0 items-center gap-1 sm:gap-2">
+          <div ref={headerActionsRef} className="relative flex shrink-0 items-center gap-1 sm:gap-2">
             <button type="button" onClick={() => window.dispatchEvent(new Event('mealpha:open-global-search'))} aria-label={fa ? 'جستجوی سراسری' : 'Global search'} className="grid h-9 w-9 place-items-center rounded-xl border border-border/70 bg-card/70 text-muted-foreground shadow-sm backdrop-blur-xl transition-colors hover:border-primary/40 hover:bg-secondary sm:h-10 sm:w-10 md:hidden"><Search className="h-3.5 w-3.5" /></button>
             <button type="button" className={cn('relative grid h-9 w-9 place-items-center rounded-xl border border-border/70 bg-card/70 shadow-sm backdrop-blur-xl transition-colors hover:bg-secondary sm:h-10 sm:w-10', activePopover === 'notifications' && 'border-primary text-primary')} aria-label={fa ? 'اعلان‌ها' : 'Notifications'} aria-haspopup="dialog" aria-controls="mealpha-notification-center" aria-expanded={activePopover === 'notifications'} onClick={() => setActivePopover(v => v === 'notifications' ? null : 'notifications')}>
               <Bell className="h-4 w-4" />
