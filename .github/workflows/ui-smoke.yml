@@ -29,6 +29,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: mealpha-ui-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ui-smoke:
     runs-on: ubuntu-latest
