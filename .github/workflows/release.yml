@@ -13,6 +13,12 @@ on:
       - "package-lock.json"
       - ".github/workflows/release.yml"
   workflow_dispatch:
+    inputs:
+      target_sha:
+        description: "Exact commit to build and release"
+        required: true
+        default: "810db678ef333f150cc112fc2032b095743fe223"
+        type: string
 
 permissions:
   contents: read
@@ -29,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - name: Read application version
         id: version
@@ -43,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -109,7 +115,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -150,7 +156,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -278,7 +284,7 @@ jobs:
       - name: Checkout exact release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
       - name: Download release binaries
         uses: actions/download-artifact@v4
@@ -293,11 +299,11 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.RELEASE_TOKEN }}
           tag_name: v${{ needs.version.outputs.version }}
-          target_commitish: ${{ github.sha }}
+          target_commitish: ${{ inputs.target_sha || github.sha }}
           name: MeAlpha Pro v${{ needs.version.outputs.version }}
           generate_release_notes: true
           make_latest: true
