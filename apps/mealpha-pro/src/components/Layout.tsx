@@ -241,8 +241,8 @@ export default function Layout() {
           onMouseLeave={() => setSidebarHovered(false)}
         >
           <div className={cn('mb-4 flex min-h-14 items-center gap-1', sidebarExpanded ? 'justify-between' : 'justify-center')}>
-            <NavLink to="/" title="MeAlpha" className={cn('flex min-w-0 items-center rounded-2xl transition-colors hover:bg-white/5', sidebarExpanded ? 'flex-1 justify-start gap-2 px-1 py-1' : 'h-14 w-14 justify-center')}>
-              <img src="/mealpha.svg" alt="MeAlpha" className="h-14 w-14 shrink-0 rounded-2xl object-contain" />
+            <NavLink to="/" title="MeAlpha" className={cn('flex min-w-0 items-center rounded-2xl transition-colors hover:bg-white/5', sidebarExpanded ? 'flex-1 justify-start gap-2 px-1 py-1' : 'h-14 w-14 min-w-14 shrink-0 justify-center')}>
+              <img src="/mealpha.svg" alt="MeAlpha" className="h-14 w-14 min-w-14 shrink-0 rounded-2xl object-contain" />
               {sidebarExpanded && <div className="min-w-0 whitespace-nowrap">
                 <div className="text-[15px] font-black tracking-tight text-white">MeAlpha</div>
                 <div className="mt-0.5 text-[8px] font-bold tracking-[.16em] text-sky-200/60">PERSONAL COMMAND CENTER</div>
