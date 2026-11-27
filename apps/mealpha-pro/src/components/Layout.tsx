@@ -192,13 +192,13 @@ export default function Layout() {
       )}>{group.label}</div>
       <div className="space-y-1">
         {NAV.filter(n => n.group === group.id && !n.parent).map(n => (
-          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={navLink}>
+          <NavLink key={n.to} to={n.to} end={n.to === '/'} title={!sidebarExpanded ? t(n.k) : undefined} aria-label={t(n.k)} className={navLink}>
             <n.icon className="h-[18px] w-[18px] shrink-0" />
             <span className={cn('min-w-0 truncate whitespace-nowrap transition-all duration-200', sidebarExpanded ? 'max-w-[190px] opacity-100' : 'max-w-0 opacity-0')}>{t(n.k)}</span>
           </NavLink>
         ))}
         {group.id === 'manage' && <div className="space-y-1">
-          <button type="button" aria-expanded={financeOpen} onClick={() => setFinanceOpen(value => !value)}
+          <button type="button" title={!sidebarExpanded ? (fa ? 'مدیریت مالی' : 'Financial management') : undefined} aria-label={fa ? 'مدیریت مالی' : 'Financial management'} aria-expanded={financeOpen} onClick={() => setFinanceOpen(value => !value)
             className={cn(
               'mealpha-sidebar-link flex min-h-11 w-full items-center gap-3 rounded-2xl text-start text-[13px] font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300',
               sidebarExpanded ? 'justify-start px-3' : 'justify-center px-0',
@@ -224,17 +224,69 @@ export default function Layout() {
     </div>
   ));
   const currentNav = NAV.find(n => n.to === location.pathname + location.search) ?? NAV.find(n => n.to === location.pathname);
-  const currentNavLabel = currentNav ? (fa ? currentNav.labelFa || t(currentNav.k) : currentNav.labelEn || t(currentNav.k)) : t('dashboard');  const profileLabel = settings.displayName || settings.username || (fa ? 'پروفایل من' : 'My profile');
+  const currentNavLabel = currentNav ? (fa ? currentNav.labelFa || t(currentNav.k) : currentNav.labelEn || t(currentNav.k)) : t('dashboard');
+  const profileLabel = settings.displayName || settings.username || (fa ? 'پروفایل من' : 'My profile');
+  const contextualRailItems: { to: string; icon: typeof Target; label: string }[] =
+    location.pathname === '/transactions' || location.pathname === '/wealth'
+      ? [
+          { to: '/transactions', icon: Receipt, label: fa ? 'تراکنش‌ها' : 'Transactions' },
+          { to: '/wealth?tab=assets', icon: Landmark, label: fa ? 'دارایی‌ها' : 'Assets' },
+          { to: '/wealth?tab=liabilities', icon: Wallet, label: fa ? 'بدهی‌ها' : 'Liabilities' },
+          { to: '/insights', icon: Sparkles, label: fa ? 'تحلیل‌ها' : 'Insights' },
+        ]
+      : location.pathname === '/tasks'
+        ? [
+            { to: '/focus', icon: Timer, label: fa ? 'تمرکز' : 'Focus' },
+            { to: '/habits', icon: Repeat, label: fa ? 'عادت‌ها' : 'Habits' },
+            { to: '/goals', icon: Target, label: fa ? 'اهداف' : 'Goals' },
+          ]
+        : location.pathname === '/goals'
+          ? [
+              { to: '/tasks', icon: ListChecks, label: fa ? 'کارها' : 'Tasks' },
+              { to: '/insights', icon: Sparkles, label: fa ? 'تحلیل‌ها' : 'Insights' },
+              { to: '/workspace', icon: Layers3, label: fa ? 'فضای کار' : 'Workspace' },
+            ]
+          : location.pathname === '/habits'
+            ? [
+                { to: '/focus', icon: Timer, label: fa ? 'تمرکز' : 'Focus' },
+                { to: '/tasks', icon: ListChecks, label: fa ? 'کارها' : 'Tasks' },
+                { to: '/goals', icon: Target, label: fa ? 'اهداف' : 'Goals' },
+              ]
+            : location.pathname === '/focus'
+              ? [
+                  { to: '/tasks', icon: ListChecks, label: fa ? 'کارها' : 'Tasks' },
+                  { to: '/habits', icon: Repeat, label: fa ? 'عادت‌ها' : 'Habits' },
+                  { to: '/workspace', icon: Layers3, label: fa ? 'فضای کار' : 'Workspace' },
+                ]
+              : location.pathname === '/insights'
+                ? [
+                    { to: '/transactions', icon: Receipt, label: fa ? 'مالی' : 'Finance' },
+                    { to: '/goals', icon: Target, label: fa ? 'اهداف' : 'Goals' },
+                    { to: '/tasks', icon: ListChecks, label: fa ? 'کارها' : 'Tasks' },
+                  ]
+                : location.pathname === '/workspace'
+                  ? [
+                      { to: '/goals', icon: Target, label: fa ? 'اهداف' : 'Goals' },
+                      { to: '/tasks', icon: ListChecks, label: fa ? 'کارها' : 'Tasks' },
+                      { to: '/insights', icon: Sparkles, label: fa ? 'تحلیل‌ها' : 'Insights' },
+                    ]
+                  : [
+                      { to: '/goals', icon: Target, label: fa ? 'اهداف' : 'Goals' },
+                      { to: '/tasks', icon: ListChecks, label: fa ? 'کارها' : 'Tasks' },
+                      { to: '/transactions', icon: Receipt, label: fa ? 'مالی' : 'Finance' },
+                      { to: '/insights', icon: Sparkles, label: fa ? 'تحلیل‌ها' : 'Insights' },
+                    ];
+
   return (
     <div className="mealpha-glass-shell min-h-screen bg-background text-foreground md:flex">
       <aside
         aria-label={fa ? 'ناوبری اصلی' : 'Primary navigation'}
         className="relative z-50 hidden w-[88px] shrink-0 md:sticky md:top-0 md:block md:h-screen"
-        onMouseEnter={() => setSidebarExpanded(true)}
-        onMouseLeave={() => { if (!sidebarPinned) setSidebarExpanded(false); }}
       >
         <div
           dir={fa ? 'rtl' : 'ltr'}
+          onMouseEnter={() => setSidebarExpanded(true)}
+          onMouseLeave={() => { if (!sidebarPinned) setSidebarExpanded(false); }}
           className={cn(
             'mealpha-glass-sidebar absolute inset-y-4 start-3 z-50 flex flex-col overflow-hidden rounded-[30px] border border-white/15 px-2 py-3 text-white shadow-[0_20px_72px_-24px_rgba(0,0,0,.82)] backdrop-blur-2xl transition-[width,box-shadow] duration-300 ease-out',
             sidebarExpanded ? 'w-[310px]' : 'w-[68px]'
@@ -261,19 +313,19 @@ export default function Layout() {
                   else { setSidebarPinned(true); setSidebarExpanded(true); }
                 }}
                 className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-slate-200/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-              ><ChevronLeft className="h-4 w-4" /></button>}
+              >{fa ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button>}
             </div>
             {!sidebarExpanded && <button
               type="button"
               aria-label={fa ? 'بازکردن نوار کناری' : 'Expand sidebar'}
               onClick={() => { setSidebarPinned(true); setSidebarExpanded(true); }}
               className="mx-auto mt-2 grid h-7 w-7 place-items-center rounded-full text-slate-300/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-            ><ChevronRight className="h-3.5 w-3.5" /></button>}
+            >{fa ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</button>}
           </div>
 
           {desktopViewport && <div className={cn(
             'mealpha-sidebar-search mb-3 overflow-hidden px-1 transition-all duration-200',
-            sidebarExpanded ? 'max-h-12 opacity-100' : 'pointer-events-none max-h-0 opacity-0'
+            sidebarExpanded ? 'visible max-h-12 opacity-100' : 'invisible pointer-events-none max-h-0 opacity-0'
           )}><GlobalSearch /></div>}
 
           <nav aria-label={fa ? 'بخش‌های برنامه' : 'Application sections'} className={cn(
@@ -311,6 +363,20 @@ export default function Layout() {
             'mealpha-glass-context-rail absolute end-2 top-3 bottom-3 z-20 flex w-9 flex-col items-center gap-2 rounded-full border border-slate-200/80 bg-white/[.96] py-3 text-slate-700 shadow-[0_8px_28px_-12px_rgba(255,255,255,.55)] transition-[opacity,transform] duration-200',
             sidebarExpanded ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-1 opacity-0'
           )}>
+            {contextualRailItems.map(item => {
+              const selected = item.to === location.pathname + location.search || item.to === location.pathname;
+              return <NavLink
+                key={item.to}
+                to={item.to}
+                title={item.label}
+                aria-label={item.label}
+                className={cn(
+                  'grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
+                  selected ? 'bg-sky-100 text-sky-700 shadow-sm' : 'text-slate-600 hover:bg-slate-200'
+                )}
+              ><item.icon className="h-4 w-4" /></NavLink>;
+            })}
+            <span className="my-1 h-px w-5 bg-slate-300" />
             <button type="button" onClick={toggleTheme} title={settings.theme === 'light' ? (fa ? 'حالت تاریک' : 'Dark theme') : (fa ? 'حالت روشن' : 'Light theme')}
               aria-label={fa ? 'تغییر پوسته' : 'Toggle theme'} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
               {settings.theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
