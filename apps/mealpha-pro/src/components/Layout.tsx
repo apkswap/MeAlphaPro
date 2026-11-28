@@ -85,10 +85,10 @@ export default function Layout() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setActivePopover(null);
     };
-    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('pointerdown', onPointerDown, true);
     window.addEventListener('keydown', onKeyDown);
     return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('pointerdown', onPointerDown, true);
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [activePopover]);
