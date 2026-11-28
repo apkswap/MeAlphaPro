@@ -80,7 +80,11 @@ export default function Layout() {
   useEffect(() => {
     if (!activePopover) return;
     const onPointerDown = (event: PointerEvent) => {
-      if (!headerActionsRef.current?.contains(event.target as Node)) setActivePopover(null);
+      const root = headerActionsRef.current;
+      const path = event.composedPath();
+      const target = event.target;
+      const inside = Boolean(root && (path.includes(root) || (target instanceof Node && root.contains(target))));
+      if (!inside) setActivePopover(null);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setActivePopover(null);
@@ -125,6 +129,21 @@ export default function Layout() {
       if (mobileMenuTriggerRef.current?.isConnected) mobileMenuTriggerRef.current.focus();
       else previousFocus?.focus?.();
     };
+  }, [mobileMenu]);
+  useEffect(() => {
+    if (!mobileMenu) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      const panel = mobileMenuPanelRef.current;
+      const trigger = mobileMenuTriggerRef.current;
+      const path = event.composedPath();
+      const insidePanel = Boolean(panel && (path.includes(panel) || panel.contains(target)));
+      const insideTrigger = Boolean(trigger && (path.includes(trigger) || trigger.contains(target)));
+      if (!insidePanel && !insideTrigger) setMobileMenu(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => document.removeEventListener('pointerdown', onPointerDown, true);
   }, [mobileMenu]);
   const toggleTheme = () => setLocalSettings({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' });
   const toggleLang = () => setLocalSettings({ ...settings, language: settings.language === 'fa' ? 'en' : 'fa' });
@@ -300,8 +319,8 @@ export default function Layout() {
             <NavLink to="/" title="MeAlpha" className={cn('flex min-w-0 items-center rounded-2xl transition-colors hover:bg-white/5', sidebarExpanded ? 'flex-1 justify-start gap-2 px-1 py-1' : 'h-14 w-14 min-w-14 shrink-0 justify-center')}>
               <img src="/mealpha.svg" alt="MeAlpha" className="h-14 w-14 min-w-14 shrink-0 rounded-2xl object-contain" />
               {sidebarExpanded && <div className="min-w-0 whitespace-nowrap">
-                <div className="text-[15px] font-black tracking-tight text-white">MeAlpha</div>
-                <div className="mt-0.5 text-[8px] font-bold tracking-[.16em] text-sky-200/60">PERSONAL COMMAND CENTER</div>
+                <div className="text-[15px] font-black tracking-tight text-white">MeAlpha Pro</div>
+                <div className="mt-0.5 text-[8px] font-bold tracking-[.16em] text-sky-200/60">PLAN • MANAGE • ACHIEVE</div>
               </div>}
             </NavLink>
             {sidebarExpanded && <button type="button" onClick={() => setSidebarPinned(value => !value)} aria-label={sidebarPinned ? (fa ? 'جمع‌کردن نوار کناری' : 'Unpin sidebar') : (fa ? 'ثابت‌کردن نوار کناری' : 'Pin sidebar')} aria-expanded={sidebarExpanded}
@@ -358,7 +377,7 @@ export default function Layout() {
         <header className="app-topbar sticky top-0 z-40 flex h-[calc(68px+env(safe-area-inset-top))] min-w-0 items-center justify-between gap-1 border-b bg-background/85 px-2.5 pt-[env(safe-area-inset-top)] backdrop-blur-2xl sm:h-[76px] sm:px-5 sm:pt-0 md:px-9">
           <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-3">
             <button type="button" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border/70 bg-card/70 shadow-sm backdrop-blur-xl md:hidden" ref={mobileMenuTriggerRef} onClick={() => setMobileMenu(v => !v)} aria-label={mobileMenu ? (fa ? 'بستن منو' : 'Close menu') : (fa ? 'بازکردن منو' : 'Open menu')} aria-expanded={mobileMenu} aria-controls="mealpha-mobile-menu" title={mobileMenu ? (fa ? 'بستن منو' : 'Close menu') : (fa ? 'بازکردن منو' : 'Open menu')}>{mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
-            <div className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-black sm:text-[13px] md:hidden"><img src="/mealpha.svg" alt="" className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-lg shadow-primary/20" />MeAlpha</div>
+            <div className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] font-black sm:text-[12px] md:hidden"><img src="/mealpha.svg" alt="" className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-lg shadow-primary/20" />MeAlpha Pro</div>
             <div className="hidden min-w-0 truncate text-xs text-muted-foreground lg:block">{fa ? 'فضای شخصی شما' : 'Your personal workspace'} <span className="mx-2 opacity-40">/</span><span className="font-semibold text-foreground">{currentNav ? (fa ? currentNav.labelFa || t(currentNav.k) : currentNav.labelEn || t(currentNav.k)) : t('dashboard')}</span></div>
           </div>
           <div className="hidden shrink-0 items-center gap-1 md:flex">
