@@ -181,6 +181,7 @@ for (const viewport of viewports) {
               await sidebar.locator('a').first().focus();
               await page.waitForFunction(() => document.querySelector('.mealpha-sidebar-panel')?.getBoundingClientRect().width > 200, undefined, { timeout: 3000 }).catch(() => failures.push(`${viewport.name}: keyboard focus did not expand desktop navigation`));
               await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
+              await page.mouse.move(viewport.width - 20, viewport.height - 20);
               await page.waitForFunction(() => document.querySelector('.mealpha-sidebar-panel')?.getBoundingClientRect().width < 100, undefined, { timeout: 3000 }).catch(() => failures.push(`${viewport.name}: desktop navigation did not collapse after focus left`));
             }
           }
@@ -637,7 +638,7 @@ for (const viewport of viewports) {
     await notificationPanel.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: Escape did not close notification panel`));
     await notificationsButton.click();
     await notificationPanel.waitFor({ state: 'visible', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: notification panel did not reopen`));
-    await page.mouse.click(20, 180);
+    await page.locator('main').click({ position: { x: 12, y: 12 } });
     await notificationPanel.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: outside click did not close notification panel`));
   } else {
     failures.push(`${viewport.name}: notification bell control missing`);
