@@ -638,7 +638,8 @@ for (const viewport of viewports) {
     await notificationPanel.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: Escape did not close notification panel`));
     await notificationsButton.click();
     await notificationPanel.waitFor({ state: 'visible', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: notification panel did not reopen`));
-    await page.locator('main').click({ position: { x: 12, y: 12 } });
+    const safeOutsidePoint = { x: 12, y: Math.max(12, (page.viewportSize()?.height ?? 768) - 16) };
+    await page.mouse.click(safeOutsidePoint.x, safeOutsidePoint.y);
     await notificationPanel.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: outside click did not close notification panel`));
   } else {
     failures.push(`${viewport.name}: notification bell control missing`);
@@ -654,6 +655,10 @@ for (const viewport of viewports) {
     await profilePanel.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: Escape did not close profile panel`));
     await profileButton.click();
     await profilePanel.waitFor({ state: 'visible', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: profile panel did not reopen`));
+    await page.mouse.click(12, Math.max(12, (page.viewportSize()?.height ?? 768) - 16));
+    await profilePanel.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: outside click did not close profile panel`));
+    await profileButton.click();
+    await profilePanel.waitFor({ state: 'visible', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: profile panel did not reopen after outside click`));
     const profileLink = page.getByRole('link', { name: /مشاهده و ویرایش پروفایل|View and edit profile/ });
     if (await profileLink.count()) {
       await profileLink.click();
@@ -731,6 +736,16 @@ for (const viewport of viewports) {
           failures.push(`${viewport.name}: navigation drawer is outside the visible viewport ${JSON.stringify(bounds)}`);
         }
         await menu.screenshot({ path: `ui-${viewport.name}-navigation.png` });
+        const drawerBounds = await menu.evaluate(el => { const r = el.getBoundingClientRect(); return { left: r.left, right: r.right }; });
+        const viewportSize = page.viewportSize() ?? { width: 390, height: 844 };
+        const outsideX = drawerBounds.left > 8 ? 4 : viewportSize.width - 4;
+        await page.mouse.click(outsideX, Math.floor(viewportSize.height / 2));
+        await menu.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: clicking outside the navigation drawer did not close it`));
+        if ((await page.evaluate(() => getComputedStyle(document.body).overflow)) === 'hidden') {
+          failures.push(`${viewport.name}: outside click did not release mobile navigation scroll lock`);
+        }
+        await menuButton.click();
+        await menu.waitFor({ state: 'visible', timeout: 3000 }).catch(() => failures.push(`${viewport.name}: navigation drawer did not reopen after outside click`));
         await page.keyboard.press('Shift+Tab');
         if (!(await menu.evaluate(el => el.contains(document.activeElement)))) failures.push(`${viewport.name}: keyboard focus escaped the mobile navigation drawer`);
         await page.keyboard.press('Escape');
