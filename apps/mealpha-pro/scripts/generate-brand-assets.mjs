@@ -64,7 +64,7 @@ async function generateAndroid() {
   await fs.writeFile(
     path.join(drawable, 'ic_launcher_background.xml'),
     '<?xml version="1.0" encoding="utf-8"?>\n' +
-    '<color xmlns:android="http://schemas.android.com/apk/res/android" android:color="#17112f" />\n',
+    '<color xmlns:android="http://schemas.android.com/apk/res/android" android:color="#07182d" />\n',
   );
   const adaptive = path.join(resources, 'mipmap-anydpi-v26');
   await fs.mkdir(adaptive, { recursive: true });
